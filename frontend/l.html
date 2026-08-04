@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fresh Monitor - Privacy Policy</title>
+  <!-- Google Fonts & FontAwesome Icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+  <style>
+    /* Reset & Base Styles */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Inter', sans-serif;
+    }
+
+    body {
+      background: linear-gradient(rgba(0, 0, 0, 0.65), rgba(0, 0, 0, 0.65)),
+                  url('https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=1920&q=80') center/cover fixed no-repeat;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      color: #ffffff;
+    }
+
+    /* Header Navbar */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 8%;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 1.2rem;
+      letter-spacing: 0.5px;
+      color: #4ade80;
+      text-decoration: none;
+    }
+
+    .logo span {
+      color: #ffffff;
+      display: block;
+      font-size: 0.75rem;
+      letter-spacing: 1.5px;
+    }
+
+    .btn-back {
+      color: #e5e7eb;
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: color 0.3s;
+    }
+
+    .btn-back:hover {
+      color: #4ade80;
+    }
+
+    /* Page Container */
+    .privacy-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 40px 20px;
+    }
+
+    /* Glassmorphism Card */
+    .privacy-card {
+      background: rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 20px;
+      padding: 40px;
+      width: 100%;
+      max-width: 800px;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    }
+
+    .privacy-header {
+      text-align: center;
+      margin-bottom: 30px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+      padding-bottom: 20px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 1px;
+      margin-bottom: 12px;
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    .privacy-header h1 {
+      font-size: 2.2rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .privacy-header p {
+      font-size: 0.88rem;
+      color: #d1d5db;
+    }
+
+    /* Document Content Layout */
+    .privacy-body {
+      color: #e5e7eb;
+      line-height: 1.6;
+      font-size: 0.95rem;
+      max-height: 500px;
+      overflow-y: auto;
+      padding-right: 15px;
+    }
+
+    /* Custom Scrollbar */
+    .privacy-body::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .privacy-body::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+    }
+
+    .privacy-body::-webkit-scrollbar-thumb {
+      background: rgba(74, 222, 128, 0.5);
+      border-radius: 10px;
+    }
+
+    .privacy-body::-webkit-scrollbar-thumb:hover {
+      background: #4ade80;
+    }
+
+    .privacy-section {
+      margin-bottom: 25px;
+    }
+
+    .privacy-section h2 {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: #4ade80;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .privacy-section p {
+      margin-bottom: 10px;
+      color: #d1d5db;
+    }
+
+    .privacy-section ul {
+      list-style-type: disc;
+      padding-left: 20px;
+      color: #d1d5db;
+    }
+
+    .privacy-section ul li {
+      margin-bottom: 6px;
+    }
+
+    /* Actions Bar */
+    .privacy-footer-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 30px;
+      border-top: 1px solid rgba(255, 255, 255, 0.15);
+      padding-top: 20px;
+    }
+
+    .btn-accept {
+      background-color: #4ade80;
+      color: #111827;
+      padding: 12px 28px;
+      border: none;
+      border-radius: 25px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+      transition: background 0.3s;
+    }
+
+    .btn-accept:hover {
+      background-color: #22c55e;
+    }
+
+    /* Footer Bar */
+    footer {
+      background-color: #1a2a22;
+      color: #9ca3af;
+      padding: 15px 8%;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      font-size: 0.85rem;
+    }
+
+    .footer-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .footer-item i {
+      color: #4ade80;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header Navbar -->
+  <header>
+    <a href="index.html.html" class="logo">
+      <i class="fa-solid fa-leaf"></i>
+      <div>
+        FRESH
+        <span>MONITOR</span>
+      </div>
+    </a>
+    <a href="signup.html" class="btn-back">
+      <i class="fa-solid fa-arrow-left"></i> Back to Home
+    </a>
+  </header>
+
+  <!-- Privacy Policy Section -->
+  <div class="privacy-container">
+    <div class="privacy-card">
+      <div class="privacy-header">
+        <div class="badge">
+          <i class="fa-solid fa-user-lock"></i> DATA PROTECTION
+        </div>
+        <h1>Privacy Policy</h1>
+        <p>Last updated: August 2026</p>
+      </div>
+
+      <div class="privacy-body">
+        <div class="privacy-section">
+          <h2><i class="fa-solid fa-shield-halved"></i> 1. Information We Collect</h2>
+          <p>At Fresh Monitor, we prioritize your privacy. We collect minimal personal data to provide and improve our service, including:</p>
+          <ul>
+            <li><strong>Account Information:</strong> Name, email address, phone number, and authentication details.</li>
+            <li><strong>Usage & Food Data:</strong> Food images, nutritional tracking data, and freshness analysis query logs.</li>
+            <li><strong>Technical Data:</strong> IP address, device type, and browser diagnostics for system security.</li>
+          </ul>
+        </div>
+
+        <div class="privacy-section">
+          <h2><i class="fa-solid fa-brain"></i> 2. How We Use Your Information</h2>
+          <p>We use your information strictly to provide and optimize the Fresh Monitor experience:</p>
+          <ul>
+            <li>To generate AI analysis on food quality, shelf life, and macronutrient content.</li>
+            <li>To manage your account, authenticate sign-ins, and process password resets.</li>
+            <li>To train and improve our internal AI freshness models using anonymized data.</li>
+          </ul>
+        </div>
+
+        <div class="privacy-section">
+          <h2><i class="fa-solid fa-lock"></i> 3. Data Security & Storage</h2>
+          <p>Your data is protected using end-to-end encryption standards both in transit and at rest. We do not sell your personal data to third parties or advertising networks under any circumstances.</p>
+        </div>
+
+        <div class="privacy-section">
+          <h2><i class="fa-solid fa-share-nodes"></i> 4. Third-Party Services</h2>
+          <p>We may integrate trusted third-party providers for essential features such as authentication (e.g., Google, Apple) and transactional SMS/email services. These services adhere strictly to data protection privacy standards.</p>
+        </div>
+
+        <div class="privacy-section">
+          <h2><i class="fa-solid fa-user-gear"></i> 5. Your Rights & Choices</h2>
+          <p>You have full control over your personal data. You can request account deletion, access your stored data, or update your information at any time directly through your account settings or by contacting our support team.</p>
+        </div>
+      </div>
+
+      <div class="privacy-footer-actions">
+        <a href="signup.html" class="btn-back"><i class="fa-solid fa-arrow-left"></i> Back</a>
+        <a href="signup.html" class="btn-accept">I Understand <i class="fa-solid fa-check"></i></a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Footer Bar -->
+  <footer>
+    <div class="footer-item">
+      <i class="fa-solid fa-shield-halved"></i>
+      <span>Trusted by Thousands</span>
+    </div>
+    <div class="footer-item">
+      <i class="fa-solid fa-bullseye"></i>
+      <span>Accurate Predictions</span>
+    </div>
+    <div class="footer-item">
+      <i class="fa-solid fa-heart"></i>
+      <span>Healthy Future</span>
+    </div>
+  </footer>
+
+</body>
+</html>

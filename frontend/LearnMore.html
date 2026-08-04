@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fresh Monitor - Learn More</title>
+  <!-- Google Fonts & FontAwesome Icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+  <style>
+    /* Reset & Base Styles */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Inter', sans-serif;
+    }
+
+    body {
+      background: linear-gradient(rgba(0, 0, 0, 0.65), rgba(0, 0, 0, 0.65)),
+                  url('https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=1920&q=80') center/cover fixed no-repeat;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      color: #ffffff;
+    }
+
+    /* Header Navbar */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 8%;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 1.2rem;
+      letter-spacing: 0.5px;
+      color: #4ade80;
+      text-decoration: none;
+    }
+
+    .logo span {
+      color: #ffffff;
+      display: block;
+      font-size: 0.75rem;
+      letter-spacing: 1.5px;
+    }
+
+    .btn-back {
+      color: #e5e7eb;
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: color 0.3s;
+    }
+
+    .btn-back:hover {
+      color: #4ade80;
+    }
+
+    /* Container */
+    .learn-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 40px 20px;
+    }
+
+    /* Glassmorphism Card */
+    .learn-card {
+      background: rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 20px;
+      padding: 40px;
+      width: 100%;
+      max-width: 900px;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    }
+
+    .learn-header {
+      text-align: center;
+      margin-bottom: 35px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+      padding-bottom: 20px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 1px;
+      margin-bottom: 12px;
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    .learn-header h1 {
+      font-size: 2.2rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .learn-header p {
+      font-size: 0.95rem;
+      color: #d1d5db;
+    }
+
+    /* Features Grid */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin-bottom: 35px;
+    }
+
+    .feature-box {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 15px;
+      padding: 24px;
+      transition: transform 0.3s, background 0.3s;
+    }
+
+    .feature-box:hover {
+      transform: translateY(-5px);
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    .feature-icon {
+      width: 48px;
+      height: 48px;
+      background: rgba(74, 222, 128, 0.2);
+      border: 1px solid #4ade80;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+      color: #4ade80;
+      margin-bottom: 16px;
+    }
+
+    .feature-box h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #ffffff;
+    }
+
+    .feature-box p {
+      font-size: 0.88rem;
+      color: #d1d5db;
+      line-height: 1.5;
+    }
+
+    /* Process Steps Section */
+    .steps-section {
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 15px;
+      padding: 25px;
+      margin-bottom: 30px;
+    }
+
+    .steps-section h2 {
+      font-size: 1.25rem;
+      color: #4ade80;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .steps-list {
+      display: flex;
+      justify-content: space-between;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+
+    .step-item {
+      flex: 1;
+      min-width: 200px;
+      text-align: center;
+    }
+
+    .step-number {
+      width: 32px;
+      height: 32px;
+      background: #4ade80;
+      color: #111827;
+      border-radius: 50%;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 10px auto;
+      font-size: 0.9rem;
+    }
+
+    .step-item h4 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .step-item p {
+      font-size: 0.82rem;
+      color: #d1d5db;
+    }
+
+    /* Actions Bar */
+    .learn-footer-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid rgba(255, 255, 255, 0.15);
+      padding-top: 20px;
+    }
+
+    .btn-get-started {
+      background-color: #4ade80;
+      color: #111827;
+      padding: 12px 28px;
+      border: none;
+      border-radius: 25px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+      transition: background 0.3s;
+    }
+
+    .btn-get-started:hover {
+      background-color: #22c55e;
+    }
+
+    /* Footer Bar */
+    footer {
+      background-color: #1a2a22;
+      color: #9ca3af;
+      padding: 15px 8%;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      font-size: 0.85rem;
+    }
+
+    .footer-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .footer-item i {
+      color: #4ade80;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header Navbar -->
+  <header>
+    <a href="index.html.html" class="logo">
+      <i class="fa-solid fa-leaf"></i>
+      <div>
+        FRESH
+        <span>MONITOR</span>
+      </div>
+    </a>
+    <a href="index.html.html" class="btn-back">
+      <i class="fa-solid fa-arrow-left"></i> Back to Home
+    </a>
+  </header>
+
+  <!-- Learn More Content Container -->
+  <div class="learn-container">
+    <div class="learn-card">
+      <div class="learn-header">
+        <div class="badge">
+          <i class="fa-solid fa-lightbulb"></i> ABOUT FRESH MONITOR
+        </div>
+        <h1>Smarter Food Quality Tracking</h1>
+        <p>Discover how artificial intelligence helps eliminate food waste and protect health.</p>
+      </div>
+
+      <!-- Feature Grid -->
+      <div class="features-grid">
+        <div class="feature-box">
+          <div class="feature-icon">
+            <i class="fa-solid fa-camera"></i>
+          </div>
+          <h3>AI Image Recognition</h3>
+          <p>Instantly scan produce or packaged goods using computer vision technology to assess current freshness levels.</p>
+        </div>
+
+        <div class="feature-box">
+          <div class="feature-icon">
+            <i class="fa-solid fa-hourglass-half"></i>
+          </div>
+          <h3>Shelf-Life Predictions</h3>
+          <p>Get data-backed estimations on exact expiration windows so you consume food before it spoils.</p>
+        </div>
+
+        <div class="feature-box">
+          <div class="feature-icon">
+            <i class="fa-solid fa-heart-pulse"></i>
+          </div>
+          <h3>Nutritional Insights</h3>
+          <p>Track macronutrients and quality metrics to ensure your diet remains fresh, safe, and nutritious.</p>
+        </div>
+      </div>
+
+      <!-- How It Works Section -->
+      <div class="steps-section">
+        <h2>How It Works</h2>
+        <div class="steps-list">
+          <div class="step-item">
+            <div class="step-number">1</div>
+            <h4>Snap & Upload</h4>
+            <p>Take a quick photo or input details of your food items.</p>
+          </div>
+          <div class="step-item">
+            <div class="step-number">2</div>
+            <h4>AI Processing</h4>
+            <p>Our machine-learning models evaluate visual parameters.</p>
+          </div>
+          <div class="step-item">
+            <div class="step-number">3</div>
+            <h4>Get Results</h4>
+            <p>Receive precise freshness scores and storage tips.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer Actions -->
+      <div class="learn-footer-actions">
+        <a href="signin.html.html" class="btn-get-started">Get Started Now <i class="fa-solid fa-arrow-right"></i></a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Footer Bar -->
+  <footer>
+    <div class="footer-item">
+      <i class="fa-solid fa-shield-halved"></i>
+      <span>Trusted by Thousands</span>
+    </div>
+    <div class="footer-item">
+      <i class="fa-solid fa-bullseye"></i>
+      <span>Accurate Predictions</span>
+    </div>
+    <div class="footer-item">
+      <i class="fa-solid fa-heart"></i>
+      <span>Healthy Future</span>
+    </div>
+  </footer>
+
+</body>
+</html>

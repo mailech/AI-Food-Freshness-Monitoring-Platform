@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fresh Monitor - Password Recovery Options</title>
+  <!-- Google Fonts & FontAwesome Icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+  <style>
+    /* Reset & Base Styles */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Inter', sans-serif;
+    }
+
+    body {
+      background: linear-gradient(rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.55)),
+                  url('https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=1920&q=80') center/cover no-repeat;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      color: #ffffff;
+    }
+
+    /* Header Navbar */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 8%;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 1.2rem;
+      letter-spacing: 0.5px;
+      color: #4ade80;
+      text-decoration: none;
+    }
+
+    .logo span {
+      color: #ffffff;
+      display: block;
+      font-size: 0.75rem;
+      letter-spacing: 1.5px;
+    }
+
+    .btn-back {
+      color: #e5e7eb;
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: color 0.3s;
+    }
+
+    .btn-back:hover {
+      color: #4ade80;
+    }
+
+    /* Centered Container */
+    .recovery-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 40px 20px;
+    }
+
+    /* Glassmorphism Card */
+    .recovery-card {
+      background: rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 20px;
+      padding: 40px;
+      width: 100%;
+      max-width: 480px;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    }
+
+    .recovery-header {
+      text-align: center;
+      margin-bottom: 25px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 1px;
+      margin-bottom: 15px;
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    .recovery-header h2 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .recovery-header p {
+      font-size: 0.88rem;
+      color: #d1d5db;
+      line-height: 1.4;
+    }
+
+    /* Option Cards Group */
+    .options-group {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      margin-bottom: 25px;
+    }
+
+    .option-card {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      color: #ffffff;
+    }
+
+    .option-card:hover {
+      background: rgba(255, 255, 255, 0.18);
+      border-color: #4ade80;
+      transform: translateY(-2px);
+    }
+
+    .option-icon {
+      width: 45px;
+      height: 45px;
+      border-radius: 10px;
+      background: rgba(74, 222, 128, 0.15);
+      color: #4ade80;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 1.2rem;
+      flex-shrink: 0;
+    }
+
+    .option-text h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .option-text p {
+      font-size: 0.8rem;
+      color: #9ca3af;
+    }
+
+    /* Dynamic Form Section (Tabbed View inside Card) */
+    .form-section {
+      border-top: 1px solid rgba(255, 255, 255, 0.15);
+      padding-top: 25px;
+    }
+
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 500;
+      margin-bottom: 8px;
+      color: #e5e7eb;
+    }
+
+    .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .input-wrapper i {
+      position: absolute;
+      left: 14px;
+      color: #9ca3af;
+      font-size: 0.9rem;
+    }
+
+    .input-wrapper input {
+      width: 100%;
+      padding: 12px 14px 12px 40px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 10px;
+      color: #ffffff;
+      font-size: 0.92rem;
+      outline: none;
+      transition: border-color 0.3s, background 0.3s;
+    }
+
+    .input-wrapper input::placeholder {
+      color: #9ca3af;
+    }
+
+    .input-wrapper input:focus {
+      border-color: #4ade80;
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    /* Submit Button */
+    .btn-submit {
+      width: 100%;
+      background-color: #4ade80;
+      color: #111827;
+      padding: 12px;
+      border: none;
+      border-radius: 25px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      transition: background 0.3s;
+    }
+
+    .btn-submit:hover {
+      background-color: #22c55e;
+    }
+
+    /* Return to Login */
+    .back-to-login {
+      text-align: center;
+      font-size: 0.85rem;
+      color: #d1d5db;
+      margin-top: 20px;
+    }
+
+    .back-to-login a {
+      color: #4ade80;
+      text-decoration: none;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .back-to-login a:hover {
+      text-decoration: underline;
+    }
+
+    /* Footer Bar */
+    footer {
+      background-color: #1a2a22;
+      color: #9ca3af;
+      padding: 15px 8%;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      font-size: 0.85rem;
+    }
+
+    .footer-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .footer-item i {
+      color: #4ade80;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header Navbar -->
+  <header>
+    <a href="index.html.html" class="logo">
+      <i class="fa-solid fa-leaf"></i>
+      <div>
+        FRESH
+        <span>MONITOR</span>
+      </div>
+    </a>
+    <a href="signin.html.html" class="btn-back">
+      <i class="fa-solid fa-arrow-left"></i> Back to Home
+    </a>
+  </header>
+
+  <!-- Recovery Container -->
+  <div class="recovery-container">
+    <div class="recovery-card">
+      <div class="recovery-header">
+        <div class="badge">
+          <i class="fa-solid fa-shield-halved"></i> ACCOUNT ACCESS
+        </div>
+        <h2>Having trouble signing in?</h2>
+        <p>Choose an option below to regain access to your account.</p>
+      </div>
+
+      <!-- Two Options Selectors -->
+      <div class="options-group">
+        <!-- Option 1: Reset Password -->
+        <a href="resetpass.html" class="option-card">
+          <div class="option-icon">
+            <i class="fa-solid fa-key"></i>
+          </div>
+          <div class="option-text">
+            <h3>Reset Password</h3>
+            <p>Send a password reset link to your registered email</p>
+          </div>
+        </a>
+
+        <!-- Option 2: Log in Another Way (e.g. Magic Link / Change Email) -->
+        <a href="Another Way.html" class="option-card">
+          <div class="option-icon">
+            <i class="fa-solid fa-mobile-screen-button"></i>
+          </div>
+          <div class="option-text">
+            <h3>Login Another Way</h3>
+            <p>Use a One-Time Passcode or update recovery email</p>
+          </div>
+        </a>
+      </div>
+
+      <!-- Reset Password & Email Form -->
+      <div class="form-section">
+        <form action="#" method="POST">
+          <div class="form-group">
+            <label for="email">Account Email Address</label>
+            <div class="input-wrapper">
+              <i class="fa-regular fa-envelope"></i>
+              <input type="email" id="email" placeholder="name@example.com" required />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="new-password">New Password</label>
+            <div class="input-wrapper">
+              <i class="fa-solid fa-lock"></i>
+              <input type="password" id="new-password" placeholder="Enter new password" required />
+            </div>
+          </div>
+
+          <button type="submit" class="btn-submit">
+            Confirm Reset <i class="fa-solid fa-check"></i>
+          </button>
+        </form>
+      </div>
+
+      <div class="back-to-login">
+        Remembered your password? <a href="signin.html.html"><i class="fa-solid fa-arrow-left"></i> Return to Login</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Footer Bar -->
+  <footer>
+    <div class="footer-item">
+      <i class="fa-solid fa-shield-halved"></i>
+      <span>Trusted by Thousands</span>
+    </div>
+    <div class="footer-item">
+      <i class="fa-solid fa-bullseye"></i>
+      <span>Accurate Predictions</span>
+    </div>
+    <div class="footer-item">
+      <i class="fa-solid fa-heart"></i>
+      <span>Healthy Future</span>
+    </div>
+  </footer>
+
+</body>
+</html>

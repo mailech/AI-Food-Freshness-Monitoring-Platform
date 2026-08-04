@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fresh Monitor - Login</title>
+  <!-- Google Fonts & FontAwesome Icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+  <style>
+    /* Reset & Base Styles */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Inter', sans-serif;
+    }
+
+    body {
+      background: linear-gradient(rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.55)),
+                  url('https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=1920&q=80') center/cover no-repeat;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      color: #ffffff;
+    }
+
+    /* Header Navbar */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 8%;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 1.2rem;
+      letter-spacing: 0.5px;
+      color: #4ade80;
+      text-decoration: none;
+    }
+
+    .logo span {
+      color: #ffffff;
+      display: block;
+      font-size: 0.75rem;
+      letter-spacing: 1.5px;
+    }
+
+    .btn-back {
+      color: #e5e7eb;
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: color 0.3s;
+    }
+
+    .btn-back:hover {
+      color: #4ade80;
+    }
+
+    /* Centered Login Container */
+    .login-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 40px 20px;
+    }
+
+    /* Glassmorphism Card */
+    .login-card {
+      background: rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 20px;
+      padding: 40px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    }
+
+    .login-header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 1px;
+      margin-bottom: 15px;
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    .login-header h2 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .login-header p {
+      font-size: 0.9rem;
+      color: #d1d5db;
+    }
+
+    /* Form Styles */
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 500;
+      margin-bottom: 8px;
+      color: #e5e7eb;
+    }
+
+    .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .input-wrapper i {
+      position: absolute;
+      left: 14px;
+      color: #9ca3af;
+      font-size: 0.9rem;
+    }
+
+    .input-wrapper input {
+      width: 100%;
+      padding: 12px 14px 12px 40px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 10px;
+      color: #ffffff;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.3s, background 0.3s;
+    }
+
+    .input-wrapper input::placeholder {
+      color: #9ca3af;
+    }
+
+    .input-wrapper input:focus {
+      border-color: #4ade80;
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    /* Extra Actions */
+    .form-options {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85rem;
+      margin-bottom: 25px;
+    }
+
+    .remember-me {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #d1d5db;
+      cursor: pointer;
+    }
+
+    .remember-me input {
+      accent-color: #4ade80;
+      cursor: pointer;
+    }
+
+    .forgot-pass {
+      color: #4ade80;
+      text-decoration: none;
+      transition: underline 0.3s;
+    }
+
+    .forgot-pass:hover {
+      text-decoration: underline;
+    }
+
+    /* Primary Submit Button */
+    .btn-submit {
+      width: 100%;
+      background-color: #4ade80;
+      color: #111827;
+      padding: 12px;
+      border: none;
+      border-radius: 25px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      transition: background 0.3s;
+    }
+
+    .btn-submit:hover {
+      background-color: #22c55e;
+    }
+
+    /* Signup Footer inside card */
+    .signup-text {
+      text-align: center;
+      font-size: 0.85rem;
+      color: #d1d5db;
+      margin-top: 25px;
+    }
+
+    .signup-text a {
+      color: #4ade80;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .signup-text a:hover {
+      text-decoration: underline;
+    }
+
+    /* Footer Bar */
+    footer {
+      background-color: #1a2a22;
+      color: #9ca3af;
+      padding: 15px 8%;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      font-size: 0.85rem;
+    }
+
+    .footer-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .footer-item i {
+      color: #4ade80;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation Header -->
+  <header>
+    <a href="index.html.html" class="logo">
+      <i class="fa-solid fa-leaf"></i>
+      <div>
+        FRESH
+        <span>MONITOR</span>
+      </div>
+    </a>
+    <a href="index.html.html" class="btn-back">
+      <i class="fa-solid fa-arrow-left"></i> Back to Home
+    </a>
+  </header>
+
+  <!-- Login Section -->
+  <div class="login-container">
+    <div class="login-card">
+      <div class="login-header">
+        <div class="badge">
+          <i class="fa-solid fa-wand-magic-sparkles"></i> AI POWERED
+        </div>
+        <h2>Welcome Back</h2>
+        <p>Log in to access your freshness insights</p>
+      </div>
+
+      <form action="#" method="POST">
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <div class="input-wrapper">
+            <i class="fa-regular fa-envelope"></i>
+            <input type="email" id="email" placeholder="name@example.com" required />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <div class="input-wrapper">
+            <i class="fa-solid fa-lock"></i>
+            <input type="password" id="password" placeholder="••••••••" required />
+          </div>
+        </div>
+
+        <div class="form-options">
+          <label class="remember-me">
+            <input type="checkbox" />
+            Remember me
+          </label>
+          <a href="forgotpass.html">Forgot Password?</a>
+        </div>
+
+        <button type="submit" class="btn-submit">
+          Login <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </form>
+
+      <div class="signup-text">
+        Don't have an account? <a href="signup.html">Sign up</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Bar -->
+  <footer>
+    <div class="footer-item">
+      <i class="fa-solid fa-shield-halved"></i>
+      <span>Trusted by Thousands</span>
+    </div>
+    <div class="footer-item">
+      <i class="fa-solid fa-bullseye"></i>
+      <span>Accurate Predictions</span>
+    </div>
+    <div class="footer-item">
+      <i class="fa-solid fa-heart"></i>
+      <span>Healthy Future</span>
+    </div>
+  </footer>
+<script src="login.js"></script>
+</body>
+</html>

@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fresh Monitor - Terms of Service</title>
+  <!-- Google Fonts & FontAwesome Icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+  <style>
+    /* Reset & Base Styles */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Inter', sans-serif;
+    }
+
+    body {
+      background: linear-gradient(rgba(0, 0, 0, 0.65), rgba(0, 0, 0, 0.65)),
+                  url('https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=1920&q=80') center/cover fixed no-repeat;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      color: #ffffff;
+    }
+
+    /* Header Navbar */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 8%;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 1.2rem;
+      letter-spacing: 0.5px;
+      color: #4ade80;
+      text-decoration: none;
+    }
+
+    .logo span {
+      color: #ffffff;
+      display: block;
+      font-size: 0.75rem;
+      letter-spacing: 1.5px;
+    }
+
+    .btn-back {
+      color: #e5e7eb;
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: color 0.3s;
+    }
+
+    .btn-back:hover {
+      color: #4ade80;
+    }
+
+    /* Page Container */
+    .terms-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 40px 20px;
+    }
+
+    /* Glassmorphism Card */
+    .terms-card {
+      background: rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 20px;
+      padding: 40px;
+      width: 100%;
+      max-width: 800px;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    }
+
+    .terms-header {
+      text-align: center;
+      margin-bottom: 30px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+      padding-bottom: 20px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 1px;
+      margin-bottom: 12px;
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    .terms-header h1 {
+      font-size: 2.2rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .terms-header p {
+      font-size: 0.88rem;
+      color: #d1d5db;
+    }
+
+    /* Document Content Layout */
+    .terms-body {
+      color: #e5e7eb;
+      line-height: 1.6;
+      font-size: 0.95rem;
+      max-height: 500px;
+      overflow-y: auto;
+      padding-right: 15px;
+    }
+
+    /* Custom Scrollbar */
+    .terms-body::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .terms-body::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+    }
+
+    .terms-body::-webkit-scrollbar-thumb {
+      background: rgba(74, 222, 128, 0.5);
+      border-radius: 10px;
+    }
+
+    .terms-body::-webkit-scrollbar-thumb:hover {
+      background: #4ade80;
+    }
+
+    .terms-section {
+      margin-bottom: 25px;
+    }
+
+    .terms-section h2 {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: #4ade80;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .terms-section p {
+      margin-bottom: 10px;
+      color: #d1d5db;
+    }
+
+    .terms-section ul {
+      list-style-type: disc;
+      padding-left: 20px;
+      color: #d1d5db;
+    }
+
+    .terms-section ul li {
+      margin-bottom: 6px;
+    }
+
+    /* Actions Bar */
+    .terms-footer-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 30px;
+      border-top: 1px solid rgba(255, 255, 255, 0.15);
+      padding-top: 20px;
+    }
+
+    .btn-accept {
+      background-color: #4ade80;
+      color: #111827;
+      padding: 12px 28px;
+      border: none;
+      border-radius: 25px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+      transition: background 0.3s;
+    }
+
+    .btn-accept:hover {
+      background-color: #22c55e;
+    }
+
+    /* Footer Bar */
+    footer {
+      background-color: #1a2a22;
+      color: #9ca3af;
+      padding: 15px 8%;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      font-size: 0.85rem;
+    }
+
+    .footer-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .footer-item i {
+      color: #4ade80;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header Navbar -->
+  <header>
+    <a href="index.html.html" class="logo">
+      <i class="fa-solid fa-leaf"></i>
+      <div>
+        FRESH
+        <span>MONITOR</span>
+      </div>
+    </a>
+    <a href="signup.html" class="btn-back">
+      <i class="fa-solid fa-arrow-left"></i> Back to Home
+    </a>
+  </header>
+
+  <!-- Terms Section -->
+  <div class="terms-container">
+    <div class="terms-card">
+      <div class="terms-header">
+        <div class="badge">
+          <i class="fa-solid fa-file-contract"></i> LEGAL AGREEMENT
+        </div>
+        <h1>Terms of Service</h1>
+        <p>Last updated: August 2026</p>
+      </div>
+
+      <div class="terms-body">
+        <div class="terms-section">
+          <h2><i class="fa-solid fa-circle-info"></i> 1. Acceptance of Terms</h2>
+          <p>By accessing or using Fresh Monitor, you agree to be bound by these Terms of Service and all applicable laws and regulations. If you do not agree with any of these terms, you are prohibited from using or accessing this service.</p>
+        </div>
+
+        <div class="terms-section">
+          <h2><i class="fa-solid fa-wand-magic-sparkles"></i> 2. Description of Service</h2>
+          <p>Fresh Monitor provides AI-powered insights, predictions, and recommendations regarding food freshness, nutritional values, and shelf-life estimations. You acknowledge that AI estimations are provided for guidance purposes only and should not replace proper food safety judgment.</p>
+        </div>
+
+        <div class="terms-section">
+          <h2><i class="fa-solid fa-user-shield"></i> 3. Account Security</h2>
+          <p>You are responsible for maintaining the confidentiality of your login credentials, including passwords or phone verification codes. You agree to notify us immediately of any unauthorized access or breach of security regarding your account.</p>
+        </div>
+
+        <div class="terms-section">
+          <h2><i class="fa-solid fa-ban"></i> 4. Prohibited Activities</h2>
+          <p>While using Fresh Monitor, you agree not to:</p>
+          <ul>
+            <li>Attempt to reverse-engineer or extract code from our AI model predictions.</li>
+            <li>Use the service to transmit malicious code, spam, or abusive communications.</li>
+            <li>Automate access to the site without explicit written authorization.</li>
+          </ul>
+        </div>
+
+        <div class="terms-section">
+          <h2><i class="fa-solid fa-triangle-exclamation"></i> 5. Disclaimer & Limitation of Liability</h2>
+          <p>Fresh Monitor is provided on an "as-is" basis. While our AI strive for maximum accuracy, we cannot guarantee 100% precision for every food item under all environmental conditions. Fresh Monitor is not liable for food spoilage, health issues, or damages resulting from reliance on our automated systems.</p>
+        </div>
+
+        <div class="terms-section">
+          <h2><i class="fa-solid fa-pen-to-square"></i> 6. Changes to Terms</h2>
+          <p>We reserve the right to update or modify these Terms of Service at any time without prior notice. Continued use of the platform after changes take effect constitutes your agreement to the updated terms.</p>
+        </div>
+      </div>
+
+      <div class="terms-footer-actions">
+        <a href="#" class="btn-back"><i class="fa-solid fa-arrow-left"></i> Decline</a>
+        <a href="#" class="btn-accept">Accept & Continue <i class="fa-solid fa-check"></i></a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Footer Bar -->
+  <footer>
+    <div class="footer-item">
+      <i class="fa-solid fa-shield-halved"></i>
+      <span>Trusted by Thousands</span>
+    </div>
+    <div class="footer-item">
+      <i class="fa-solid fa-bullseye"></i>
+      <span>Accurate Predictions</span>
+    </div>
+    <div class="footer-item">
+      <i class="fa-solid fa-heart"></i>
+      <span>Healthy Future</span>
+    </div>
+  </footer>
+
+</body>
+</html>

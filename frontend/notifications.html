@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FreshCheck - Notifications</title>
+  <!-- Google Fonts & FontAwesome Icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+  <style>
+    /* Reset & Base Styles */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Inter', sans-serif;
+    }
+
+    body {
+      background: linear-gradient(rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0.75)),
+                  url('https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=1920&q=80') center/cover fixed no-repeat;
+      min-height: 100vh;
+      color: #ffffff;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Layout Structure */
+    .dashboard-layout {
+      display: flex;
+      flex: 1;
+      min-height: calc(100vh - 54px);
+    }
+
+    /* Sidebar Navigation */
+    aside {
+      width: 250px;
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-right: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 24px 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 1.25rem;
+      color: #ffffff;
+      text-decoration: none;
+      margin-bottom: 28px;
+      padding-left: 8px;
+    }
+
+    .logo i {
+      color: #22c55e;
+      font-size: 1.4rem;
+    }
+
+    .nav-menu {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .nav-item a {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 10px 14px;
+      color: #d1d5db;
+      text-decoration: none;
+      font-size: 0.92rem;
+      font-weight: 500;
+      border-radius: 10px;
+      transition: all 0.2s ease;
+    }
+
+    .nav-item a:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: #ffffff;
+    }
+
+    .nav-item.active a {
+      background: #15803d;
+      color: #ffffff;
+      font-weight: 600;
+      box-shadow: 0 4px 12px rgba(21, 128, 61, 0.3);
+    }
+
+    .nav-item a i {
+      font-size: 1.05rem;
+      width: 20px;
+      text-align: center;
+    }
+
+    /* User Profile Footer */
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding-top: 18px;
+      border-top: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    .avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: #22c55e;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.95rem;
+      text-transform: uppercase;
+    }
+
+    .user-info h4 {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: #ffffff;
+    }
+
+    .user-info p {
+      font-size: 0.74rem;
+      color: #9ca3af;
+    }
+
+    /* Main View Area */
+    main {
+      flex: 1;
+      padding: 30px 40px;
+      overflow-y: auto;
+    }
+
+    /* Breadcrumbs & Page Header */
+    .page-header {
+      margin-bottom: 24px;
+    }
+
+    .breadcrumb {
+      font-size: 0.85rem;
+      color: #9ca3af;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .breadcrumb a {
+      color: #9ca3af;
+      text-decoration: none;
+    }
+
+    .breadcrumb a:hover {
+      color: #22c55e;
+    }
+
+    .page-title {
+      font-size: 1.75rem;
+      font-weight: 700;
+    }
+
+    /* Glass Container Card */
+    .glass-card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 18px;
+      padding: 24px;
+      max-width: 900px;
+    }
+
+    /* Category Filter Tabs */
+    .notification-tabs {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding-bottom: 12px;
+    }
+
+    .tab-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #d1d5db;
+      padding: 8px 20px;
+      border-radius: 20px;
+      font-size: 0.88rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .tab-btn:hover {
+      background: rgba(255, 255, 255, 0.15);
+      color: #ffffff;
+    }
+
+    .tab-btn.active {
+      background: #22c55e;
+      color: #0f172a;
+      border-color: #22c55e;
+      font-weight: 600;
+    }
+
+    /* Notification List */
+    .notification-list {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .notification-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      transition: background 0.2s;
+      border-radius: 10px;
+    }
+
+    .notification-item:hover {
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .notification-item:last-child {
+      border-bottom: none;
+    }
+
+    .notification-content {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    /* Color Badges matching design */
+    .icon-badge {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    /* Category Specific Badge Styling */
+    .badge-warning {
+      background-color: #f59e0b;
+      color: #ffffff;
+    }
+
+    .badge-alert {
+      background-color: #dc2626;
+      color: #ffffff;
+    }
+
+    .badge-info {
+      background-color: #16a34a;
+      color: #ffffff;
+    }
+
+    .notification-text h4 {
+      font-size: 0.98rem;
+      font-weight: 600;
+      color: #ffffff;
+      margin-bottom: 4px;
+    }
+
+    .notification-text p {
+      font-size: 0.85rem;
+      color: #9ca3af;
+    }
+
+    .notification-time {
+      font-size: 0.82rem;
+      color: #9ca3af;
+      white-space: nowrap;
+      margin-left: 16px;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: #9ca3af;
+    }
+
+    .empty-state i {
+      font-size: 2.5rem;
+      margin-bottom: 12px;
+      color: #475569;
+    }
+
+    /* Footer */
+    footer {
+      background-color: #1a2a22;
+      color: #9ca3af;
+      padding: 15px 8%;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      font-size: 0.85rem;
+    }
+
+    .footer-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .footer-item i {
+      color: #22c55e;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="dashboard-layout">
+    <!-- Sidebar Navigation -->
+    <aside>
+      <div>
+        <a href="dashboard.html" class="logo">
+          <i class="fa-solid fa-leaf"></i> FreshCheck
+        </a>
+
+        <ul class="nav-menu">
+          <li class="nav-item">
+            <a href="dashboard.html"><i class="fa-solid fa-table-cells-large"></i> Dashboard</a>
+          </li>
+          <li class="nav-item">
+            <a href="add-food.html"><i class="fa-solid fa-plus"></i> Add Food</a>
+          </li>
+          <li class="nav-item">
+            <a href="inventory.html"><i class="fa-solid fa-box-archive"></i> Inventory</a>
+          </li>
+          <li class="nav-item">
+            <a href="analytics.html"><i class="fa-solid fa-chart-column"></i> Analytics</a>
+          </li>
+          <li class="nav-item active">
+            <a href="notifications.html"><i class="fa-regular fa-bell"></i> Notifications</a>
+          </li>
+          <li class="nav-item">
+            <a href="reports.html"><i class="fa-regular fa-file-lines"></i> Reports</a>
+          </li>
+    
+          <li class="nav-item">
+            <a href="profile.html"><i class="fa-regular fa-user"></i> Profile</a>
+          </li>
+          <li class="nav-item">
+            <a href="settings.html"><i class="fa-solid fa-gear"></i> Settings</a>
+          </li>
+          <li class="nav-item">
+            <a href="logout.html"><i class="fa-solid fa-gear"></i> Logout</a>
+          </li>
+        </ul>
+      </div>
+       
+      <!-- User Profile Card -->
+      <div class="user-profile">
+        <div class="avatar" id="sideAvatar">U</div>
+        <div class="user-info">
+          <h4 id="sideName">User Name</h4>
+          <p id="sideEmail">user@example.com</p>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content View -->
+    <main>
+      <div class="page-header">
+        <div class="breadcrumb">
+          <a href="dashboard.html"><i class="fa-solid fa-house"></i> Dashboard</a>
+          <i class="fa-solid fa-chevron-right" style="font-size:0.65rem;"></i>
+          <span>Notifications</span>
+        </div>
+        <h1 class="page-title">Notifications Page</h1>
+      </div>
+
+      <!-- Notifications Card -->
+      <div class="glass-card">
+        <!-- Category Filter Tabs -->
+        <div class="notification-tabs">
+          <button class="tab-btn active" onclick="filterNotifications('all', this)">All</button>
+          <button class="tab-btn" onclick="filterNotifications('alerts', this)">Alerts</button>
+          <button class="tab-btn" onclick="filterNotifications('warnings', this)">Warnings</button>
+          <button class="tab-btn" onclick="filterNotifications('information', this)">Information</button>
+        </div>
+
+        <!-- Notification List -->
+        <div class="notification-list" id="notificationContainer">
+          <!-- Dynamically Rendered -->
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-item"><i class="fa-solid fa-shield-halved"></i> Trusted by Thousands</div>
+    <div class="footer-item"><i class="fa-solid fa-bullseye"></i> Accurate Predictions</div>
+    <div class="footer-item"><i class="fa-solid fa-heart"></i> Healthy Future</div>
+  </footer>
+
+  <script src="notifications.js"></script>
+</body>
+</html>

@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FreshCheck - Logout</title>
+  <!-- Google Fonts & FontAwesome Icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+  <style>
+    /* Reset & Base Styles */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Inter', sans-serif;
+    }
+
+    body {
+      background: linear-gradient(rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0.75)),
+                  url('https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=1920&q=80') center/cover fixed no-repeat;
+      min-height: 100vh;
+      color: #ffffff;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    /* Top Brand Header */
+    header {
+      padding: 24px 40px;
+      display: flex;
+      align-items: center;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 1.4rem;
+      color: #ffffff;
+      text-decoration: none;
+    }
+
+    .logo i {
+      color: #22c55e;
+      font-size: 1.6rem;
+    }
+
+    /* Centered Logout Container */
+    .logout-wrapper {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      flex: 1;
+    }
+
+    /* Glass Container Card */
+    .glass-card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 20px;
+      padding: 40px 36px;
+      width: 100%;
+      max-width: 440px;
+      text-align: center;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    }
+
+    .logout-icon {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #ef4444;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+      margin: 0 auto 20px;
+    }
+
+    .card-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .card-subtitle {
+      font-size: 0.9rem;
+      color: #9ca3af;
+      margin-bottom: 28px;
+      line-height: 1.4;
+    }
+
+    /* Action Buttons */
+    .btn-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .btn-logout {
+      background-color: #ef4444;
+      color: #ffffff;
+      padding: 12px 20px;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-logout:hover {
+      background-color: #dc2626;
+    }
+
+    .btn-cancel {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #ffffff;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-weight: 500;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-cancel:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    /* Footer */
+    footer {
+      background-color: #1a2a22;
+      color: #9ca3af;
+      padding: 15px 8%;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      font-size: 0.85rem;
+    }
+
+    .footer-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .footer-item i {
+      color: #22c55e;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <a href="dashboard.html" class="logo">
+      <i class="fa-solid fa-leaf"></i> FreshCheck
+    </a>
+  </header>
+
+  <!-- Centered Logout Confirmation Box -->
+  <div class="logout-wrapper">
+    <div class="glass-card" id="logoutCard">
+      <div class="logout-icon">
+        <i class="fa-solid fa-right-from-bracket"></i>
+      </div>
+      <h2 class="card-title">Logging Out?</h2>
+      <p class="card-subtitle">
+        Are you sure you want to sign out of <strong id="userDisplay">FreshCheck</strong>? You will need to log back in to manage your inventory.
+      </p>
+
+      <div class="btn-group">
+        <button class="btn-logout" id="confirmLogoutBtn">
+        <a href="index.html.html" class="btn-cancel">
+          <i class="fa-solid fa-power-off"></i> Yes, Log Me Out
+          </a>
+        </button>
+        <a href="dashboard.html" class="btn-cancel">
+          <i class="fa-solid fa-arrow-left"></i> Cancel & Return
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-item"><i class="fa-solid fa-shield-halved"></i> Trusted by Thousands</div>
+    <div class="footer-item"><i class="fa-solid fa-bullseye"></i> Accurate Predictions</div>
+    <div class="footer-item"><i class="fa-solid fa-heart"></i> Healthy Future</div>
+  </footer>
+
+  <script src="logout.js"></script>
+</body>
+</html>

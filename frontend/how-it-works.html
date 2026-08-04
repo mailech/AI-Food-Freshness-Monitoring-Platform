@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FreshCheck - How It Works</title>
+  <!-- Google Fonts & FontAwesome Icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+  <style>
+    /* Reset & Base Styles */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Inter', sans-serif;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      background: linear-gradient(rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0.75)),
+                  url('https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=1920&q=80') center/cover fixed no-repeat;
+      min-height: 100vh;
+      color: #ffffff;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top Navigation Header */
+    .top-header {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 0 5%;
+      height: 70px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* Brand Logo */
+    .brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 1.3rem;
+      color: #ffffff;
+      text-decoration: none;
+    }
+
+    .brand-logo i {
+      color: #22c55e;
+      font-size: 1.5rem;
+    }
+
+    /* Nav Items Container */
+    .nav-container {
+      position: relative;
+    }
+
+    .nav-menu {
+      display: flex;
+      align-items: center;
+      list-style: none;
+      gap: 32px;
+    }
+
+    .nav-link {
+      text-decoration: none;
+      color: #ffffff;
+      font-size: 1rem;
+      font-weight: 500;
+      padding: 8px 4px;
+      display: inline-block;
+      transition: color 0.3s ease;
+      cursor: pointer;
+    }
+
+    .nav-link:hover {
+      color: #22c55e;
+    }
+
+    .nav-link.active {
+      color: #22c55e;
+      font-weight: 600;
+    }
+
+    /* Dynamic Sliding Active Line Indicator */
+    .nav-indicator {
+      position: absolute;
+      bottom: -6px;
+      height: 3px;
+      background-color: #22c55e;
+      border-radius: 2px;
+      box-shadow: 0 0 10px rgba(34, 197, 94, 0.8);
+      transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Login Button */
+    .btn-login {
+      background-color: #15803d;
+      color: #ffffff;
+      padding: 10px 22px;
+      border-radius: 25px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.25s ease;
+      box-shadow: 0 4px 12px rgba(21, 128, 61, 0.3);
+    }
+
+    .btn-login:hover {
+      background-color: #22c55e;
+      transform: translateY(-2px);
+    }
+
+    /* Main Container */
+    main {
+      flex: 1;
+      padding: 50px 8%;
+    }
+
+    /* Section Headers */
+    .section-tag {
+      text-align: center;
+      color: #22c55e;
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .section-title {
+      text-align: center;
+      font-size: 2.2rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .section-subtitle {
+      text-align: center;
+      color: #9ca3af;
+      font-size: 1rem;
+      margin-bottom: 24px;
+    }
+
+    .leaf-divider {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 45px;
+    }
+
+    .leaf-divider::before, .leaf-divider::after {
+      content: '';
+      width: 45px;
+      height: 2px;
+      background: rgba(34, 197, 94, 0.4);
+    }
+
+    .leaf-divider i {
+      color: #22c55e;
+      font-size: 1.1rem;
+    }
+
+    /* Workflow Steps Container */
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+      margin-bottom: 50px;
+      position: relative;
+    }
+
+    /* Step Glass Card */
+    .step-card {
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 18px;
+      padding: 26px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+
+    .step-card:hover {
+      transform: translateY(-5px);
+      border-color: #22c55e;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+    }
+
+    .step-number {
+      position: absolute;
+      top: 14px;
+      right: 16px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: rgba(255, 255, 255, 0.4);
+      background: rgba(255, 255, 255, 0.1);
+      padding: 2px 8px;
+      border-radius: 10px;
+    }
+
+    .step-icon {
+      width: 58px;
+      height: 58px;
+      border-radius: 16px;
+      background: rgba(34, 197, 94, 0.2);
+      color: #22c55e;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 15px rgba(34, 197, 94, 0.15);
+    }
+
+    .step-card h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+
+    .step-card p {
+      font-size: 0.86rem;
+      color: #9ca3af;
+      line-height: 1.45;
+      margin-bottom: 16px;
+    }
+
+    .step-accent-line {
+      width: 30px;
+      height: 3px;
+      background: #22c55e;
+      border-radius: 2px;
+      margin-top: auto;
+    }
+
+    /* In-Page Slide Detail Drawer */
+    .detail-section {
+      background: rgba(15, 23, 42, 0.9);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 20px;
+      padding: 32px;
+      margin-top: 20px;
+      display: none;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .detail-section.active {
+      display: block;
+      opacity: 1;
+    }
+
+    .detail-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+
+    .detail-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 1.35rem;
+      color: #22c55e;
+    }
+
+    .btn-close {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #ffffff;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-close:hover {
+      background: rgba(239, 68, 68, 0.4);
+    }
+
+    .detail-body {
+      font-size: 0.96rem;
+      line-height: 1.6;
+      color: #d1d5db;
+    }
+
+    /* Footer */
+    footer {
+      background-color: #1a2a22;
+      color: #9ca3af;
+      padding: 18px 8%;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      font-size: 0.85rem;
+      margin-top: auto;
+    }
+
+    .footer-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .footer-item i {
+      color: #22c55e;
+    }
+
+    @media (max-width: 1024px) {
+      .steps-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @media (max-width: 640px) {
+      .steps-grid { grid-template-columns: 1fr; }
+      .nav-menu { gap: 16px; }
+      .nav-link { font-size: 0.85rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Header Navigation Bar -->
+  <header class="top-header">
+    <a href="index.html" class="brand-logo">
+      <i class="fa-solid fa-leaf"></i> FreshCheck
+    </a>
+
+    <nav class="nav-container">
+      <ul class="nav-menu">
+        <li><a href="index.html.html" class="nav-link" data-tab="home">Home</a></li>
+        <li><a href="features.html" class="nav-link" data-tab="features">Features</a></li>
+        <li><a href="how-it-works.html" class="nav-link active" data-tab="how-it-works">How It Works</a></li>
+        <li><a href="about.html" class="nav-link" data-tab="about">About</a></li>
+        <li><a href="contact.html" class="nav-link" data-tab="contact">Contact</a></li>
+      </ul>
+      <!-- Dynamic Sliding Underline Bar -->
+      <div class="nav-indicator" id="navIndicator"></div>
+    </nav>
+
+    <a href="signin.html.html" class="btn-login">
+      <i class="fa-solid fa-right-to-bracket"></i> Login
+    </a>
+  </header>
+
+  <!-- Main Section -->
+  <main id="how-it-works">
+    <p class="section-tag">THE PROCESS</p>
+    <h1 class="section-title">How FreshCheck AI Works</h1>
+    <p class="section-subtitle">4 seamless steps to track, evaluate, and safeguard your food quality in real-time.</p>
+
+    <div class="leaf-divider">
+      <i class="fa-solid fa-leaf"></i>
+    </div>
+
+    <!-- 4 Step Cards Grid -->
+    <div class="steps-grid">
+      <!-- Step 1 -->
+      <div class="step-card" onclick="scrollToStepDetail('step-1')">
+        <span class="step-number">01</span>
+        <div class="step-icon"><i class="fa-solid fa-camera"></i></div>
+        <h3>1. Capture & Upload</h3>
+        <p>Snap or upload a photo of fresh or stored produce directly through the web platform.</p>
+        <div class="step-accent-line"></div>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="step-card" onclick="scrollToStepDetail('step-2')">
+        <span class="step-number">02</span>
+        <div class="step-icon"><i class="fa-solid fa-brain"></i></div>
+        <h3>2. AI Processing</h3>
+        <p>Our deep vision model scans textures, surface pigments, and degradation markers.</p>
+        <div class="step-accent-line"></div>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="step-card" onclick="scrollToStepDetail('step-3')">
+        <span class="step-number">03</span>
+        <div class="step-icon"><i class="fa-solid fa-chart-pie"></i></div>
+        <h3>3. Instant Analysis</h3>
+        <p>Receive immediate freshness categorization along with an accurate quality score percentage.</p>
+        <div class="step-accent-line"></div>
+      </div>
+
+      <!-- Step 4 -->
+      <div class="step-card" onclick="scrollToStepDetail('step-4')">
+        <span class="step-number">04</span>
+        <div class="step-icon"><i class="fa-solid fa-bell"></i></div>
+        <h3>4. Smart Alerts</h3>
+        <p>Track your inventory shelf-life and receive automated notifications before food spoils.</p>
+        <div class="step-accent-line"></div>
+      </div>
+    </div>
+
+    <!-- In-Page Slide Detail Drawer -->
+    <div class="detail-section" id="stepDrawer">
+      <div class="detail-header">
+        <h2 class="detail-title" id="stepDrawerTitle"><i class="fa-solid fa-circle-info"></i> Step Workflow Breakdown</h2>
+        <button class="btn-close" onclick="closeStepDrawer()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="detail-body" id="stepDrawerContent"></div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-item"><i class="fa-solid fa-shield-halved"></i> Trusted by Thousands</div>
+    <div class="footer-item"><i class="fa-solid fa-bullseye"></i> Accurate Predictions</div>
+    <div class="footer-item"><i class="fa-solid fa-heart"></i> Healthy Future</div>
+  </footer>
+
+  <script src="how-it-works.js"></script>
+</body>
+</html>
