@@ -7,7 +7,8 @@ from typing import AsyncGenerator, Generator
 os.environ["SECRET_KEY"] = "test_secret_key_for_testing_purposes_only_1234"
 os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///:memory:"
 os.environ["MONGODB_URL"] = "mongodb://localhost:27017/test_db"
-os.environ["MODEL_PATH"] = "ml/models/freshness_model.npz"
+os.environ["MODEL_PATH"] = "ml/models/freshness_model.pt"
+os.environ["DEMO_MODE"] = "False"
 
 import pytest
 import pytest_asyncio

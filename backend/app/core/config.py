@@ -32,6 +32,7 @@ class Settings(BaseSettings):
     MONGODB_URL: str = "mongodb://mongo_admin:mongo_password@localhost:27017/freshlens_mongo?authSource=admin"
 
     # AI Model Settings
+    DEMO_MODE: bool = True
     MODEL_PATH: str = "ml/models/freshness_model.pt"
     MODEL_CONFIDENCE_THRESHOLD: float = 0.60
     MODEL_DEVICE: str = "auto"

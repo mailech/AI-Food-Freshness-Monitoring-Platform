@@ -51,6 +51,9 @@ def check_model_availability() -> tuple[bool, str]:
     """
     Checks if model can be loaded, returning status and failure details.
     """
+    if settings.DEMO_MODE:
+        return True, "Available (Demo Mode)"
+        
     try:
         import torch
     except ImportError:

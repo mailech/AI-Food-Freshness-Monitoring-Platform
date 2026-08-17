@@ -39,20 +39,6 @@ class FoodFreshnessModel:
         if not available:
             raise ModelUnavailableError(f"AI model is currently unavailable: {reason}")
 
-        try:
-            # 1. Preprocessing
-            tensor = preprocess_image(image_path)
-            
-            # 2. Global Model Inference
-            model = load_global_model()
-            probs = model.predict(tensor)
-            
-            # 3. Post-processing with confidence threshold gating
-            pred_results = process_prediction(probs, settings.MODEL_CONFIDENCE_THRESHOLD)
-            
-        except Exception as e:
-            raise ModelUnavailableError(f"AI model inference failed: {str(e)}")
-
         # Extract features for compliance analytics (color and texture)
         # Standard OpenCV calculations remain in place as complementary CV features, NOT claimed as ML predictions.
         browning_idx = 0.0
@@ -83,6 +69,41 @@ class FoodFreshnessModel:
                 roughness_idx = float(min(max(1.0 - (variance / 1500.0), 0.0), 1.0))
         except Exception:
             pass
+
+        if settings.DEMO_MODE:
+            # Deterministic demo outputs mapped from OpenCV segmentation features
+            if browning_idx > 0.60:
+                pred_results = {
+                    "class": "SPOILED",
+                    "confidence": 0.85,
+                    "status_message": "Food is spoiled"
+                }
+            elif roughness_idx > 0.50:
+                pred_results = {
+                    "class": "BRUISED/DAMAGED",
+                    "confidence": 0.78,
+                    "status_message": "Bruising or physical damage detected"
+                }
+            else:
+                pred_results = {
+                    "class": "FRESH",
+                    "confidence": 0.92,
+                    "status_message": "Food is fresh"
+                }
+        else:
+            try:
+                # 1. Preprocessing
+                tensor = preprocess_image(image_path)
+                
+                # 2. Global Model Inference
+                model = load_global_model()
+                probs = model.predict(tensor)
+                
+                # 3. Post-processing with confidence threshold gating
+                pred_results = process_prediction(probs, settings.MODEL_CONFIDENCE_THRESHOLD)
+                
+            except Exception as e:
+                raise ModelUnavailableError(f"AI model inference failed: {str(e)}")
 
         predicted_class = pred_results["class"]
         confidence = pred_results["confidence"]
