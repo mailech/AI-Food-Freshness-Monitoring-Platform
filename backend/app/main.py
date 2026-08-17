@@ -1,7 +1,11 @@
 import os
+import logging
 from contextlib import asynccontextmanager
 from typing import Any
 from fastapi import FastAPI, Depends, status
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
@@ -97,3 +101,53 @@ async def health_check(db: AsyncSession = Depends(get_db)) -> dict[str, Any]:
             "mongodb": mongodb_status
         }
     }
+
+logger = logging.getLogger("main_api")
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request, exc):
+    logger.error(f"HTTP error occurred on {request.url.path}: {exc.detail}")
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "success": False,
+            "error": {
+                "code": "HTTP_ERROR",
+                "message": exc.detail
+            },
+            "detail": exc.detail
+        }
+    )
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, exc):
+    logger.error(f"Validation error occurred on {request.url.path}: {exc.errors()}")
+    message = "Request validation failed."
+    if exc.errors():
+        message = exc.errors()[0].get("msg", message)
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={
+            "success": False,
+            "error": {
+                "code": "VALIDATION_ERROR",
+                "message": message
+            },
+            "detail": exc.errors()
+        }
+    )
+
+@app.exception_handler(Exception)
+async def general_exception_handler(request, exc):
+    logger.critical(f"Unhandled error occurred on {request.url.path}: {str(exc)}", exc_info=True)
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={
+            "success": False,
+            "error": {
+                "code": "INTERNAL_SERVER_ERROR",
+                "message": "An unexpected error occurred. Please contact system support."
+            },
+            "detail": "An unexpected error occurred."
+        }
+    )

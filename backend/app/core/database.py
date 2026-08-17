@@ -32,7 +32,14 @@ class Base(DeclarativeBase):
 
 # DB initialization function for FastAPI lifecycle
 async def init_databases() -> None:
-    # 1. Initialize MongoDB Beanie ODM
+    # 1. Initialize PostgreSQL tables if they don't exist
+    from app.modules.user.models import User
+    from app.modules.inventory.models import InventoryItem, Batch
+    
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+    # 2. Initialize MongoDB Beanie ODM
     mongo_client: AsyncIOMotorClient = AsyncIOMotorClient(settings.MONGODB_URL)
     await init_beanie(
         database=mongo_client[settings.MONGODB_DB],

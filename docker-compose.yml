@@ -35,19 +35,6 @@ services:
       timeout: 5s
       retries: 5
 
-  redis:
-    image: redis:7.2-alpine
-    container_name: freshlens-redis
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
   backend:
     build:
       context: ./backend
@@ -59,15 +46,10 @@ services:
       - SECRET_KEY=freshlens_secret_key_for_development_purposes_only
       - DATABASE_URL=postgresql+asyncpg://postgres:postgres_password@postgres:5432/freshlens_db
       - MONGODB_URL=mongodb://mongo_admin:mongo_password@mongodb:27017/freshlens_mongo?authSource=admin
-      - REDIS_URL=redis://redis:6379/0
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
     depends_on:
       postgres:
         condition: service_healthy
       mongodb:
-        condition: service_healthy
-      redis:
         condition: service_healthy
 
   frontend:
@@ -85,4 +67,3 @@ services:
 volumes:
   postgres_data:
   mongodb_data:
-  redis_data:
