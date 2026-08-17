@@ -276,6 +276,32 @@ async def mock_mongo_init():
     with patch("app.core.database.init_databases", new_callable=AsyncMock) as mock:
         yield mock
 
+@pytest.fixture(autouse=True)
+def mock_cv_pipeline():
+    from app.modules.image_analysis.router import model_pipeline
+    original_analyze = model_pipeline.analyze_image
+    
+    def dummy_analyze(image_path: str):
+        return {
+            "freshness_score": 92.5,
+            "color_degradation": 0.05,
+            "texture_roughness": 0.08,
+            "mold_detected": False,
+            "mold_confidence": 0.0,
+            "bruising_detected": False,
+            "bruising_confidence": 0.0,
+            "damage_detected": False,
+            "damage_confidence": 0.0,
+            "classification_label": "FRESH",
+            "status_message": "Food is fresh",
+            "confidence": 0.95,
+            "model_version": "1.0.0"
+        }
+    
+    model_pipeline.analyze_image = dummy_analyze
+    yield
+    model_pipeline.analyze_image = original_analyze
+
 @pytest_asyncio.fixture
 async def client(db_session, mock_mongo_init) -> AsyncGenerator[AsyncClient, None]:
     async def _get_test_db():

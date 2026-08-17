@@ -1,1 +1,1 @@
-from .preprocess import extract_features
+from .image_preprocessor import preprocess_image

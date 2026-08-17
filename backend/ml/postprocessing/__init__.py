@@ -1,1 +1,1 @@
-from .postprocess import postprocess_prediction
+from .prediction_processor import process_prediction

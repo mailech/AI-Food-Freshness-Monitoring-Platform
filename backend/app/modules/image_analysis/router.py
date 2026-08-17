@@ -1,7 +1,7 @@
 import os
 import uuid
 import shutil
-from typing import Any, List
+from typing import Any, List, Optional, Dict
 from fastapi import APIRouter, UploadFile, File, Form, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -11,9 +11,8 @@ from app.modules.user.models import User
 from app.modules.inventory.service import get_item_by_id
 from app.modules.inventory.models import BatchStatus
 from app.modules.image_analysis.models import ImageAnalysis
-from app.modules.image_analysis.cv_pipeline import FoodFreshnessModel
+from app.modules.image_analysis.cv_pipeline import FoodFreshnessModel, ModelUnavailableError
 from app.modules.image_analysis.utils import validate_image_file
-from ml.inference import ModelUnavailableError
 
 router = APIRouter()
 
@@ -222,6 +221,38 @@ async def scan_food_image(
         damage_confidence=analysis_results.get("damage_confidence", 0.0),
         classification_label=analysis_results.get("classification_label", "unknown/uncertain"),
         status_message=analysis_results.get("status_message", "Normal classification")
+    )
+class ModelStatusResponse(BaseModel):
+    available: bool
+    model_name: Optional[str] = None
+    model_version: Optional[str] = None
+    device: Optional[str] = None
+    classes: Optional[List[str]] = None
+    reason: Optional[str] = None
+
+@router.get("/model-status", response_model=ModelStatusResponse)
+async def get_model_status() -> Any:
+    """
+    Returns AI/ML model deployment details, availability status, and configuration.
+    """
+    from ml.inference import check_model_availability, get_device
+    from ml.postprocessing.prediction_processor import CLASSES
+    from app.core.config import settings
+    
+    available, reason = check_model_availability()
+    if not available:
+        return ModelStatusResponse(
+            available=False,
+            reason=reason
+        )
+        
+    device = get_device(settings.MODEL_DEVICE)
+    return ModelStatusResponse(
+        available=True,
+        model_name=settings.MODEL_NAME,
+        model_version=settings.MODEL_VERSION,
+        device=device,
+        classes=CLASSES
     )
 
 @router.get("/item/{item_id}", response_model=List[ImageAnalysis])

@@ -1,1 +1,1 @@
-from .eval import evaluate_accuracy
+from .evaluate_model import evaluate_metrics

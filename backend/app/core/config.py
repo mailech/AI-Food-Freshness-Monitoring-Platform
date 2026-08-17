@@ -32,8 +32,11 @@ class Settings(BaseSettings):
     MONGODB_URL: str = "mongodb://mongo_admin:mongo_password@localhost:27017/freshlens_mongo?authSource=admin"
 
     # AI Model Settings
-    MODEL_PATH: str = "ml/models/freshness_model.npz"
-    MODEL_CONFIDENCE_THRESHOLD: float = 0.50
+    MODEL_PATH: str = "ml/models/freshness_model.pt"
+    MODEL_CONFIDENCE_THRESHOLD: float = 0.60
+    MODEL_DEVICE: str = "auto"
+    MODEL_VERSION: str = "1.0.0"
+    MODEL_NAME: str = "FreshNet-CNN"
     MAX_IMAGE_SIZE_BYTES: int = 5242880  # 5 MB
 
     # Freshness Scoring Configurable Weights

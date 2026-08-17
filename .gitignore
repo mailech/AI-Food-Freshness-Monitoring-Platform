@@ -47,3 +47,4 @@ db.sqlite3
 htmlcov/
 .pytest_cache/
 .coverage
+backend/static/uploads/
