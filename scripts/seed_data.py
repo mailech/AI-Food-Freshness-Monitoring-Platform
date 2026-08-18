@@ -51,7 +51,7 @@ def seed_database():
                 db.add(user)
                 users.append(user)
             db.commit()
-            print(f"  ✓ Seeded {len(users_data)} users.")
+            print(f"  [OK] Seeded {len(users_data)} users.")
         else:
             print(f"  - Users already exist ({existing_users}), skipping.")
             users = db.query(User).all()
@@ -84,7 +84,7 @@ def seed_database():
                 db.add(cat)
                 cats.append(cat)
             db.commit()
-            print(f"  ✓ Seeded {len(categories_data)} food categories.")
+            print(f"  [OK] Seeded {len(categories_data)} food categories.")
         else:
             print(f"  - Categories already exist ({existing_cats}), skipping.")
             cats = db.query(FoodCategory).all()
@@ -107,14 +107,14 @@ def seed_database():
                 if cat_name in cat_map:
                     batch = Batch(
                         batch_number=batch_num,
-                        category_id=cat_map[cat_name].id,
+                        category_id=str(cat_map[cat_name].id),
                         supplier_name=supplier,
                         notes=f"Batch received from {supplier} for {cat_name} category."
                     )
                     db.add(batch)
                     batches.append(batch)
             db.commit()
-            print(f"  ✓ Seeded {len(batches)} supplier batches.")
+            print(f"  [OK] Seeded {len(batches)} supplier batches.")
         else:
             print(f"  - Batches already exist ({existing_batches}), skipping.")
             batches = db.query(Batch).all()
@@ -157,8 +157,8 @@ def seed_database():
                 expiry = datetime.now() + timedelta(days=days_left)
                 item = InventoryItem(
                     name=name,
-                    category_id=cat.id,
-                    user_id=owner.id,
+                    category_id=str(cat.id),
+                    user_id=str(owner.id),
                     quantity=qty,
                     unit=unit,
                     expiry_date=expiry,
@@ -179,7 +179,7 @@ def seed_database():
             for item in all_items:
                 for j in range(5):
                     log = StorageLog(
-                        inventory_item_id=item.id,
+                        inventory_item_id=str(item.id),
                         temperature=float(item.storage_temp or 15.0) + random.uniform(-1.5, 1.5),
                         humidity=float(item.storage_humidity or 70.0) + random.uniform(-3.0, 3.0),
                         recorded_at=datetime.now() - timedelta(hours=j * 2)
@@ -195,7 +195,7 @@ def seed_database():
                 spoil_prob = max(0.0, min(1.0, (100 - score) / 100.0))
                 remaining = max(0.0, (item.expiry_date - datetime.now()).days * (score / 100.0))
                 analysis = AnalysisResult(
-                    inventory_item_id=item.id,
+                    inventory_item_id=str(item.id),
                     image_url=f"/uploads/demo_image_{item.name.replace(' ','_')}.jpg",
                     color_score=score * 0.9,
                     texture_score=score * 0.85,
@@ -210,11 +210,11 @@ def seed_database():
                 db.add(analysis)
             db.commit()
 
-            print(f"  ✓ Seeded {len(items_seed)} inventory items, {len(all_items)*5} storage logs, and 8 analysis results.")
+            print(f"  [OK] Seeded {len(items_seed)} inventory items, {len(all_items)*5} storage logs, and 8 analysis results.")
         else:
             print(f"  - Inventory items already exist ({existing_items}), skipping.")
 
-        print("\n✅ Seeding complete! You can now login with:")
+        print("\n[OK] Seeding complete! You can now login with:")
         print("   Email: admin@freshplatform.io  | Password: admin123  | Role: Admin")
         print("   Email: alice@example.com       | Password: alice123  | Role: Consumer")
         print("   Email: bob@retailstore.com     | Password: bob123    | Role: Retail Manager")

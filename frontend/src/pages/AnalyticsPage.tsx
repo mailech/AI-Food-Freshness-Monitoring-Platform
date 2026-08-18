@@ -5,7 +5,6 @@ import {
   BarChart3, 
   Thermometer, 
   Droplets,
-  Calendar,
   AlertCircle
 } from 'lucide-react';
 import { Line } from 'react-chartjs-2';

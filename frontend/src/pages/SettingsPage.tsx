@@ -2,13 +2,11 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { 
-  Settings, 
   Bell, 
   ShieldCheck, 
   HelpCircle,
   Thermometer,
-  Droplets,
-  AlertCircle
+  Droplets
 } from 'lucide-react';
 
 interface FoodCategory {
@@ -63,9 +61,20 @@ const SettingsPage: React.FC = () => {
   return (
     <div className="space-y-6">
       
-      <div>
-        <h1 className="text-2xl font-black tracking-tight">Configuration Settings</h1>
-        <p className="text-xs text-slate-400">Configure notifications rules, check ideal category thresholds, and manage credentials.</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-black tracking-tight">Configuration Settings</h1>
+          <p className="text-xs text-slate-400">Configure notifications rules, check ideal category thresholds, and manage credentials.</p>
+        </div>
+        <div className="glass-panel px-4 py-2 rounded-2xl flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-indigo-600/30 border border-indigo-500/50 flex items-center justify-center font-bold text-indigo-400 text-sm">
+            {userName ? userName.charAt(0).toUpperCase() : 'U'}
+          </div>
+          <div>
+            <p className="text-xs font-bold text-slate-200">{userName || 'User'}</p>
+            <p className="text-[10px] uppercase tracking-wider text-indigo-400 font-semibold">{role || 'Operator'}</p>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">

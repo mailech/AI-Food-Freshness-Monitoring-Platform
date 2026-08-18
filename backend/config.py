@@ -21,7 +21,11 @@ class Settings:
         override = os.getenv("DATABASE_URL")
         if override:
             return override
-        return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+        # If running in container or explicitly set POSTGRES_HOST != localhost, use Postgres
+        if os.getenv("POSTGRES_HOST") and os.getenv("POSTGRES_HOST") != "localhost":
+            return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+        # Default to local SQLite DB for instant zero-dependency local runs
+        return "sqlite:///./food_freshness.db"
         
     # MongoDB
     MONGO_HOST: str = os.getenv("MONGO_HOST", "localhost")
