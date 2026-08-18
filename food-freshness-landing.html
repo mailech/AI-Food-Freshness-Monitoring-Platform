@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FRESH.OS — Food Freshness Monitoring Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink: #12211C;
+    --ink-2: #182D25;
+    --ink-3: #1F372D;
+    --paper: #F2EFE6;
+    --paper-dim: rgba(242,239,230,0.62);
+    --line: rgba(242,239,230,0.13);
+
+    --fresh: #8FBF3F;
+    --good: #C7D93E;
+    --acceptable: #E8B23D;
+    --near: #E07A3E;
+    --spoiled: #B4453A;
+  }
+
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html{ scroll-behavior:smooth; }
+  body{
+    background:var(--ink);
+    color:var(--paper);
+    font-family:'Inter', sans-serif;
+    line-height:1.5;
+    overflow-x:hidden;
+  }
+  .display{ font-family:'Oswald', sans-serif; text-transform:uppercase; letter-spacing:0.02em; }
+  .mono{ font-family:'IBM Plex Mono', monospace; }
+
+  a{ color:inherit; text-decoration:none; }
+  .wrap{ max-width:1180px; margin:0 auto; padding:0 32px; }
+
+  /* ---------- NAV ---------- */
+  nav{
+    position:sticky; top:0; z-index:50;
+    background:rgba(18,33,28,0.92);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+  }
+  nav .wrap{ display:flex; align-items:center; justify-content:space-between; height:72px; }
+  .logo{ display:flex; align-items:center; gap:10px; font-size:19px; font-weight:600; letter-spacing:0.06em; }
+  .logo .dot{
+    width:8px; height:8px; border-radius:50%; background:var(--fresh);
+    box-shadow:0 0 0 0 rgba(143,191,63,0.6);
+    animation:pulse 2.2s infinite;
+  }
+  @keyframes pulse{
+    0%{ box-shadow:0 0 0 0 rgba(143,191,63,0.55); }
+    70%{ box-shadow:0 0 0 8px rgba(143,191,63,0); }
+    100%{ box-shadow:0 0 0 0 rgba(143,191,63,0); }
+  }
+  .navlinks{ display:flex; gap:34px; font-size:13px; letter-spacing:0.08em; text-transform:uppercase; color:var(--paper-dim); }
+  .navlinks a:hover{ color:var(--paper); }
+  .navcta{
+    font-size:13px; letter-spacing:0.06em; text-transform:uppercase;
+    border:1px solid var(--line); padding:9px 18px; border-radius:2px;
+    transition:border-color .2s, background .2s;
+  }
+  .navcta:hover{ border-color:var(--fresh); background:rgba(143,191,63,0.08); }
+
+  /* ---------- HERO ---------- */
+  header.hero{ padding:96px 0 64px; position:relative; }
+  .hero-grid{ display:grid; grid-template-columns:1.1fr 0.9fr; gap:64px; align-items:center; }
+  .eyebrow{
+    display:inline-flex; align-items:center; gap:8px;
+    font-size:12px; letter-spacing:0.14em; color:var(--fresh);
+    margin-bottom:22px;
+  }
+  .eyebrow::before{ content:''; width:18px; height:1px; background:var(--fresh); }
+  h1{
+    font-size:clamp(38px,5vw,58px); font-weight:600; line-height:1.05;
+    margin-bottom:22px;
+  }
+  h1 .accent{ color:var(--fresh); }
+  .hero-sub{ font-size:16px; color:var(--paper-dim); max-width:460px; margin-bottom:36px; }
+  .hero-ctas{ display:flex; gap:14px; flex-wrap:wrap; }
+  .btn{
+    font-size:13px; letter-spacing:0.06em; text-transform:uppercase;
+    padding:14px 26px; border-radius:2px; font-weight:500;
+    display:inline-flex; align-items:center; gap:8px;
+    transition:transform .15s ease, background .2s, border-color .2s;
+    cursor:pointer; border:1px solid transparent;
+  }
+  .btn:hover{ transform:translateY(-1px); }
+  .btn-primary{ background:var(--fresh); color:var(--ink); }
+  .btn-primary:hover{ background:#a2d34f; }
+  .btn-ghost{ border-color:var(--line); color:var(--paper); }
+  .btn-ghost:hover{ border-color:var(--paper-dim); }
+
+  /* scan card */
+  .scan-card{
+    background:var(--ink-2); border:1px solid var(--line); border-radius:6px;
+    padding:28px; position:relative; overflow:hidden;
+  }
+  .scan-card .label{ font-size:11px; letter-spacing:0.12em; color:var(--paper-dim); text-transform:uppercase; margin-bottom:16px; }
+  .scan-visual{
+    position:relative; height:160px; border-radius:4px;
+    background:linear-gradient(180deg, #1B3226, #142720);
+    display:flex; align-items:center; justify-content:center;
+    overflow:hidden; margin-bottom:20px; border:1px solid var(--line);
+  }
+  .scan-visual svg{ width:88px; height:88px; opacity:0.92; }
+  .scan-line{
+    position:absolute; left:0; right:0; height:2px;
+    background:linear-gradient(90deg, transparent, var(--fresh), transparent);
+    box-shadow:0 0 14px 2px rgba(143,191,63,0.6);
+    animation:scan 2.6s ease-in-out infinite;
+  }
+  @keyframes scan{
+    0%,100%{ top:12%; }
+    50%{ top:82%; }
+  }
+  .readout{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:14px; }
+  .readout .score{ font-size:40px; font-weight:600; }
+  .readout .score span{ font-size:16px; color:var(--paper-dim); }
+  .readout .tag{
+    font-size:11px; letter-spacing:0.1em; text-transform:uppercase;
+    padding:5px 10px; border-radius:20px; background:rgba(199,217,62,0.15); color:var(--good);
+  }
+  .spectrum{ height:8px; border-radius:4px; position:relative;
+    background:linear-gradient(90deg, var(--fresh), var(--good), var(--acceptable), var(--near), var(--spoiled)); }
+  .spectrum .marker{
+    position:absolute; top:-4px; width:2px; height:16px; background:var(--paper);
+    left:28%;
+  }
+  .spectrum-labels{ display:flex; justify-content:space-between; margin-top:8px; font-size:9px; letter-spacing:0.05em; color:var(--paper-dim); text-transform:uppercase; }
+
+  /* ---------- FULL-WIDTH SPECTRUM DIVIDER (signature, reused as section legend) ---------- */
+  .divider{
+    display:flex; border-top:1px solid var(--line); border-bottom:1px solid var(--line);
+  }
+  .divider .stage{
+    flex:1; padding:14px 10px; text-align:center; font-size:11px; letter-spacing:0.1em;
+    text-transform:uppercase; color:var(--ink); font-weight:600;
+  }
+  .st-fresh{ background:var(--fresh); }
+  .st-good{ background:var(--good); }
+  .st-acceptable{ background:var(--acceptable); }
+  .st-near{ background:var(--near); color:var(--paper); }
+  .st-spoiled{ background:var(--spoiled); color:var(--paper); }
+
+  /* ---------- SECTIONS ---------- */
+  section{ padding:88px 0; border-bottom:1px solid var(--line); }
+  .section-head{ max-width:560px; margin-bottom:52px; }
+  .section-eyebrow{ font-size:12px; letter-spacing:0.14em; color:var(--paper-dim); text-transform:uppercase; margin-bottom:12px; }
+  h2{ font-size:clamp(26px,3.2vw,36px); font-weight:600; line-height:1.15; }
+  .section-desc{ color:var(--paper-dim); margin-top:14px; font-size:15px; }
+
+  /* module cards */
+  .grid-3{ display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--line); border:1px solid var(--line); }
+  .card{
+    background:var(--ink); padding:30px 26px; border-left:3px solid var(--fresh);
+    transition:background .2s;
+  }
+  .card:hover{ background:var(--ink-2); }
+  .card .num{ font-size:11px; color:var(--paper-dim); letter-spacing:0.1em; margin-bottom:16px; display:block; }
+  .card h3{ font-size:18px; font-weight:600; margin-bottom:10px; font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:0.02em; }
+  .card p{ font-size:13.5px; color:var(--paper-dim); }
+
+  /* roles */
+  .roles{ display:grid; grid-template-columns:repeat(5,1fr); gap:1px; background:var(--line); border:1px solid var(--line); }
+  .role{ background:var(--ink); padding:26px 20px; text-align:left; }
+  .role .icon{ width:30px; height:30px; margin-bottom:16px; opacity:0.85; }
+  .role h4{ font-size:14px; font-weight:600; margin-bottom:8px; font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:0.02em; }
+  .role p{ font-size:12.5px; color:var(--paper-dim); }
+
+  /* ---------- AUTH ---------- */
+  .auth-wrap{ display:grid; grid-template-columns:1fr 1fr; gap:64px; align-items:center; }
+  .auth-copy .section-desc{ margin-top:16px; max-width:400px; }
+  .stat-row{ display:flex; gap:36px; margin-top:36px; }
+  .stat{ }
+  .stat .n{ font-family:'IBM Plex Mono',monospace; font-size:26px; font-weight:600; color:var(--fresh); }
+  .stat .l{ font-size:11px; color:var(--paper-dim); text-transform:uppercase; letter-spacing:0.08em; margin-top:4px; }
+
+  .auth-card{
+    background:var(--ink-2); border:1px solid var(--line); border-radius:6px; padding:8px;
+  }
+  .tabs{ display:flex; gap:4px; margin-bottom:8px; }
+  .tab{
+    flex:1; text-align:center; padding:13px; font-size:12px; letter-spacing:0.08em;
+    text-transform:uppercase; border-radius:4px; cursor:pointer; color:var(--paper-dim);
+    transition:background .2s, color .2s;
+  }
+  .tab.active{ background:var(--ink-3); color:var(--paper); }
+  .auth-body{ padding:26px 22px 24px; }
+  .field{ margin-bottom:16px; }
+  .field label{ display:block; font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:var(--paper-dim); margin-bottom:7px; }
+  .field input, .field select{
+    width:100%; background:var(--ink); border:1px solid var(--line); color:var(--paper);
+    padding:12px 13px; border-radius:3px; font-size:14px; font-family:'Inter',sans-serif;
+  }
+  .field input:focus, .field select:focus{ outline:none; border-color:var(--fresh); }
+  .row-2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .submit-btn{
+    width:100%; background:var(--fresh); color:var(--ink); border:none; padding:14px;
+    font-size:13px; font-weight:600; letter-spacing:0.06em; text-transform:uppercase;
+    border-radius:3px; cursor:pointer; margin-top:6px; transition:background .2s;
+  }
+  .submit-btn:hover{ background:#a2d34f; }
+  .or-row{ display:flex; align-items:center; gap:12px; margin:18px 0 14px; color:var(--paper-dim); font-size:11px; letter-spacing:0.08em; text-transform:uppercase; }
+  .or-row::before, .or-row::after{ content:''; flex:1; height:1px; background:var(--line); }
+  .oauth-btn{
+    width:100%; border:1px solid var(--line); background:transparent; color:var(--paper);
+    padding:12px; border-radius:3px; font-size:13px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:10px;
+    transition:border-color .2s;
+  }
+  .oauth-btn:hover{ border-color:var(--paper-dim); }
+  .signup-only{ display:none; }
+  .role-hidden{ display:none; }
+
+  /* ---------- FOOTER ---------- */
+  footer{ padding:44px 0; }
+  .footer-row{ display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:20px; }
+  .stack{ display:flex; gap:8px; flex-wrap:wrap; }
+  .chip{
+    font-family:'IBM Plex Mono',monospace; font-size:11px; padding:6px 11px;
+    border:1px solid var(--line); border-radius:20px; color:var(--paper-dim);
+  }
+  .fine{ font-size:12px; color:var(--paper-dim); }
+
+  @media (max-width:900px){
+    .hero-grid, .auth-wrap{ grid-template-columns:1fr; }
+    .grid-3{ grid-template-columns:1fr; }
+    .roles{ grid-template-columns:repeat(2,1fr); }
+    .navlinks{ display:none; }
+    .divider{ flex-wrap:wrap; }
+    .divider .stage{ flex:1 1 33%; font-size:9px; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation:none !important; transition:none !important; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <div class="logo"><span class="dot"></span> FRESH.OS</div>
+    <div class="navlinks">
+      <a href="#modules">Modules</a>
+      <a href="#roles">Roles</a>
+      <a href="#auth">Access</a>
+    </div>
+    <a href="#auth" class="navcta">Sign In</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <div class="eyebrow">AI-Powered Freshness Intelligence</div>
+      <h1>Know exactly how much<br>time <span class="accent">is left.</span></h1>
+      <p class="hero-sub">FRESH.OS reads a product's image, storage temperature, humidity, and age to score its freshness, forecast remaining shelf life, and flag spoilage risk before it becomes waste.</p>
+      <div class="hero-ctas">
+        <a href="#auth" class="btn btn-primary">Enter Platform →</a>
+        <a href="#modules" class="btn btn-ghost">See Modules</a>
+      </div>
+    </div>
+
+    <div class="scan-card">
+      <div class="label">Live Assessment · Batch #A192</div>
+      <div class="scan-visual">
+        <div class="scan-line"></div>
+        <svg viewBox="0 0 64 64" fill="none">
+          <path d="M32 8c8 0 8 8 4 10-6 3-16 2-16 14 0 10 8 18 12 18s12-8 12-18c0-6-2-10-6-14" stroke="#F2EFE6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M32 8c-2-4 2-7 6-6" stroke="#8FBF3F" stroke-width="2.2" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="readout">
+        <div class="score" id="scoreVal">— <span>/ 100</span></div>
+        <div class="tag">Good</div>
+      </div>
+      <div class="spectrum"><div class="marker"></div></div>
+      <div class="spectrum-labels">
+        <span>Fresh</span><span>Good</span><span>Acceptable</span><span>Near Spoil</span><span>Spoiled</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="divider">
+  <div class="stage st-fresh">Fresh</div>
+  <div class="stage st-good">Good</div>
+  <div class="stage st-acceptable">Acceptable</div>
+  <div class="stage st-near">Near Spoilage</div>
+  <div class="stage st-spoiled">Spoiled</div>
+</div>
+
+<section id="modules">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="section-eyebrow">What the platform does</div>
+      <h2>Every module tied to one job: keep food out of the bin.</h2>
+      <p class="section-desc">From the moment a product image is uploaded to the moment a storage recommendation is issued — one continuous pipeline.</p>
+    </div>
+    <div class="grid-3">
+      <div class="card">
+        <span class="num">01 · Vision</span>
+        <h3>Image Analysis Engine</h3>
+        <p>Detects color degradation, texture change, mold, bruising, and physical damage from an uploaded food photo.</p>
+      </div>
+      <div class="card" style="border-left-color:var(--good)">
+        <span class="num">02 · Scoring</span>
+        <h3>Freshness Assessment</h3>
+        <p>Combines visual condition, storage data, and product age into a single weighted freshness score and category.</p>
+      </div>
+      <div class="card" style="border-left-color:var(--acceptable)">
+        <span class="num">03 · Forecast</span>
+        <h3>Shelf-Life Prediction</h3>
+        <p>Estimates remaining shelf life and expiry risk from image data, storage temperature, humidity, and packaging type.</p>
+      </div>
+      <div class="card" style="border-left-color:var(--near)">
+        <span class="num">04 · Environment</span>
+        <h3>Storage Monitoring</h3>
+        <p>Tracks temperature, humidity, and air circulation against compliance limits and surfaces optimization tips.</p>
+      </div>
+      <div class="card" style="border-left-color:var(--spoiled)">
+        <span class="num">05 · Action</span>
+        <h3>Recommendation Engine</h3>
+        <p>Suggests storage fixes, consumption order, and inventory rotation to cut waste before it happens.</p>
+      </div>
+      <div class="card" style="border-left-color:var(--paper)">
+        <span class="num">06 · Insight</span>
+        <h3>Dashboards & Analytics</h3>
+        <p>Role-specific views — consumer, retail, warehouse, admin — over freshness trends, alerts, and reports.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="roles">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="section-eyebrow">Access by role</div>
+      <h2>One platform, five different jobs to do.</h2>
+    </div>
+    <div class="roles">
+      <div class="role">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="#8FBF3F" stroke-width="1.6"><circle cx="12" cy="8" r="3.4"/><path d="M5 20c0-4 3.1-6.4 7-6.4S19 16 19 20"/></svg>
+        <h4>Consumer</h4>
+        <p>Checks freshness reports and shelf-life on their own food inventory at home.</p>
+      </div>
+      <div class="role">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="#C7D93E" stroke-width="1.6"><path d="M4 20V9l8-5 8 5v11"/><path d="M9 20v-6h6v6"/></svg>
+        <h4>Retail Manager</h4>
+        <p>Watches inventory-wide quality analytics and shelf-life alerts across the store.</p>
+      </div>
+      <div class="role">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="#E8B23D" stroke-width="1.6"><rect x="3" y="7" width="18" height="13" rx="1"/><path d="M8 7V4h8v3"/></svg>
+        <h4>Warehouse Operator</h4>
+        <p>Monitors storage compliance, batch freshness, and environmental conditions.</p>
+      </div>
+      <div class="role">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="#E07A3E" stroke-width="1.6"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>
+        <h4>Food Quality Inspector</h4>
+        <p>Validates spoilage detections and reviews compliance against food safety standards.</p>
+      </div>
+      <div class="role">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="#B4453A" stroke-width="1.6"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 00-.2-1.6l2-1.6-2-3.4-2.4.6a7 7 0 00-2.8-1.6L13 2h-4l-.6 2.4a7 7 0 00-2.8 1.6l-2.4-.6-2 3.4 2 1.6a7 7 0 000 3.2l-2 1.6 2 3.4 2.4-.6a7 7 0 002.8 1.6L9 22h4l.6-2.4a7 7 0 002.8-1.6l2.4.6 2-3.4-2-1.6c.1-.5.2-1 .2-1.6z"/></svg>
+        <h4>Administrator</h4>
+        <p>Manages users, system health, and platform-wide reporting configuration.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="auth" style="border-bottom:none;">
+  <div class="wrap auth-wrap">
+    <div class="auth-copy">
+      <div class="section-eyebrow">Get started</div>
+      <h2>Your first checkpoint: sign in.</h2>
+      <p class="section-desc">Authentication is the foundation module — everything downstream (inventory, scoring, alerts) is scoped to your role from here.</p>
+      <div class="stat-row">
+        <div class="stat"><div class="n">8</div><div class="l">Food Categories</div></div>
+        <div class="stat"><div class="n">5</div><div class="l">Freshness Stages</div></div>
+        <div class="stat"><div class="n">5</div><div class="l">User Roles</div></div>
+      </div>
+    </div>
+
+    <div class="auth-card">
+      <div class="tabs">
+        <div class="tab active" id="tabSignin" onclick="showTab('signin')">Sign In</div>
+        <div class="tab" id="tabSignup" onclick="showTab('signup')">Create Account</div>
+      </div>
+      <div class="auth-body">
+        <div class="field">
+          <label>Email</label>
+          <input type="email" placeholder="you@company.com">
+        </div>
+        <div class="field signup-only">
+          <label>Full Name</label>
+          <input type="text" placeholder="Jane Doe">
+        </div>
+        <div class="row-2">
+          <div class="field">
+            <label>Password</label>
+            <input type="password" placeholder="••••••••">
+          </div>
+          <div class="field signup-only">
+            <label>Confirm Password</label>
+            <input type="password" placeholder="••••••••">
+          </div>
+        </div>
+        <div class="field signup-only">
+          <label>Role</label>
+          <select>
+            <option>Consumer</option>
+            <option>Retail Manager</option>
+            <option>Warehouse Operator</option>
+            <option>Food Quality Inspector</option>
+            <option>Administrator</option>
+          </select>
+        </div>
+        <button class="submit-btn" id="submitBtn">Enter Platform</button>
+        <div class="or-row">or continue with</div>
+        <button class="oauth-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#EA4335" d="M12 10.2v3.9h5.5c-.24 1.3-1.6 3.8-5.5 3.8-3.3 0-6-2.7-6-6.1s2.7-6.1 6-6.1c1.9 0 3.1.8 3.9 1.5l2.6-2.5C16.9 3.1 14.7 2 12 2 6.9 2 2.7 6.1 2.7 11.2S6.9 20.4 12 20.4c6.9 0 8.9-4.8 8.9-7.3 0-.5 0-.9-.1-1.3H12z"/></svg>
+          Google (OAuth2)
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap footer-row">
+    <div class="stack">
+      <span class="chip">FastAPI</span>
+      <span class="chip">React.js</span>
+      <span class="chip">PostgreSQL</span>
+      <span class="chip">TensorFlow</span>
+      <span class="chip">Docker</span>
+    </div>
+    <div class="fine">FRESH.OS — Food Freshness Monitoring Platform · Milestone 1 build</div>
+  </div>
+</footer>
+
+<script>
+  function showTab(which){
+    const isSignin = which === 'signin';
+    document.getElementById('tabSignin').classList.toggle('active', isSignin);
+    document.getElementById('tabSignup').classList.toggle('active', !isSignin);
+    document.querySelectorAll('.signup-only').forEach(el => el.style.display = isSignin ? 'none' : 'block');
+    document.getElementById('submitBtn').textContent = isSignin ? 'Enter Platform' : 'Create Account';
+  }
+
+  // animate freshness score count-up on load
+  window.addEventListener('DOMContentLoaded', () => {
+    const el = document.getElementById('scoreVal');
+    const target = 78;
+    let cur = 0;
+    const suffix = ' <span>/ 100</span>';
+    const iv = setInterval(() => {
+      cur += 3;
+      if (cur >= target){ cur = target; clearInterval(iv); }
+      el.innerHTML = cur + suffix;
+    }, 30);
+  });
+</script>
+
+</body>
+</html>
