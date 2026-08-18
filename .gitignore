@@ -1,0 +1,36 @@
+# --- Python / FastAPI backend ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+*.db
+*.sqlite3
+food_freshness.db
+
+# uploaded images (keep the folder, ignore contents)
+backend/app/uploads/*
+!backend/app/uploads/.gitkeep
+
+# --- Node / React frontend ---
+node_modules/
+dist/
+dist-ssr/
+.vite/
+*.local
+
+# --- Env / secrets ---
+.env
+.env.local
+.env.*.local
+
+# --- Editor / OS ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# --- Logs ---
+*.log
+npm-debug.log*
