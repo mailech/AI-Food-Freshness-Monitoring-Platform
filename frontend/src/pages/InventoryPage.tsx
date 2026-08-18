@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
 import { motion } from 'framer-motion';
 import { 
   Plus, 
@@ -43,8 +41,6 @@ interface InventoryItem {
 }
 
 const InventoryPage: React.FC = () => {
-  const { role } = useAuth();
-  const { isDark } = useTheme();
   
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [categories, setCategories] = useState<FoodCategory[]>([]);

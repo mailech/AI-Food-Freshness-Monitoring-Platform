@@ -2,10 +2,8 @@ import React from 'react';
 import { 
   FileSpreadsheet, 
   FileDown, 
-  HelpCircle,
   FileCheck2,
-  TrendingDown,
-  Warehouse
+  TrendingDown
 } from 'lucide-react';
 
 const ReportsPage: React.FC = () => {

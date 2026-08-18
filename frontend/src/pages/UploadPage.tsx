@@ -5,13 +5,10 @@ import {
   Upload, 
   Camera, 
   Sparkles, 
-  CheckCircle2, 
   AlertTriangle,
   Info,
   Thermometer,
   Droplets,
-  HelpCircle,
-  FileCheck2,
   RefreshCcw
 } from 'lucide-react';
 
