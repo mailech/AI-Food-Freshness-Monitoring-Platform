@@ -47,7 +47,8 @@ db.sqlite3
 htmlcov/
 .pytest_cache/
 .coverage
-backend/static/uploads/
+backend/static/uploads/*
+!backend/static/uploads/.gitkeep
 *dot_git_backup*
 node_modules/
 .next/
