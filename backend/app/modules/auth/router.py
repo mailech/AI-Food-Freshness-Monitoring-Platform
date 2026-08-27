@@ -11,10 +11,11 @@ from app.modules.auth.service import authenticate_user
 from app.modules.user.models import User
 from app.modules.user.schemas import UserCreate, UserResponse
 from app.modules.user.service import get_user_by_email, create_user
+from app.core.rate_limit import auth_rate_limiter
 
 router = APIRouter()
 
-@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(auth_rate_limiter)])
 async def register(*, db: AsyncSession = Depends(get_db), user_in: UserCreate) -> Any:
     """
     Register a new user.
@@ -27,8 +28,6 @@ async def register(*, db: AsyncSession = Depends(get_db), user_in: UserCreate) -
         )
     user = await create_user(db, user_in=user_in)
     return user
-
-from app.core.rate_limit import auth_rate_limiter
 
 @router.post("/token", response_model=Token, dependencies=[Depends(auth_rate_limiter)])
 async def login_for_access_token(

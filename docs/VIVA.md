@@ -11,7 +11,7 @@ FreshLens addresses the global food waste and supply chain inefficiency problem.
 Traditional freshness estimation is manually inspected (slow and subjective) or simply rule-based based on purchase dates (ignoring actual environmental storage parameters). AI computer vision segments images, identifies decay markers, and classifies overall visual quality objectively and instantly from camera feeds.
 
 ### 3. What model is used?
-We use `FoodFreshnessCNN`, a 5-layer Convolutional Neural Network (CNN) containing feature extraction modules (2D convolutions, batch normalization, max-pooling) and a linear projection classification header. The architecture is decoupled to allow seamless swapping with deeper networks (such as ResNet or YOLO) without modifying application layers.
+We use `FoodFreshnessCNN`, a 5-layer Convolutional Neural Network (CNN) containing feature extraction modules (2D convolutions, batch normalization, max-pooling) and a linear projection classification header. The architecture is decoupled to allow swapping with deeper networks (such as ResNet or YOLO) without modifying application layers.
 
 ### 4. What are the model classes?
 The classifier maps visual input to 5 standard classes:

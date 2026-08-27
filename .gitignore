@@ -48,3 +48,8 @@ htmlcov/
 .pytest_cache/
 .coverage
 backend/static/uploads/
+*dot_git_backup*
+node_modules/
+.next/
+dist/
+coverage/
