@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  output: "standalone",
   allowedDevOrigins: ["192.168.137.1"],
   async rewrites() {
     if (process.env.USE_MOCK_API === "1") {

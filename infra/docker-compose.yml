@@ -35,13 +35,18 @@ services:
       JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URL: http://localhost:8000/api/v1/auth/google/callback
+      FRONTEND_URL: http://localhost:3000
     ports:
       - "8000:8000"
     volumes:
       - uploads:/app/uploads
 
   web:
-    build: ../frontend
+    build:
+      context: ../frontend
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8000
     depends_on:
       - api
     environment:
