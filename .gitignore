@@ -31,3 +31,5 @@ __pycache__/
 
 # Environment variables / secrets
 .env
+
+ml/*.keras
