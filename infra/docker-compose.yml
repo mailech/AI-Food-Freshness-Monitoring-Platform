@@ -1,0 +1,89 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ffp
+      POSTGRES_PASSWORD: ffp
+      POSTGRES_DB: ffpdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ffp"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mongo:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodata:/data/db
+
+  api:
+    build: ../backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mongo:
+        condition: service_started
+    environment:
+      DATABASE_URL: postgresql+psycopg2://ffp:ffp@postgres:5432/ffpdb
+      MONGO_URL: mongodb://mongo:27017
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+    ports:
+      - "8000:8000"
+    volumes:
+      - uploads:/app/uploads
+
+  web:
+    build: ../frontend
+    depends_on:
+      - api
+    environment:
+      API_URL: http://api:8000
+    ports:
+      - "3000:3000"
+
+  # Edge proxy: cross-replica rate limiting + TLS termination point.
+  nginx:
+    image: nginx:1.27-alpine
+    depends_on:
+      - api
+      - web
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./certs:/etc/nginx/certs:ro
+    ports:
+      - "80:80"
+      - "443:443"
+
+  mqtt:
+    image: eclipse-mosquitto:2
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    ports:
+      - "1883:1883"
+
+  # Sensor ingestion worker (FR-6.1 MQTT path)
+  ingest:
+    build: ../backend
+    command: python -m app.mqtt_ingest
+    depends_on:
+      - postgres
+      - mqtt
+    environment:
+      DATABASE_URL: postgresql+psycopg2://ffp:ffp@postgres:5432/ffpdb
+      MONGO_URL: mongodb://mongo:27017
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
+      MQTT_HOST: mqtt
+      MQTT_PORT: "1883"
+
+volumes:
+  pgdata:
+  mongodata:
+  uploads:
