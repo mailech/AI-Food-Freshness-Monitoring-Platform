@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Shelf Life - FreshAI</title>
+
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+
+        <div class="logo">
+            <h1>🥬 FreshAI</h1>
+            <p>Food Monitoring</p>
+        </div>
+
+        <nav>
+
+            <a href="index.html">
+                📊 Dashboard
+            </a>
+
+            <a href="inventory.html">
+                📦 Inventory
+            </a>
+
+            <a href="analyze.html">
+                🔍 Analyze Food
+            </a>
+
+            <a href="shelf-life.html" class="active">
+                ⏳ Shelf Life
+            </a>
+
+            <a href="storage.html">
+                🌡️ Storage
+            </a>
+
+            <a href="recommendations.html">
+                💡 Recommendations
+            </a>
+
+            <a href="alerts.html">
+                🔔 Alerts
+            </a>
+
+        </nav>
+
+        <div class="sidebar-footer">
+            <p>AI Food Freshness</p>
+            <small>Monitoring Platform</small>
+        </div>
+
+    </aside>
+
+
+    <!-- Main Content -->
+    <main class="main-content">
+
+        <!-- Header -->
+        <header class="header">
+
+            <div>
+                <h2>Shelf Life Prediction</h2>
+                <p>Estimate the remaining shelf life of your food</p>
+            </div>
+
+            <div class="profile">
+
+                🔔
+
+                <div class="avatar">U</div>
+
+                <div>
+                    <strong>User</strong>
+                    <p>Consumer</p>
+                </div>
+
+            </div>
+
+        </header>
+
+
+        <!-- Page Content -->
+        <section class="content">
+
+            <div class="page-title">
+                <h1>Shelf Life Prediction</h1>
+                <p>Enter food details to estimate its remaining shelf life.</p>
+            </div>
+
+
+            <!-- Shelf Life Form -->
+
+            <div class="shelf-life-container">
+
+                <div class="shelf-form-card">
+
+                    <h2>Food Information</h2>
+
+
+                    <label for="foodName">
+                        Food Name
+                    </label>
+
+                    <input
+                        type="text"
+                        id="foodName"
+                        placeholder="Example: Apples"
+                    >
+
+
+                    <label for="storageType">
+                        Storage Method
+                    </label>
+
+                    <select id="storageType">
+
+                        <option value="">
+                            Select Storage
+                        </option>
+
+                        <option value="refrigerator">
+                            Refrigerator
+                        </option>
+
+                        <option value="room">
+                            Room Temperature
+                        </option>
+
+                        <option value="freezer">
+                            Freezer
+                        </option>
+
+                    </select>
+
+
+                    <label for="foodCondition">
+                        Food Condition
+                    </label>
+
+                    <select id="foodCondition">
+
+                        <option value="">
+                            Select Condition
+                        </option>
+
+                        <option value="fresh">
+                            Fresh
+                        </option>
+
+                        <option value="good">
+                            Good
+                        </option>
+
+                        <option value="near">
+                            Near Expiry
+                        </option>
+
+                    </select>
+
+
+                    <button id="predictButton" class="predict-button">
+                        ⏳ Predict Shelf Life
+                    </button>
+
+                </div>
+
+
+                <!-- Prediction Result -->
+
+                <div class="prediction-card">
+
+                    <div class="prediction-icon">
+                        ⏳
+                    </div>
+
+                    <h2 id="predictionTitle">
+                        Shelf Life Prediction
+                    </h2>
+
+                    <div class="prediction-days" id="predictionDays">
+                        --
+                    </div>
+
+                    <p id="predictionText">
+                        Enter food information to predict remaining shelf life.
+                    </p>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <script src="./js/script.js"></script>
+
+</body>
+
+</html>

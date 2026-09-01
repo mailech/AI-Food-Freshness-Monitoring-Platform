@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Analyze Food - FreshAI</title>
+
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+
+        <div class="logo">
+            <h1>🥬 FreshAI</h1>
+            <p>Food Monitoring</p>
+        </div>
+
+        <nav>
+
+            <a href="index.html">
+                📊 Dashboard
+            </a>
+
+            <a href="inventory.html">
+                📦 Inventory
+            </a>
+
+            <a href="analyze.html" class="active">
+                🔍 Analyze Food
+            </a>
+
+            <a href="shelf-life.html">
+                ⏳ Shelf Life
+            </a>
+
+            <a href="storage.html">
+                🌡️ Storage
+            </a>
+
+            <a href="recommendations.html">
+                💡 Recommendations
+            </a>
+
+            <a href="alerts.html">
+                🔔 Alerts
+            </a>
+
+        </nav>
+
+        <div class="sidebar-footer">
+            <p>AI Food Freshness</p>
+            <small>Monitoring Platform</small>
+        </div>
+
+    </aside>
+
+
+    <!-- Main Content -->
+    <main class="main-content">
+
+        <!-- Header -->
+        <header class="header">
+
+            <div>
+                <h2>Analyze Food</h2>
+                <p>Upload a food image for freshness analysis</p>
+            </div>
+
+            <div class="profile">
+                🔔
+
+                <div class="avatar">U</div>
+
+                <div>
+                    <strong>User</strong>
+                    <p>Consumer</p>
+                </div>
+            </div>
+
+        </header>
+
+
+        <!-- Page Content -->
+        <section class="content">
+
+            <div class="page-title">
+                <h1>Analyze Food Freshness</h1>
+                <p>Upload an image of your food and check its freshness.</p>
+            </div>
+
+
+            <!-- Analysis Section -->
+            <div class="analysis-container">
+
+                <div class="upload-card">
+
+                    <div class="upload-icon">
+                        📷
+                    </div>
+
+                    <h2>Upload Food Image</h2>
+
+                    <p>
+                        Upload a clear image of the food item you want to analyze.
+                    </p>
+
+                    <input
+                        type="file"
+                        id="foodImage"
+                        accept="image/*"
+                    >
+
+                   <label for="foodImage" class="upload-button">
+    Choose Image
+</label>
+
+<img id="imagePreview" src="" alt="Selected food preview">
+
+<button id="analyzeButton" class="analyze-button">
+    🔍 Analyze Image
+</button>
+                    
+                    
+
+                </div>
+
+
+                <!-- Instructions -->
+
+                <div class="instructions-card">
+
+                    <h2>How It Works</h2>
+
+                    <div class="instruction">
+
+                        <span>1</span>
+
+                        <div>
+                            <h3>Upload Image</h3>
+                            <p>Choose a clear image of your food item.</p>
+                        </div>
+
+                    </div>
+
+
+                    <div class="instruction">
+
+                        <span>2</span>
+
+                        <div>
+                            <h3>AI Analysis</h3>
+                            <p>The system analyzes the food appearance.</p>
+                        </div>
+
+                    </div>
+
+
+                    <div class="instruction">
+
+                        <span>3</span>
+
+                        <div>
+                            <h3>Get Results</h3>
+                            <p>View the predicted freshness result.</p>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- Result Section -->
+
+            <div class="result-card">
+
+    <h2>Analysis Result</h2>
+
+    <div class="result-content">
+
+        <div class="result-icon" id="resultIcon">
+            🤖
+        </div>
+
+        <div>
+            <h3 id="resultTitle">
+                No Image Analyzed Yet
+            </h3>
+
+            <p id="resultText">
+                Upload a food image and click Analyze Image.
+            </p>
+
+            <div id="analysisDetails" class="analysis-details">
+
+                <p>
+                    <strong>Freshness Score:</strong>
+                    <span id="freshnessScore">--</span>
+                </p>
+
+                <p>
+                    <strong>Status:</strong>
+                    <span id="foodStatus">--</span>
+                </p>
+
+                <p>
+                    <strong>Estimated Shelf Life:</strong>
+                    <span id="shelfLife">--</span>
+                </p>
+
+                <p>
+                    <strong>Recommendation:</strong>
+                    <span id="recommendation">--</span>
+                </p>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+    <script src="js/script.js"></script>
+
+</body>
+
+</html>
