@@ -5,15 +5,15 @@ services:
     image: postgres:16-alpine
     container_name: freshlens-postgres
     environment:
-      POSTGRES_DB: freshlens_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres_password
+      POSTGRES_DB: ${POSTGRES_DB:-freshlens_db}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres_password}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d freshlens_db"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-freshlens_db}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -22,9 +22,9 @@ services:
     image: mongo:7.0
     container_name: freshlens-mongodb
     environment:
-      MONGO_INITDB_ROOT_USERNAME: mongo_admin
-      MONGO_INITDB_ROOT_PASSWORD: mongo_password
-      MONGO_INITDB_DATABASE: freshlens_mongo
+      MONGO_INITDB_ROOT_USERNAME: ${MONGODB_USER:-mongo_admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_PASSWORD:-mongo_password}
+      MONGO_INITDB_DATABASE: ${MONGODB_DB:-freshlens_mongo}
     ports:
       - "27017:27017"
     volumes:
@@ -43,9 +43,9 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - SECRET_KEY=freshlens_secret_key_for_development_purposes_only
-      - DATABASE_URL=postgresql+asyncpg://postgres:postgres_password@postgres:5432/freshlens_db
-      - MONGODB_URL=mongodb://mongo_admin:mongo_password@mongodb:27017/freshlens_mongo?authSource=admin
+      - SECRET_KEY=${SECRET_KEY:-your_secure_secret_key}
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres_password}@postgres:5432/${POSTGRES_DB:-freshlens_db}
+      - MONGODB_URL=mongodb://${MONGODB_USER:-mongo_admin}:${MONGODB_PASSWORD:-mongo_password}@mongodb:27017/${MONGODB_DB:-freshlens_mongo}?authSource=admin
     depends_on:
       postgres:
         condition: service_healthy
