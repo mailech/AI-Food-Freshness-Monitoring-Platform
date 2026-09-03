@@ -1,6 +1,6 @@
-# FreshLens - AI-Powered Food Freshness Monitoring Platform
+# FreshLens - Food Freshness Monitoring Platform
 
-FreshLens is an enterprise-grade food freshness monitoring and inventory management platform. It integrates visual computer vision scanners, time-series storage telemetry monitoring, predictive shelf-life modeling, and role-based notifications to automate FEFO (First Expired, First Out) dispatch management, helping warehouses and retail stores optimize operations and reduce organic waste.
+FreshLens analyzes food images and storage conditions to estimate freshness and support inventory management. It combines computer vision, ambient storage telemetry, shelf-life estimation, and role-based dispatch prioritizing (FEFO - First Expired, First Out) to help reduce food spoilage.
 
 ---
 
@@ -33,12 +33,12 @@ graph TD
 
 ## 2. Key Features
 
-* **Real AI Visual Scanner**: Decoupled pre-processing, CNN inference, and post-processing with low-confidence overrides.
+* **Computer Vision Scanner**: Image pre-processing, CNN inference (`FoodFreshnessCNN`), and post-processing with low-confidence overrides.
 * **Storage Telemetry Logging**: Track zone climates (temperature, humidity, air circulation, light levels) in MongoDB.
 * **Arrhenius Shelf-Life Modeling**: Real-time estimations based on environmental kinetics.
 * **FEFO Dispatch Management**: Automatically prioritized list of items sorted by remaining shelf life.
 * **Dynamic Analytics Reports**: Exposes endpoints exporting PDF and Excel sheets of storage histories and compliance parameters.
-* **Production Gated Security**: Hashed passwords, jwt tokens, strict MIME-type guards, and generic global error catchers.
+* **Production Gated Security**: Hashed passwords, JWT tokens, strict MIME-type guards, and global exception handlers.
 
 ---
 
@@ -119,8 +119,12 @@ d:\FreshLens\
 ├── README.md                 # Setup, run, and test guide
 ├── .env.example              # Centralized environment template
 ├── docs/                     # Documentation files
-│   ├── VIVA.md               # Quick exam prep guide
-│   └── PROJECT_STATUS.md     # Feature implementation log
+│   ├── MODEL.md              # AI model architecture and training guide
+│   ├── MODEL_EVALUATION.md   # Model evaluation metrics and reports
+│   ├── DEMO_SCRIPT.md        # 5-minute live demonstration script
+│   ├── ROADMAP.md            # Product roadmap and future versions
+│   ├── VIVA.md               # Architecture and viva preparation guide
+│   └── PROJECT_STATUS.md     # Feature implementation status
 ├── backend/                  # FastAPI Backend service
 │   ├── Dockerfile
 │   ├── requirements.txt      # Dependencies

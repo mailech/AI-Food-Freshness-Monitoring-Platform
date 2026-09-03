@@ -134,7 +134,7 @@ export default function AdminDashboard() {
                 Portal Hub
               </Link>
               <button
-                onClick={() => alert('Safe system reboot triggered. Microservices cycling...')}
+                onClick={() => alert('Safe system reboot triggered. Microservices cycling.')}
                 className="px-4 py-2 bg-rose-500 hover:bg-rose-600 rounded-xl text-sm text-white font-bold shadow-lg shadow-rose-500/20 transition duration-150"
               >
                 Safe System Reboot

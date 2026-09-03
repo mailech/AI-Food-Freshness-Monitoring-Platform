@@ -37,7 +37,7 @@ class Settings(BaseSettings):
     MODEL_CONFIDENCE_THRESHOLD: float = 0.60
     MODEL_DEVICE: str = "auto"
     MODEL_VERSION: str = "1.0.0"
-    MODEL_NAME: str = "FreshNet-CNN"
+    MODEL_NAME: str = "FoodFreshnessCNN"
     MAX_IMAGE_SIZE_BYTES: int = 5242880  # 5 MB
 
     # Freshness Scoring Configurable Weights

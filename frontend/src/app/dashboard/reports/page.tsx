@@ -77,7 +77,7 @@ export default function ReportsPage() {
       setReportData(data);
     } catch (err) {
       // Offline fallback: compute statistics in memory using local mock items
-      console.log('Generating sandbox preview report metrics...');
+      console.log('Generating sandbox preview report metrics.');
       
       // Filter mock items in memory
       let filtered = [...MOCK_ITEMS];

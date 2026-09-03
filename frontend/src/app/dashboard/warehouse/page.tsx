@@ -431,7 +431,7 @@ export default function WarehouseDashboard() {
           <div className="flex gap-2 w-full sm:w-auto">
             <input
               type="text"
-              placeholder="Search goods..."
+              placeholder="Search goods"
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="px-4 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-amber-500"

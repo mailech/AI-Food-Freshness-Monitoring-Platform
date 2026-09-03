@@ -1386,7 +1386,7 @@ export default function RetailDashboard() {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by name or batch number..."
+              placeholder="Search by name or batch number"
               className="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition"
             />
           </div>
