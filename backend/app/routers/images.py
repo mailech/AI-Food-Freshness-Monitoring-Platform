@@ -43,7 +43,7 @@ async def upload_image(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    _get_owned_item(item_id, user, db)
+    item = _get_owned_item(item_id, user, db)
 
     if file.content_type not in ALLOWED_TYPES:
         raise HTTPException(
@@ -62,7 +62,7 @@ async def upload_image(
     db.add(upload)
     db.flush()
 
-    result = assess_image(content)
+    result = assess_image(content, item_name=item.name if item else "")
     assessment = Assessment(
         item_id=item_id,
         image_id=upload.id,

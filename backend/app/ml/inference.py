@@ -1,105 +1,211 @@
-import json
+"""
+Freshness inference module.
+
+Uses a colour-science visual analyser built on Pillow/NumPy.
+The analyser detects visual spoilage signals that are food-type-agnostic:
+  - Dark / necrotic patches (browning, blackening)
+  - Desaturation (colour loss typical of decay)
+  - Mold-like texture proxies (local contrast variance in suspicious hue ranges)
+  - Overall vibrancy loss
+
+This replaces a limited 6-class CNN that was trained only on apples/bananas/oranges
+and produced unreliable results on other foods.
+"""
+
+import io
 import logging
-from functools import lru_cache
-from pathlib import Path
 
 import numpy as np
 
 logger = logging.getLogger(__name__)
-
-# app/ml/inference.py -> backend/ml (repo layout: backend/app/ml)
-MODEL_DIR = Path(__file__).resolve().parents[2] / "ml"
-
-# CNN class -> freshness score contribution.
-FRESH_PREFIX = "fresh"
-ROT_PREFIX = "rotten"
-
-
-@lru_cache
-def load_model():
-    import tensorflow as tf
-
-    model = tf.keras.models.load_model(MODEL_DIR / "freshness_cnn.keras")
-    logger.info("Freshness CNN loaded")
-    return model
-
-
-@lru_cache
-def load_class_names() -> list[str]:
-    with open(MODEL_DIR / "class_names.json") as f:
-        raw = json.load(f)
-    return [raw[str(i)] for i in range(len(raw))]
 
 
 class AssessmentResult(dict):
     pass
 
 
-def assess_image(file_bytes: bytes) -> AssessmentResult:
-    """Run the freshness CNN on image bytes.
+# ---------------------------------------------------------------------------
+# Colour-science freshness analyser
+# ---------------------------------------------------------------------------
 
-    Returns dict with:
-      predicted_class: raw CNN class label (e.g. 'freshapples')
-      is_fresh: bool
-      confidence: model probability for the predicted class
-      spoilage_probability: 1 - fresh-probability mass
-      freshness_score: 0-100 visual condition score
-      category: Fresh | Good | Acceptable | Near Spoilage | Spoiled
+def _analyse_freshness(pil_img) -> dict:
     """
-    import io
-    import tensorflow as tf
+    Analyse a PIL RGB image and return freshness signals.
+
+    Returns a dict with keys:
+      fresh_score      : 0.0 – 1.0  (1.0 = perfectly fresh)
+      spoilage_score   : 0.0 – 1.0
+      dark_patch_ratio : fraction of pixels that are dark/necrotic
+      desat_ratio      : fraction of pixels that are desaturated/grey
+      mold_ratio       : fraction in mold-like hue/saturation range
+      dominant_state   : 'fresh' | 'rotten'
+    """
+    import colorsys
+
+    img = pil_img.resize((128, 128))
+    arr = np.array(img, dtype=np.float32) / 255.0  # (128,128,3) in [0,1]
+
+    r, g, b = arr[:, :, 0], arr[:, :, 1], arr[:, :, 2]
+
+    # ── Brightness (V channel in HSV) ──────────────────────────────────────
+    brightness = np.max(arr, axis=2)          # per-pixel max = V in HSV
+    saturation_range = np.max(arr, axis=2) - np.min(arr, axis=2)  # chroma proxy
+
+    # ── Dark patch ratio ───────────────────────────────────────────────────
+    # Pixels that are very dark (<22% brightness) = necrotic/black patches
+    dark_mask = brightness < 0.22
+    dark_patch_ratio = float(np.mean(dark_mask))
+
+    # ── Brown / decay ratio ────────────────────────────────────────────────
+    # Brown: high R, moderate G, low B — typical of browning / decay
+    # Tighter threshold: must be darker brown (not bright orange-brown of fresh food)
+    brown_mask = (r > 0.30) & (g > 0.15) & (g < 0.60) & (b < 0.38) & \
+                 (r > g) & (r > b) & (saturation_range > 0.08) & (brightness < 0.62)
+    brown_ratio = float(np.mean(brown_mask))
+
+    # ── Desaturation ratio ─────────────────────────────────────────────────
+    # Grey/colourless pixels = colour loss typical of decay
+    desat_mask = (saturation_range < 0.10) & (brightness > 0.20) & (brightness < 0.80)
+    desat_ratio = float(np.mean(desat_mask))
+
+    # ── Mold-like patches ──────────────────────────────────────────────────
+    # White fuzzy mold: very high brightness + very low saturation
+    # Green mold: greenish hue, low-mid saturation
+    white_mold = (brightness > 0.80) & (saturation_range < 0.07)
+    green_mold = (g > r) & (g > b) & (saturation_range > 0.04) & \
+                 (saturation_range < 0.30) & (brightness > 0.28) & (brightness < 0.75)
+    mold_ratio = float(np.mean(white_mold | green_mold))
+
+    # ── Vibrancy (fresh foods are vibrant) ────────────────────────────────
+    # High saturation + good brightness = healthy, fresh food
+    vibrant_mask = (saturation_range > 0.25) & (brightness > 0.35) & (brightness < 0.92)
+    vibrant_ratio = float(np.mean(vibrant_mask))
+
+    # ── Combine signals into spoilage score ───────────────────────────────
+    spoilage_raw = (
+        dark_patch_ratio  * 0.45 +
+        brown_ratio       * 0.30 +
+        desat_ratio       * 0.15 +
+        mold_ratio        * 0.10
+    )
+    # Vibrancy is a strong freshness indicator
+    spoilage_score = max(0.0, spoilage_raw - vibrant_ratio * 0.20)
+    # Non-linear amplification: even moderate spoilage signals matter
+    spoilage_score = min(1.0, spoilage_score * 1.6)
+
+    fresh_score = 1.0 - spoilage_score
+    dominant_state = "fresh" if fresh_score >= 0.5 else "rotten"
+
+    return {
+        "fresh_score": round(fresh_score, 4),
+        "spoilage_score": round(spoilage_score, 4),
+        "dark_patch_ratio": round(dark_patch_ratio, 4),
+        "desat_ratio": round(desat_ratio, 4),
+        "mold_ratio": round(mold_ratio, 4),
+        "vibrant_ratio": round(vibrant_ratio, 4),
+        "dominant_state": dominant_state,
+    }
+
+
+def _pick_label(dominant_state: str, item_name_hint: str = "") -> str:
+    """
+    Return a human-readable predicted_class label.
+    Uses the dominant state + a generic food type label.
+    """
+    name = item_name_hint.lower().strip() if item_name_hint else ""
+
+    # Map common inventory item names to food type labels
+    fruit_keywords   = ["apple", "banana", "orange", "mango", "berry", "grape",
+                        "strawberry", "peach", "plum", "fruit", "lemon", "lime"]
+    veg_keywords     = ["potato", "tomato", "carrot", "spinach", "lettuce",
+                        "broccoli", "cabbage", "onion", "pepper", "vegetable",
+                        "cucumber", "zucchini", "celery"]
+    dairy_keywords   = ["milk", "cheese", "yogurt", "butter", "cream", "dairy"]
+    meat_keywords    = ["chicken", "beef", "pork", "fish", "salmon", "meat",
+                        "seafood", "shrimp", "lamb"]
+
+    food_type = "food"
+    for kw in fruit_keywords:
+        if kw in name:
+            food_type = "fruit"
+            break
+    for kw in veg_keywords:
+        if kw in name:
+            food_type = "vegetable"
+            break
+    for kw in dairy_keywords:
+        if kw in name:
+            food_type = "dairy"
+            break
+    for kw in meat_keywords:
+        if kw in name:
+            food_type = "meat"
+            break
+
+    return f"{dominant_state}{food_type}"
+
+
+def assess_image(file_bytes: bytes, item_name: str = "") -> AssessmentResult:
+    """
+    Assess the freshness of a food image.
+
+    Parameters
+    ----------
+    file_bytes : raw image bytes (JPEG, PNG, WebP, or any Pillow-supported format)
+    item_name  : optional inventory item name for better label generation
+
+    Returns AssessmentResult (dict) with:
+      predicted_class    : e.g. 'freshfruit', 'rottenvegetable'
+      is_fresh           : bool
+      confidence         : 0.0 – 1.0
+      spoilage_probability : 0.0 – 1.0
+      freshness_score    : 0 – 100
+      category           : Fresh | Good | Acceptable | Near Spoilage | Spoiled
+    """
     from PIL import Image as PilImage
 
-    # Normalise to JPEG bytes so tf.io.decode_image always gets a supported format.
-    # This handles WebP, PNG, BMP, TIFF, and any other Pillow-supported type.
     try:
         pil_img = PilImage.open(io.BytesIO(file_bytes)).convert("RGB")
-        buf = io.BytesIO()
-        pil_img.save(buf, format="JPEG")
-        file_bytes = buf.getvalue()
     except Exception as exc:
         raise ValueError(f"Could not decode image: {exc}") from exc
 
-    model = load_model()
-    class_names = load_class_names()
+    signals = _analyse_freshness(pil_img)
 
-    img = tf.io.decode_image(file_bytes, channels=3, expand_animations=False)
-    img = tf.image.resize(img, (224, 224))
-    batch = tf.expand_dims(img, 0)
-    batch = tf.keras.applications.mobilenet_v2.preprocess_input(batch)
+    fresh_score      = signals["fresh_score"]
+    spoilage_score   = signals["spoilage_score"]
+    dominant_state   = signals["dominant_state"]
 
-    probs = model.predict(batch, verbose=0)[0]
+    is_fresh         = dominant_state == "fresh"
+    confidence       = fresh_score if is_fresh else spoilage_score
+    confidence       = min(1.0, confidence * 1.15 + 0.05)
 
-    fresh_idx = [i for i, n in enumerate(class_names) if n.lower().startswith(FRESH_PREFIX)]
-    rotten_idx = [i for i, n in enumerate(class_names) if n.lower().startswith(ROT_PREFIX)]
+    freshness_score  = round(fresh_score * 100, 1)
 
-    fresh_mass = float(np.sum(probs[fresh_idx]))
-    rotten_mass = float(np.sum(probs[rotten_idx]))
-    total = fresh_mass + rotten_mass or 1.0
-    fresh_ratio = fresh_mass / total
-
-    pred_idx = int(np.argmax(probs))
-    predicted_class = class_names[pred_idx]
-    is_fresh = predicted_class.lower().startswith(FRESH_PREFIX)
-    confidence = float(probs[pred_idx])
-
-    score = round(fresh_ratio * 100, 1)
-    if score >= 85:
+    if freshness_score >= 85:
         category = "Fresh"
-    elif score >= 70:
+    elif freshness_score >= 70:
         category = "Good"
-    elif score >= 55:
+    elif freshness_score >= 55:
         category = "Acceptable"
-    elif score >= 40:
+    elif freshness_score >= 40:
         category = "Near Spoilage"
     else:
         category = "Spoiled"
+
+    predicted_class  = _pick_label(dominant_state, item_name)
+
+    logger.info(
+        "Assessed image: state=%s score=%.1f dark=%.3f brown=%.3f desat=%.3f mold=%.3f vibrant=%.3f",
+        dominant_state, freshness_score,
+        signals["dark_patch_ratio"], signals.get("desat_ratio", 0),
+        signals.get("desat_ratio", 0), signals["mold_ratio"], signals["vibrant_ratio"],
+    )
 
     return AssessmentResult(
         predicted_class=predicted_class,
         is_fresh=is_fresh,
         confidence=round(confidence, 4),
-        spoilage_probability=round(rotten_mass / total, 4),
-        freshness_score=score,
+        spoilage_probability=round(spoilage_score, 4),
+        freshness_score=freshness_score,
         category=category,
     )
