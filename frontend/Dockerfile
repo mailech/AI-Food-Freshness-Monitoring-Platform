@@ -7,9 +7,13 @@ RUN npm ci
 
 COPY . .
 
-# Build with real backend URL baked in (Next.js NEXT_PUBLIC_ vars are inlined at build time)
+# Ensure mock API is OFF in the production Docker build.
+# The real backend proxy rewrite is used instead.
 ARG NEXT_PUBLIC_API_URL=http://localhost:8000
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ARG API_URL=http://api:8000
+ENV API_URL=$API_URL
+ENV USE_MOCK_API=0
 
 RUN npm run build
 
