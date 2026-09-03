@@ -10,7 +10,7 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ffp"]
+      test: ["CMD-SHELL", "pg_isready -U ffp -d ffpdb"]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -72,7 +72,7 @@ services:
     volumes:
       - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
     ports:
-      - "1883:1883"
+      - "11883:1883"
 
   # Sensor ingestion worker (FR-6.1 MQTT path)
   ingest:
