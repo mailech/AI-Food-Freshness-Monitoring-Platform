@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Dashboard - FoodFresh AI</title>
+
+    <link rel="stylesheet" href="styles.css">
+
+</head>
+
+
+<body>
+
+<div class="app">
+
+    <!-- =====================================================
+         LEFT SIDEBAR
+    ====================================================== -->
+
+    <aside class="sidebar">
+
+        <!-- LOGO -->
+
+        <div class="sidebar-logo">
+
+            <div class="logo-icon">
+                🥬
+            </div>
+
+            <h2>FoodFresh AI</h2>
+
+            <p>Freshness Monitoring</p>
+
+        </div>
+
+
+        <!-- NAVIGATION -->
+
+        <nav class="nav-menu">
+
+            <a href="dashboard.html" class="active">
+
+                <span class="nav-icon">📊</span>
+
+                <span>Dashboard</span>
+
+            </a>
+
+
+            <a href="analysis.html">
+
+                <span class="nav-icon">🔍</span>
+
+                <span>Food Analysis</span>
+
+            </a>
+
+
+            <a href="inventory.html">
+
+                <span class="nav-icon">📦</span>
+
+                <span>Inventory</span>
+
+            </a>
+
+
+            <a href="storage.html">
+
+                <span class="nav-icon">🌡️</span>
+
+                <span>Storage</span>
+
+            </a>
+
+
+            <a href="alerts.html">
+
+                <span class="nav-icon">🔔</span>
+
+                <span>Alerts</span>
+
+            </a>
+
+
+            <a href="reports.html">
+
+                <span class="nav-icon">📄</span>
+
+                <span>Reports</span>
+
+            </a>
+
+
+            <a href="#" id="logoutBtn">
+
+                <span class="nav-icon">🚪</span>
+
+                <span>Logout</span>
+
+            </a>
+
+        </nav>
+
+    </aside>
+
+
+
+    <!-- =====================================================
+         MAIN AREA
+    ====================================================== -->
+
+    <main class="main-content">
+
+
+        <!-- =================================================
+             HORIZONTAL TOPBAR
+        ================================================== -->
+
+        <header class="topbar">
+
+            <div class="topbar-left">
+
+                <h2>Dashboard</h2>
+
+            </div>
+
+
+            <div class="topbar-right">
+
+
+                <!-- NOTIFICATION -->
+
+                <a href="alerts.html"
+                   class="notification"
+                   title="Notifications">
+
+                    🔔
+
+                </a>
+
+
+                <!-- PROFILE -->
+
+                <div class="profile">
+
+                    <div class="profile-circle"
+                         id="profileCircle">
+
+                        U
+
+                    </div>
+
+
+                    <span id="loggedUserName">
+                        User
+                    </span>
+
+                </div>
+
+            </div>
+
+        </header>
+
+
+
+        <!-- =================================================
+             PAGE CONTENT
+        ================================================== -->
+
+        <section class="page-content">
+
+
+            <!-- WELCOME -->
+
+            <div class="welcome">
+
+                <h1>
+                    Welcome back 👋
+                </h1>
+
+                <p>
+                    Monitor your food freshness
+                    and storage conditions.
+                </p>
+
+            </div>
+
+
+
+            <!-- =================================================
+                 STATISTICS
+            ================================================== -->
+
+            <div class="stats-grid">
+
+
+                <!-- TOTAL -->
+
+                <div class="stat-card">
+
+                    <div class="stat-card-header">
+
+                        <div>
+
+                            <p>Total Food Items</p>
+
+                            <h3 id="totalItems">
+                                0
+                            </h3>
+
+                        </div>
+
+
+                        <div class="stat-icon">
+                            📦
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+
+                <!-- FRESH -->
+
+                <div class="stat-card">
+
+                    <div class="stat-card-header">
+
+                        <div>
+
+                            <p>Fresh Items</p>
+
+                            <h3 id="freshItems">
+                                0
+                            </h3>
+
+                        </div>
+
+
+                        <div class="stat-icon">
+                            🥬
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+
+                <!-- WARNING -->
+
+                <div class="stat-card">
+
+                    <div class="stat-card-header">
+
+                        <div>
+
+                            <p>Near Spoilage</p>
+
+                            <h3 id="warningItems">
+                                0
+                            </h3>
+
+                        </div>
+
+
+                        <div class="stat-icon">
+                            ⚠️
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+
+                <!-- SPOILED -->
+
+                <div class="stat-card">
+
+                    <div class="stat-card-header">
+
+                        <div>
+
+                            <p>Spoiled Items</p>
+
+                            <h3 id="spoiledItems">
+                                0
+                            </h3>
+
+                        </div>
+
+
+                        <div class="stat-icon">
+                            ❌
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- =================================================
+                 DASHBOARD CARDS
+            ================================================== -->
+
+            <div class="dashboard-grid">
+
+
+                <!-- FRESHNESS OVERVIEW -->
+
+                <div class="card">
+
+                    <div class="card-title">
+
+                        <h3>
+                            Freshness Overview
+                        </h3>
+
+                        <span>
+                            Recent Items
+                        </span>
+
+                    </div>
+
+
+                    <div class="chart-container"
+                         id="freshnessChart">
+
+                        <!-- Dashboard JS can create chart here -->
+
+                    </div>
+
+                </div>
+
+
+
+                <!-- OVERALL HEALTH -->
+
+                <div class="card">
+
+                    <div class="card-title">
+
+                        <h3>
+                            Overall Food Health
+                        </h3>
+
+                    </div>
+
+
+                    <div class="score-box">
+
+
+                        <div class="score-circle">
+
+                            <span id="overallScore">
+                                0%
+                            </span>
+
+                        </div>
+
+
+                        <span class="status good"
+                              id="overallStatus">
+
+                            NO DATA
+
+                        </span>
+
+
+                        <p class="score-description">
+
+                            Overall freshness condition
+
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- =================================================
+                 RECENT FOOD ANALYSIS
+            ================================================== -->
+
+            <div class="card table-card">
+
+
+                <div class="card-title">
+
+                    <h3>
+                        Recent Food Analysis
+                    </h3>
+
+
+                    <a href="analysis.html"
+                       class="secondary-btn">
+
+                        Analyze Food
+
+                    </a>
+
+                </div>
+
+
+
+                <div class="table-responsive">
+
+                    <table>
+
+                        <thead>
+
+                            <tr>
+
+                                <th>
+                                    Food
+                                </th>
+
+                                <th>
+                                    Category
+                                </th>
+
+                                <th>
+                                    Freshness
+                                </th>
+
+                                <th>
+                                    Spoilage Risk
+                                </th>
+
+                                <th>
+                                    Status
+                                </th>
+
+                            </tr>
+
+                        </thead>
+
+
+                        <tbody id="recentAnalysisTable">
+
+                            <tr>
+
+                                <td colspan="5"
+                                    class="empty-table">
+
+                                    No food items available.
+
+                                </td>
+
+                            </tr>
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+</div>
+
+
+
+<!-- =====================================================
+     JAVASCRIPT
+====================================================== -->
+
+<script src="authentication.js"></script>
+
+<script src="dashboard.js"></script>
+
+
+</body>
+
+</html>

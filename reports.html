@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Reports - FoodFresh AI</title>
+
+    <link rel="stylesheet" href="styles.css">
+
+</head>
+
+<body>
+
+<div class="app">
+
+
+    <aside class="sidebar">
+
+        <div class="sidebar-logo">
+
+            <div class="logo-icon">🥬</div>
+
+            <h2>FoodFresh AI</h2>
+
+            <p>Freshness Monitoring</p>
+
+        </div>
+
+
+        <nav class="nav-menu">
+
+            <a href="dashboard.html">
+                <span class="nav-icon">📊</span>
+                <span>Dashboard</span>
+            </a>
+
+            <a href="analysis.html">
+                <span class="nav-icon">🔍</span>
+                <span>Food Analysis</span>
+            </a>
+
+            <a href="inventory.html">
+                <span class="nav-icon">📦</span>
+                <span>Inventory</span>
+            </a>
+
+            <a href="storage.html">
+                <span class="nav-icon">🌡️</span>
+                <span>Storage</span>
+            </a>
+
+            <a href="alerts.html">
+                <span class="nav-icon">🔔</span>
+                <span>Alerts</span>
+            </a>
+
+            <a href="reports.html" class="active">
+                <span class="nav-icon">📄</span>
+                <span>Reports</span>
+            </a>
+
+            <a href="#" id="logoutBtn">
+                <span class="nav-icon">🚪</span>
+                <span>Logout</span>
+            </a>
+
+        </nav>
+
+    </aside>
+
+
+    <main class="main-content">
+
+
+        <header class="topbar">
+
+            <h2>Reports</h2>
+
+
+            <div class="topbar-right">
+
+                <div class="notification">
+                    🔔
+                </div>
+
+                <div class="profile">
+
+                    <div class="profile-circle" id="profileCircle">
+                        
+                    </div>
+
+                    <span id="loggedUserName">
+                    User
+                    </span>
+
+                </div>
+
+            </div>
+
+        </header>
+
+
+        <section class="page-content">
+
+
+            <div class="welcome">
+
+                <h1>
+                    Reports & Analytics 📊
+                </h1>
+
+                <p>
+                    Generate reports about food freshness and storage.
+                </p>
+
+            </div>
+
+
+            <!-- REPORT CARDS -->
+
+            <div class="report-grid">
+
+
+                <div class="report-card">
+
+                    <div class="report-icon">
+                        🥬
+                    </div>
+
+                    <h3>
+                        Freshness Report
+                    </h3>
+
+                    <p>
+                        Overview of freshness scores across food items.
+                    </p>
+
+                
+                    <button data-report="Freshness">
+
+                        Generate Report
+
+                    </button>
+
+                </div>
+
+
+                <div class="report-card">
+
+                    <div class="report-icon">
+                        📅
+                    </div>
+
+                    <h3>
+                        Shelf-Life Report
+                    </h3>
+
+                    <p>
+                        View estimated shelf-life and expiry information.
+                    </p>
+
+                    <button
+                        data-report="Shelf-Life"
+                    >
+
+                        Generate Report
+
+                    </button>
+
+                </div>
+
+
+                <div class="report-card">
+
+                    <div class="report-icon">
+                        📦
+                    </div>
+
+                    <h3>
+                        Inventory Quality
+                    </h3>
+
+                    <p>
+                        Analyze the quality of inventory items.
+                    </p>
+
+                    <button
+                        data-report="Inventory Quality"
+                    >
+
+                        Generate Report
+
+                    </button>
+
+                </div>
+
+
+                <div class="report-card">
+
+                    <div class="report-icon">
+                        ♻️
+                    </div>
+
+                    <h3>
+                        Waste Reduction
+                    </h3>
+
+                    <p>
+                        Monitor food waste and spoilage trends.
+                    </p>
+
+                    <button
+                        data-report="Waste Reduction"
+                    >
+
+                        Generate Report
+
+                    </button>
+
+                </div>
+
+
+                <div class="report-card">
+
+                    <div class="report-icon">
+                        🌡️
+                    </div>
+
+                    <h3>
+                        Storage Compliance
+                    </h3>
+
+                    <p>
+                        Review temperature and humidity conditions.
+                    </p>
+
+                    <button
+                        data-report="Storage Compliance"
+                    >
+
+                        Generate Report
+
+                    </button>
+
+                </div>
+
+
+            </div>
+
+
+            <!-- REPORT RESULT -->
+
+            <div
+                class="card"
+                style="margin-top:30px;"
+            >
+
+                <div class="card-title">
+
+                    <h3>
+                        Generated Report
+                    </h3>
+
+                </div>
+
+
+                <div id="reportResult">
+
+                    <div style="
+                        text-align:center;
+                        padding:50px;
+                        color:#777;">
+
+                        <div style="font-size:50px;">
+                            📄
+                        </div>
+
+                        <h3>
+                            No report generated
+                        </h3>
+
+                        <p>
+                            Select a report above.
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+            <div class="stats-grid">
+
+                <div class="stat-card">
+
+                    <p>Total Items</p>
+
+                    <h3 id="reportTotal">
+                    0
+                    </h3>
+
+                </div>
+
+
+                <div class="stat-card">
+
+                    <p>Fresh Items</p>
+
+                    <h3 id="reportFresh">
+                    0
+                    </h3>
+
+                </div>
+
+
+                <div class="stat-card">
+
+                    <p>At Risk</p>
+
+                    <h3 id="reportRisk">
+                    0
+                    </h3>
+
+                </div>
+
+
+                <div class="stat-card">
+
+                    <p>Expired</p>
+
+                    <h3 id="reportExpired">
+                    0
+                    </h3>
+
+                </div>
+
+            </div>
+
+
+            <div class="card">
+
+                <div class="card-title">
+
+                    <h3>
+                        Inventory Report
+                    </h3>
+
+                    </div>
+
+                    <button
+                        class="primary-btn"
+                        id="generateReportBtn">
+
+                        Generate Report
+
+                    </button>
+
+
+                    <div
+                        id="reportOutput"
+                        style="margin-top:20px;">
+                    </div>
+
+                </div>
+
+        </section>
+
+    </main>
+
+</div>
+
+<script src="authentication.js"></script>
+
+<script src="reports.js"></script>
+
+</body>
+
+</html>

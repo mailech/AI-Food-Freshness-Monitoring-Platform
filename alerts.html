@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Alerts - FoodFresh AI</title>
+
+    <link rel="stylesheet" href="styles.css">
+
+</head>
+
+<body>
+
+<div class="app">
+
+    <!-- SIDEBAR -->
+
+    <aside class="sidebar">
+
+        <div class="sidebar-logo">
+
+            <div class="logo-icon">🥬</div>
+
+            <h2>FoodFresh AI</h2>
+
+            <p>Freshness Monitoring</p>
+
+        </div>
+
+
+        <nav class="nav-menu">
+
+            <a href="dashboard.html">
+                <span class="nav-icon">📊</span>
+                <span>Dashboard</span>
+            </a>
+
+            <a href="analysis.html">
+                <span class="nav-icon">🔍</span>
+                <span>Food Analysis</span>
+            </a>
+
+            <a href="inventory.html">
+                <span class="nav-icon">📦</span>
+                <span>Inventory</span>
+            </a>
+
+            <a href="storage.html">
+                <span class="nav-icon">🌡️</span>
+                <span>Storage</span>
+            </a>
+
+            <a href="alerts.html" class="active">
+                <span class="nav-icon">🔔</span>
+                <span>Alerts</span>
+            </a>
+
+            <a href="reports.html">
+                <span class="nav-icon">📄</span>
+                <span>Reports</span>
+            </a>
+
+            <a href="#" id="logoutBtn">
+                <span class="nav-icon">🚪</span>
+                <span>Logout</span>
+            </a>
+
+        </nav>
+
+    </aside>
+
+
+    <!-- MAIN CONTENT -->
+
+    <main class="main-content">
+
+
+        <!-- TOPBAR -->
+
+        <header class="topbar">
+
+            <h2>Alerts & Notifications</h2>
+
+
+            <div class="topbar-right">
+
+                <div class="notification">
+                    🔔
+                </div>
+
+                <div class="profile">
+
+                    <div class="profile-circle" id="profileCircle">
+                        
+                    </div>
+
+                    <span id="loggedUserName">
+                    User
+                    </span>
+
+                </div>
+
+            </div>
+
+        </header>
+
+
+        <!-- PAGE CONTENT -->
+
+        <section class="page-content">
+
+
+            <div class="welcome">
+
+                <h1>
+                    Alerts & Notifications 🔔
+                </h1>
+
+                <p>
+                    Monitor food freshness, expiry and storage warnings.
+                </p>
+
+            </div>
+
+
+            <!-- ALERT SUMMARY -->
+
+            <div class="stats-grid">
+
+
+                <div class="stat-card">
+
+                    <div class="stat-card-header">
+
+                        <div>
+
+                            <p>Total Alerts</p>
+
+                            <h3 id="totalAlerts">
+                                0
+                            </h3>
+
+                        </div>
+
+                        <div class="stat-icon">
+                            🔔
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="stat-card">
+
+                    <div class="stat-card-header">
+
+                        <div>
+
+                            <p>Critical</p>
+
+                            <h3 id="criticalAlerts">
+                                0
+                            </h3>
+
+                        </div>
+
+                        <div class="stat-icon">
+                            🔴
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="stat-card">
+
+                    <div class="stat-card-header">
+
+                        <div>
+
+                            <p>Warnings</p>
+
+                            <h3 id="warningAlerts">
+                                0
+                            </h3>
+
+                        </div>
+
+                        <div class="stat-icon">
+                            🟠
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="stat-card">
+
+                    <div class="stat-card-header">
+
+                        <div>
+
+                            <p>Information</p>
+
+                            <h3 id="infoAlerts">0
+                            </h3>
+
+                        </div>
+
+                        <div class="stat-icon">
+                            🔵
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- FILTER -->
+
+            <div class="card"
+                 style="margin-bottom:25px;">
+
+                <div class="card-title">
+
+                    <h3>
+                        Filter Alerts
+                    </h3>
+
+                </div>
+
+
+                <select
+                    id="alertFilter">
+
+                    <option value="all">
+                        All Alerts
+                    </option>
+
+                    <option value="critical">
+                        Critical
+                    </option>
+
+                    <option value="warning">
+                        Warning
+                    </option>
+
+                    <option value="info">
+                        Information
+                    </option>
+
+                </select>
+
+
+                <button
+                    id="clearAlerts">
+
+                    Clear All Alerts
+
+                </button>
+
+            </div>
+
+
+            <!-- ALERT LIST -->
+
+            <div class="card">
+
+                <div class="card-title">
+
+                    <h3>
+                        Recent Alerts
+                    </h3>
+
+                </div>
+
+
+                <div id="alertList">
+
+                </div>
+
+            </div>
+
+
+        </section>
+
+    </main>
+
+</div>
+<div id="alertContainer"></div>
+<script src="authentication.js"></script>
+
+<script src="alerts.js"></script>
+
+</body>
+
+</html>

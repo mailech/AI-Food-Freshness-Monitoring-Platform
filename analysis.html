@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Food Analysis - FoodFresh AI</title>
+
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f7f6;
+            color: #222;
+        }
+
+
+        /* ==============================
+           MAIN CONTAINER
+        ============================== */
+
+        .analysis-page {
+            min-height: 100vh;
+            padding: 30px;
+        }
+
+
+        .container {
+            max-width: 1100px;
+            margin: auto;
+        }
+
+
+        /* ==============================
+           HEADER
+        ============================== */
+
+        .page-header {
+            background: white;
+            padding: 25px 30px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.08);
+        }
+
+
+        .page-header h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+
+        .page-header p {
+            color: #777;
+        }
+
+
+        .back-link {
+            display: inline-block;
+            margin-top: 15px;
+            text-decoration: none;
+            color: #198754;
+            font-weight: bold;
+        }
+
+
+        /* ==============================
+           GRID
+        ============================== */
+
+        .analysis-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.08);
+        }
+
+
+        .card h2 {
+            margin-bottom: 20px;
+            font-size: 21px;
+        }
+
+
+        /* ==============================
+           UPLOAD AREA
+        ============================== */
+
+        .upload-area {
+            border: 2px dashed #198754;
+            border-radius: 15px;
+            min-height: 280px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+            cursor: pointer;
+            background: #f8fffb;
+            transition: 0.2s;
+        }
+
+
+        .upload-area:hover {
+            background: #eefaf3;
+        }
+
+
+        .upload-icon {
+            font-size: 55px;
+            margin-bottom: 15px;
+        }
+
+
+        .upload-area h3 {
+            margin-bottom: 8px;
+        }
+
+
+        .upload-area p {
+            color: #777;
+            margin-bottom: 18px;
+        }
+
+
+        /* IMPORTANT:
+           This is the actual file input.
+        */
+
+        #foodImage {
+            display: none;
+        }
+
+
+        .choose-btn {
+            display: inline-block;
+            background: #198754;
+            color: white;
+            padding: 12px 22px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+
+        /* ==============================
+           IMAGE PREVIEW
+        ============================== */
+
+        .preview-container {
+            display: none;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+
+        .preview-container h3 {
+            margin-bottom: 12px;
+        }
+
+
+        #imagePreview {
+            width: 100%;
+            max-width: 450px;
+            height: 280px;
+            object-fit: contain;
+            border-radius: 12px;
+            border: 1px solid #ddd;
+            background: #fafafa;
+        }
+
+
+        .remove-btn {
+            margin-top: 12px;
+            border: none;
+            background: #dc3545;
+            color: white;
+            padding: 9px 16px;
+            border-radius: 7px;
+            cursor: pointer;
+        }
+
+
+        /* ==============================
+           FORM
+        ============================== */
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+
+        .form-group label {
+            display: block;
+            margin-bottom: 7px;
+            font-weight: bold;
+        }
+
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 15px;
+        }
+
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #198754;
+        }
+
+
+        .analyze-btn {
+            width: 100%;
+            border: none;
+            padding: 14px;
+            background: #198754;
+            color: white;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+
+        .analyze-btn:hover {
+            background: #157347;
+        }
+
+
+        .analyze-btn:disabled {
+            background: #999;
+            cursor: not-allowed;
+        }
+
+
+        /* ==============================
+           RESULT
+        ============================== */
+
+        .result-card {
+            margin-top: 25px;
+        }
+
+
+        #analysisResult {
+            min-height: 150px;
+        }
+
+
+        .empty-result {
+            text-align: center;
+            color: #777;
+            padding: 40px 10px;
+        }
+
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
+
+
+        .loading-icon {
+            font-size: 45px;
+            animation: spin 1.2s linear infinite;
+        }
+
+
+        @keyframes spin {
+
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+
+        }
+
+
+        /* ==============================
+           RESULT DETAILS
+        ============================== */
+
+        .result-image {
+            width: 100%;
+            max-width: 400px;
+            height: 230px;
+            object-fit: contain;
+            display: block;
+            margin: 0 auto 20px;
+            border-radius: 12px;
+            background: #f5f5f5;
+        }
+
+
+        .result-food-name {
+            text-align: center;
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+
+        .result-category {
+            text-align: center;
+            color: #777;
+            margin-bottom: 20px;
+        }
+
+
+        .score-section {
+            text-align: center;
+            padding: 20px;
+            background: #f8fffb;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+
+        .score {
+            font-size: 45px;
+            font-weight: bold;
+            color: #198754;
+        }
+
+
+        .status {
+            display: inline-block;
+            padding: 7px 18px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+
+        .status-fresh {
+            background: #d1e7dd;
+            color: #0f5132;
+        }
+
+
+        .status-good {
+            background: #cff4fc;
+            color: #055160;
+        }
+
+
+        .status-warning {
+            background: #fff3cd;
+            color: #664d03;
+        }
+
+
+        .status-danger {
+            background: #f8d7da;
+            color: #842029;
+        }
+
+
+        .details-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+
+        .detail-box {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+
+        .detail-box span {
+            display: block;
+            color: #777;
+            font-size: 13px;
+            margin-bottom: 5px;
+        }
+
+
+        .detail-box strong {
+            font-size: 16px;
+        }
+
+
+        .recommendation {
+            background: #eef7ff;
+            border-left: 4px solid #0d6efd;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+
+        .recommendation h3 {
+            margin-bottom: 8px;
+        }
+
+
+        /* ==============================
+           ADD INVENTORY BUTTON
+        ============================== */
+
+        #addAnalysisToInventory {
+            display: none;
+            width: 100%;
+            padding: 14px;
+            border: none;
+            background: #0d6efd;
+            color: white;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+
+        #addAnalysisToInventory:hover {
+            background: #0b5ed7;
+        }
+
+
+        /* ==============================
+           MESSAGE
+        ============================== */
+
+        .message {
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 15px;
+            display: none;
+        }
+
+
+        .message.success {
+            display: block;
+            background: #d1e7dd;
+            color: #0f5132;
+        }
+
+
+        .message.error {
+            display: block;
+            background: #f8d7da;
+            color: #842029;
+        }
+
+
+        /* ==============================
+           MOBILE
+        ============================== */
+
+        @media (max-width: 800px) {
+
+            .analysis-page {
+                padding: 15px;
+            }
+
+
+            .analysis-grid {
+                grid-template-columns: 1fr;
+            }
+
+
+            .details-grid {
+                grid-template-columns: 1fr;
+            }
+
+
+            .page-header h1 {
+                font-size: 23px;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+<div class="analysis-page">
+
+    <div class="container">
+
+
+        <!-- ==========================
+             HEADER
+        =========================== -->
+
+        <div class="page-header">
+
+            <h1>
+                🤖 AI Food Freshness Analysis
+            </h1>
+
+            <p>
+                Upload a food image and analyze
+                its freshness condition.
+            </p>
+
+            <a
+                href="dashboard.html"
+                class="back-link">
+                ← Back to Dashboard
+            </a>
+
+        </div>
+
+
+        <!-- ==========================
+             INPUT SECTION
+        =========================== -->
+
+        <div class="analysis-grid">
+
+
+            <!-- IMAGE UPLOAD -->
+
+            <div class="card">
+
+                <h2>
+                    1. Upload Food Image
+                </h2>
+
+
+                <!--
+                    Clicking this area opens
+                    the file picker.
+                -->
+
+                <label
+                    for="foodImage"
+                    class="upload-area">
+
+                    <div>
+
+                        <div class="upload-icon">
+                            📷
+                        </div>
+
+                        <h3>
+                            Select a Food Image
+                        </h3>
+
+                        <p>
+                            JPG, JPEG, PNG or WEBP
+                        </p>
+
+                        <span class="choose-btn">
+                            Choose Image
+                        </span>
+
+                    </div>
+
+                </label>
+
+
+                <!-- ACTUAL FILE INPUT -->
+
+                <input
+                    type="file"
+                    id="foodImage"
+                    name="foodImage"
+                    accept="image/jpeg,image/png,image/webp,image/jpg">
+
+
+                <!-- IMAGE PREVIEW -->
+
+                <div
+                    id="imagePreviewContainer"
+                    class="preview-container">
+
+                    <h3>
+                        Selected Image
+                    </h3>
+
+                    <img
+                        id="imagePreview"
+                        alt="Selected food image">
+
+                    <br>
+
+                    <button
+                        type="button"
+                        id="removeImageBtn"
+                        class="remove-btn">
+
+                        Remove Image
+
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <!-- FOOD DETAILS -->
+
+            <div class="card">
+
+                <h2>
+                    2. Food Details
+                </h2>
+
+
+                <div class="form-group">
+
+                    <label for="foodName">
+                        Food Name
+                    </label>
+
+                    <input
+                        type="text"
+                        id="foodName"
+                        placeholder="Example: Tomato">
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label for="foodCategory">
+                        Food Category
+                    </label>
+
+                    <select id="foodCategory">
+
+                        <option value="">
+                            Select Category
+                        </option>
+
+                        <option value="Fruits">
+                            Fruits
+                        </option>
+
+                        <option value="Vegetables">
+                            Vegetables
+                        </option>
+
+                        <option value="Dairy Products">
+                            Dairy Products
+                        </option>
+
+                        <option value="Meat & Poultry">
+                            Meat & Poultry
+                        </option>
+
+                        <option value="Seafood">
+                            Seafood
+                        </option>
+
+                        <option value="Bakery Products">
+                            Bakery Products
+                        </option>
+
+                        <option value="Packaged Foods">
+                            Packaged Foods
+                        </option>
+
+                        <option value="Beverages">
+                            Beverages
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <button
+                    type="button"
+                    id="analyzeBtn"
+                    class="analyze-btn">
+
+                    🤖 Analyze Freshness
+
+                </button>
+
+
+                <div
+                    id="message"
+                    class="message">
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- ==========================
+             RESULT SECTION
+        =========================== -->
+
+        <div class="card result-card">
+
+            <h2>
+                3. AI Analysis Result
+            </h2>
+
+
+            <div id="analysisResult">
+
+                <div class="empty-result">
+
+                    <div style="font-size:45px;">
+                        🍎
+                    </div>
+
+                    <p>
+                        Upload an image and click
+                        "Analyze Freshness".
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <button
+                type="button"
+                id="addAnalysisToInventory">
+
+                📦 Add to Inventory
+
+            </button>
+
+        </div>
+
+
+    </div>
+
+</div>
+
+
+<!-- IMPORTANT:
+     Only ONE analysis.js
+-->
+
+<script src="analysis.js"></script>
+
+
+</body>
+
+</html>

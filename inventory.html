@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Inventory - FoodFresh AI</title>
+
+    <link rel="stylesheet" href="styles.css">
+
+</head>
+
+<body>
+
+<div class="app">
+
+    <!-- SIDEBAR -->
+
+    <aside class="sidebar">
+
+        <div class="sidebar-logo">
+
+            <div class="logo-icon">🥬</div>
+
+            <h2>FoodFresh AI</h2>
+
+            <p>Freshness Monitoring</p>
+
+        </div>
+
+
+        <nav class="nav-menu">
+
+            <a href="dashboard.html">
+                <span class="nav-icon">📊</span>
+                <span>Dashboard</span>
+            </a>
+
+            <a href="analysis.html">
+                <span class="nav-icon">🔍</span>
+                <span>Food Analysis</span>
+            </a>
+
+            <a href="inventory.html" class="active">
+                <span class="nav-icon">📦</span>
+                <span>Inventory</span>
+            </a>
+
+            <a href="storage.html">
+                <span class="nav-icon">🌡️</span>
+                <span>Storage</span>
+            </a>
+
+            <a href="alerts.html">
+                <span class="nav-icon">🔔</span>
+                <span>Alerts</span>
+            </a>
+
+            <a href="reports.html">
+                <span class="nav-icon">📄</span>
+                <span>Reports</span>
+            </a>
+
+            <a href="#" id="logoutBtn">
+                <span class="nav-icon">🚪</span>
+                <span>Logout</span>
+            </a>
+
+        </nav>
+
+    </aside>
+
+
+    <!-- MAIN -->
+
+    <main class="main-content">
+
+        <header class="topbar">
+
+            <h2>Food Inventory</h2>
+
+            <div class="topbar-right">
+
+                <div class="notification">
+                    🔔
+                </div>
+
+                <div class="profile">
+
+                    <div class="profile-circle" id="profileCircle">
+                        
+                    </div>
+
+                    <span id="loggedUserName">
+                    User
+                    </span>
+                </div>
+
+            </div>
+
+        </header>
+
+
+        <section class="page-content">
+
+
+            <!-- TITLE -->
+
+            <div class="welcome">
+
+                <h1>Food Inventory 📦</h1>
+
+                <p>
+                    Manage food items, batches, freshness and expiry.
+                </p>
+
+            </div>
+
+
+            <!-- INVENTORY STATISTICS -->
+
+            <div class="stats-grid">
+
+                <div class="stat-card">
+
+                    <div class="stat-card-header">
+
+                        <div>
+
+                            <p>Total Items</p>
+
+                            <h3 id="totalInventory">
+                                0
+                            </h3>
+
+                        </div>
+
+                        <div class="stat-icon">
+                            📦
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="stat-card">
+
+                    <div class="stat-card-header">
+
+                        <div>
+
+                            <p>Fresh</p>
+
+                            <h3 id="freshInventory">
+                                0
+                            </h3>
+
+                        </div>
+
+                        <div class="stat-icon">
+                            🥬
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="stat-card">
+
+                    <div class="stat-card-header">
+
+                        <div>
+
+                            <p>Expiring Soon</p>
+
+                            <h3 id="expiringInventory">
+                                0
+                            </h3>
+
+                        </div>
+
+                        <div class="stat-icon">
+                            ⚠️
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="stat-card">
+
+                    <div class="stat-card-header">
+
+                        <div>
+
+                            <p>Spoiled</p>
+
+                            <h3 id="spoiledInventory">
+                                0
+                            </h3>
+
+                        </div>
+
+                        <div class="stat-icon">
+                            ❌
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- ADD FOOD -->
+
+            <div class="card"
+                 style="margin-bottom:25px;">
+
+                <div class="card-title">
+
+                    <h3>
+                        Add Food Item
+                    </h3>
+
+                </div>
+
+
+                <form id="inventoryForm">
+
+
+                    <div class="analysis-layout">
+
+
+                        <div>
+
+                            <div class="form-group">
+
+                                <label>
+                                    Food Name
+                                </label>
+
+                                <input
+                                    type="text"
+                                    id="foodName"
+                                    placeholder="Example: Apple"
+                                    required
+                                >
+
+                            </div>
+
+
+                            <div class="form-group">
+
+                                <label>
+                                    Category
+                                </label>
+
+                                <select id="foodCategory"
+                                        required>
+
+                                    <option value="">
+                                        Select Category
+                                    </option>
+
+                                    <option value="Fruits">
+                                        Fruits
+                                    </option>
+
+                                    <option value="Vegetables">
+                                        Vegetables
+                                    </option>
+
+                                    <option value="Dairy Products">
+                                        Dairy Products
+                                    </option>
+
+                                    <option value="Meat & Poultry">
+                                        Meat & Poultry
+                                    </option>
+
+                                    <option value="Seafood">
+                                        Seafood
+                                    </option>
+
+                                    <option value="Bakery Products">
+                                        Bakery Products
+                                    </option>
+
+                                    <option value="Packaged Foods">
+                                        Packaged Foods
+                                    </option>
+
+                                    <option value="Beverages">
+                                        Beverages
+                                    </option>
+
+                                </select>
+
+                            </div>
+
+                        </div>
+
+
+                        <div>
+
+                            <div class="form-group">
+
+                                <label>
+                                    Batch Number
+                                </label>
+
+                                <input
+                                    type="text"
+                                    id="batchNumber"
+                                    placeholder="Example: A101"
+                                    required
+                                >
+
+                            </div>
+
+
+                            <div class="form-group">
+
+                                <label>
+                                    Expiry Date
+                                </label>
+
+                                <input
+                                    type="date"
+                                    id="expiryDate"
+                                    required
+                                >
+
+                            </div>
+
+                        </div>
+
+
+                    </div>
+
+
+                    <div class="analysis-layout">
+
+
+                        <div>
+
+                            <div class="form-group">
+
+                                <label>
+                                    Freshness Score (%)
+                                </label>
+
+                                <input
+                                    type="number"
+                                    id="freshnessScore"
+                                    min="0"
+                                    max="100"
+                                    placeholder="Example: 90"
+                                    required
+                                >
+
+                            </div>
+
+                        </div>
+
+
+                        <div>
+
+                            <div class="form-group">
+
+                                <label>
+                                    Quantity
+                                </label>
+
+                                <input
+                                    type="number"
+                                    id="quantity"
+                                    min="1"
+                                    placeholder="Example: 20"
+                                    required
+                                >
+
+                            </div>
+
+                        </div>
+
+
+                    </div>
+
+
+                    <button
+                        type="submit"
+                        class="primary-btn"
+                    >
+
+                        + Add Food Item
+
+                    </button>
+
+                </form>
+
+            </div>
+
+
+            <!-- SEARCH AND FILTER -->
+
+            <div class="card table-card">
+
+                <div class="card-title">
+
+                    <h3>
+                        Inventory List
+                    </h3>
+
+                </div>
+
+
+                <div style="
+                    display:flex;
+                    gap:15px;
+                    margin-bottom:20px;
+                    flex-wrap:wrap;
+                ">
+
+
+                    <input
+                        type="text"
+                        id="searchInput"
+                        placeholder="🔍 Search food..."
+                        style="
+                        flex:1;
+                        min-width:200px;
+                        padding:12px;
+                        border:1px solid #ddd;
+                        border-radius:8px;
+                        "
+                    >
+
+
+                    <select
+                        id="categoryFilter"
+                        style="
+                        padding:12px;
+                        border:1px solid #ddd;
+                        border-radius:8px;
+                        "
+                    >
+
+                        <option value="all">
+                            All Categories
+                        </option>
+
+                        <option value="Fruits">
+                            Fruits
+                        </option>
+
+                        <option value="Vegetables">
+                            Vegetables
+                        </option>
+
+                        <option value="Dairy Products">
+                            Dairy Products
+                        </option>
+
+                        <option value="Meat & Poultry">
+                            Meat & Poultry
+                        </option>
+
+                        <option value="Seafood">
+                            Seafood
+                        </option>
+
+                        <option value="Bakery Products">
+                            Bakery Products
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <table>
+
+                    <thead>
+
+                        <tr>
+
+                            <th>Food</th>
+
+                            <th>Category</th>
+
+                            <th>Batch</th>
+
+                            <th>Expiry</th>
+
+                            <th>Quantity</th>
+
+                            <th>Freshness</th>
+
+                            <th>Status</th>
+
+                            <th>Action</th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody id="inventoryTable">
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </section>
+
+    </main>
+
+</div>
+
+<script src="authentication.js"></script>
+
+<script src="inventory.js"></script>
+
+</body>
+
+</html>
