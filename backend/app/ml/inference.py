@@ -46,7 +46,19 @@ def assess_image(file_bytes: bytes) -> AssessmentResult:
       freshness_score: 0-100 visual condition score
       category: Fresh | Good | Acceptable | Near Spoilage | Spoiled
     """
+    import io
     import tensorflow as tf
+    from PIL import Image as PilImage
+
+    # Normalise to JPEG bytes so tf.io.decode_image always gets a supported format.
+    # This handles WebP, PNG, BMP, TIFF, and any other Pillow-supported type.
+    try:
+        pil_img = PilImage.open(io.BytesIO(file_bytes)).convert("RGB")
+        buf = io.BytesIO()
+        pil_img.save(buf, format="JPEG")
+        file_bytes = buf.getvalue()
+    except Exception as exc:
+        raise ValueError(f"Could not decode image: {exc}") from exc
 
     model = load_model()
     class_names = load_class_names()
