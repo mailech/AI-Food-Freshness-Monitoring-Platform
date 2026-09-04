@@ -40,46 +40,71 @@ def _analyse_freshness(pil_img) -> dict:
       mold_ratio       : fraction in mold-like hue/saturation range
       dominant_state   : 'fresh' | 'rotten'
     """
-    import colorsys
-
     img = pil_img.resize((128, 128))
     arr = np.array(img, dtype=np.float32) / 255.0  # (128,128,3) in [0,1]
 
     r, g, b = arr[:, :, 0], arr[:, :, 1], arr[:, :, 2]
 
-    # ── Brightness (V channel in HSV) ──────────────────────────────────────
-    brightness = np.max(arr, axis=2)          # per-pixel max = V in HSV
+    # ── Brightness and chroma ───────────────────────────────────────────────
+    brightness = np.max(arr, axis=2)
     saturation_range = np.max(arr, axis=2) - np.min(arr, axis=2)  # chroma proxy
 
+    # ── Background removal ─────────────────────────────────────────────────
+    # Find the dominant background colour by looking at image border pixels
+    # (corners + edges) and exclude similar colours from the analysis.
+    # This prevents table surfaces, countertops, studio backgrounds from
+    # inflating or deflating the freshness score.
+    border_pixels = np.concatenate([
+        arr[0, :, :],    # top row
+        arr[-1, :, :],   # bottom row
+        arr[:, 0, :],    # left col
+        arr[:, -1, :],   # right col
+    ], axis=0)  # (N, 3)
+
+    bg_mean = border_pixels.mean(axis=0)  # mean background colour (R, G, B)
+
+    # Mask pixels that are "close" to the background colour
+    # Euclidean distance in RGB space — threshold 0.18 covers similar shades
+    dist_to_bg = np.sqrt(
+        (arr[:, :, 0] - bg_mean[0]) ** 2 +
+        (arr[:, :, 1] - bg_mean[1]) ** 2 +
+        (arr[:, :, 2] - bg_mean[2]) ** 2
+    )
+    bg_mask = dist_to_bg < 0.18  # pixels that belong to background
+    fg_mask = ~bg_mask            # foreground (food) pixels
+
+    fg_count = float(np.sum(fg_mask))
+    if fg_count < 200:
+        # Very little foreground — fall back to whole image
+        fg_mask = np.ones_like(bg_mask, dtype=bool)
+        fg_count = float(fg_mask.sum())
+
+    def _ratio(mask):
+        """Fraction of foreground pixels matching mask."""
+        return float(np.sum(mask & fg_mask)) / fg_count
+
     # ── Dark patch ratio ───────────────────────────────────────────────────
-    # Pixels that are very dark (<22% brightness) = necrotic/black patches
     dark_mask = brightness < 0.22
-    dark_patch_ratio = float(np.mean(dark_mask))
+    dark_patch_ratio = _ratio(dark_mask)
 
     # ── Brown / decay ratio ────────────────────────────────────────────────
-    # Brown: high R, moderate G, low B — typical of browning / decay
-    # Tighter threshold: must be darker brown (not bright orange-brown of fresh food)
     brown_mask = (r > 0.30) & (g > 0.15) & (g < 0.60) & (b < 0.38) & \
                  (r > g) & (r > b) & (saturation_range > 0.08) & (brightness < 0.62)
-    brown_ratio = float(np.mean(brown_mask))
+    brown_ratio = _ratio(brown_mask)
 
     # ── Desaturation ratio ─────────────────────────────────────────────────
-    # Grey/colourless pixels = colour loss typical of decay
     desat_mask = (saturation_range < 0.10) & (brightness > 0.20) & (brightness < 0.80)
-    desat_ratio = float(np.mean(desat_mask))
+    desat_ratio = _ratio(desat_mask)
 
     # ── Mold-like patches ──────────────────────────────────────────────────
-    # White fuzzy mold: very high brightness + very low saturation
-    # Green mold: greenish hue, low-mid saturation
     white_mold = (brightness > 0.80) & (saturation_range < 0.07)
     green_mold = (g > r) & (g > b) & (saturation_range > 0.04) & \
                  (saturation_range < 0.30) & (brightness > 0.28) & (brightness < 0.75)
-    mold_ratio = float(np.mean(white_mold | green_mold))
+    mold_ratio = _ratio(white_mold | green_mold)
 
     # ── Vibrancy (fresh foods are vibrant) ────────────────────────────────
-    # High saturation + good brightness = healthy, fresh food
     vibrant_mask = (saturation_range > 0.25) & (brightness > 0.35) & (brightness < 0.92)
-    vibrant_ratio = float(np.mean(vibrant_mask))
+    vibrant_ratio = _ratio(vibrant_mask)
 
     # ── Combine signals into spoilage score ───────────────────────────────
     spoilage_raw = (
@@ -88,9 +113,7 @@ def _analyse_freshness(pil_img) -> dict:
         desat_ratio       * 0.15 +
         mold_ratio        * 0.10
     )
-    # Vibrancy is a strong freshness indicator
     spoilage_score = max(0.0, spoilage_raw - vibrant_ratio * 0.20)
-    # Non-linear amplification: even moderate spoilage signals matter
     spoilage_score = min(1.0, spoilage_score * 1.6)
 
     fresh_score = 1.0 - spoilage_score
