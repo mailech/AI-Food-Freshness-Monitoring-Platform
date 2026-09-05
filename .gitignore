@@ -1,0 +1,22 @@
+# Python
+backend/venv/
+__pycache__/
+*.pyc
+
+# Uploaded/test images
+backend/dataset/raw/
+backend/uploads/
+
+# Training dataset
+dataset/
+
+# Environment files
+.env
+*.log
+
+# Node
+frontend/node_modules/
+frontend/dist/
+
+# IDE
+.vscode/
