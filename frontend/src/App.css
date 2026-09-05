@@ -1000,3 +1000,671 @@ textarea::placeholder {
   color: #999 !important;
   opacity: 1;
 }
+
+/* =========================================================
+   FOOD ANALYSIS IMPROVEMENTS
+========================================================= */
+
+.analysis-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 5px;
+}
+
+.change-image-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  background: white;
+  color: #53625a;
+
+  border: 1px solid #bfc9c3;
+
+  border-radius: 7px;
+
+  padding: 9px 13px;
+
+  font-size: 9px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition: 0.2s;
+}
+
+.change-image-button:hover {
+  background: #eef5f0;
+  border-color: #79a889;
+}
+
+.analyze-button {
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.analyze-button:hover {
+  transform: translateY(-1px);
+  opacity: 0.92;
+}
+
+.analyze-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+
+/* =========================================================
+   ANALYZE FOOD PAGE
+========================================================= */
+
+.full-analysis-page {
+  min-height: 520px;
+}
+
+.analysis-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+
+  margin-bottom: 20px;
+}
+
+.analysis-page-header h1 {
+  margin: 0 0 7px;
+
+  font-size: 25px;
+}
+
+.analysis-page-header p {
+  margin: 0;
+
+  color: #819087;
+
+  font-size: 12px;
+}
+
+.analysis-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.back-dashboard-button {
+  border: 1px solid #d5dfd9;
+
+  background: white;
+
+  color: #526159;
+
+  border-radius: 7px;
+
+  padding: 8px 12px;
+
+  font-size: 9px;
+
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition: 0.2s;
+}
+
+.back-dashboard-button:hover {
+  background: #edf5ef;
+
+  border-color: #7fb18d;
+
+  color: #2e7d46;
+}
+
+
+/* =========================================================
+   NEW ANALYSIS BUTTON
+========================================================= */
+
+.new-analysis-button {
+  margin-top: 15px;
+
+  border: 1px solid #4db96b;
+
+  background: transparent;
+
+  color: #63ce82;
+
+  border-radius: 7px;
+
+  padding: 8px 12px;
+
+  font-size: 9px;
+
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition: 0.2s;
+}
+
+.new-analysis-button:hover {
+  background: #263a30;
+
+  color: white;
+}
+
+
+/* =========================================================
+   MODULE PAGES
+========================================================= */
+
+.module-page {
+  width: 100%;
+}
+
+.module-header {
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: flex-start;
+
+  margin-bottom: 22px;
+}
+
+.module-header h1 {
+  margin: 0 0 7px;
+
+  font-size: 25px;
+}
+
+.module-header p {
+  margin: 0;
+
+  color: #819087;
+
+  font-size: 12px;
+}
+
+.primary-action {
+  border: none;
+
+  background: #42b866;
+
+  color: white;
+
+  border-radius: 7px;
+
+  padding: 9px 14px;
+
+  font-size: 10px;
+
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition: 0.2s;
+}
+
+.primary-action:hover {
+  background: #349c55;
+}
+
+.secondary-action {
+  border: 1px solid #cdd8d1;
+
+  background: white;
+
+  color: #53625a;
+
+  border-radius: 7px;
+
+  padding: 8px 12px;
+
+  font-size: 9px;
+
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition: 0.2s;
+}
+
+.secondary-action:hover {
+  background: #eef5f0;
+
+  border-color: #82ad91;
+}
+
+
+/* =========================================================
+   MINI STAT CARDS
+========================================================= */
+
+.module-stats {
+  display: grid;
+
+  grid-template-columns: repeat(4, 1fr);
+
+  gap: 14px;
+
+  margin-bottom: 15px;
+}
+
+.mini-card {
+  background: white;
+
+  border: 1px solid #e5ebe7;
+
+  border-radius: 11px;
+
+  padding: 18px;
+}
+
+.mini-card span {
+  display: block;
+
+  color: #7e8b84;
+
+  font-size: 9px;
+
+  text-transform: uppercase;
+
+  letter-spacing: 0.6px;
+
+  margin-bottom: 10px;
+}
+
+.mini-card strong {
+  font-size: 24px;
+}
+
+
+/* =========================================================
+   RECOMMENDATION PAGE
+========================================================= */
+
+.recommendation-grid {
+  display: grid;
+
+  grid-template-columns: repeat(3, 1fr);
+
+  gap: 15px;
+}
+
+.recommendation-light-card {
+  background: white;
+
+  border: 1px solid #e3e9e5;
+
+  border-radius: 12px;
+
+  padding: 20px;
+}
+
+.recommendation-light-card h3 {
+  margin: 9px 0;
+
+  font-size: 15px;
+}
+
+.recommendation-light-card p {
+  color: #7d8983;
+
+  font-size: 10px;
+
+  line-height: 1.7;
+
+  min-height: 65px;
+}
+
+
+/* =========================================================
+   ALERTS
+========================================================= */
+
+.alerts-list {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 12px;
+}
+
+.alert-card {
+  background: white;
+
+  border: 1px solid #e4eae6;
+
+  border-radius: 10px;
+
+  padding: 16px;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 14px;
+}
+
+.alert-icon {
+  width: 38px;
+
+  height: 38px;
+
+  border-radius: 50%;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  background: #edf5ef;
+
+  color: #42b866;
+
+  font-weight: 700;
+}
+
+.alert-card div:nth-child(2) {
+  flex: 1;
+}
+
+.alert-card strong {
+  display: block;
+
+  font-size: 11px;
+
+  margin-bottom: 4px;
+}
+
+.alert-card p {
+  margin: 0;
+
+  color: #7f8c85;
+
+  font-size: 9px;
+}
+
+.alert-card > span {
+  font-size: 8px;
+
+  font-weight: 700;
+
+  letter-spacing: 0.7px;
+}
+
+.alert-card.high {
+  border-left: 3px solid #d65f4a;
+}
+
+.alert-card.high > span {
+  color: #c95b47;
+}
+
+.alert-card.medium {
+  border-left: 3px solid #d49a36;
+}
+
+.alert-card.medium > span {
+  color: #c88926;
+}
+
+.alert-card.low {
+  border-left: 3px solid #4ab86b;
+}
+
+.alert-card.low > span {
+  color: #3da25a;
+}
+
+
+/* =========================================================
+   REPORTS
+========================================================= */
+
+.report-grid {
+  display: grid;
+
+  grid-template-columns: repeat(3, 1fr);
+
+  gap: 15px;
+}
+
+.report-card {
+  background: white;
+
+  border: 1px solid #e3e9e5;
+
+  border-radius: 12px;
+
+  padding: 22px;
+}
+
+.report-icon {
+  width: 42px;
+
+  height: 42px;
+
+  background: #edf7f0;
+
+  border-radius: 9px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  font-size: 18px;
+
+  margin-bottom: 15px;
+}
+
+.report-card h3 {
+  margin: 0 0 8px;
+
+  font-size: 14px;
+}
+
+.report-card p {
+  color: #7d8983;
+
+  font-size: 9px;
+
+  line-height: 1.6;
+
+  min-height: 45px;
+}
+
+
+/* =========================================================
+   SETTINGS
+========================================================= */
+
+.settings-grid {
+  display: grid;
+
+  grid-template-columns: 1fr 1fr;
+
+  gap: 15px;
+}
+
+.settings-card {
+  background: white;
+
+  border: 1px solid #e3e9e5;
+
+  border-radius: 12px;
+
+  padding: 22px;
+}
+
+.settings-card h3 {
+  margin: 0 0 20px;
+
+  font-size: 14px;
+}
+
+.settings-card label {
+  display: block;
+
+  font-size: 9px;
+
+  color: #7c8982;
+
+  margin: 12px 0 6px;
+}
+
+.settings-card input[type="text"] {
+  width: 100%;
+
+  border: 1px solid #dce4df;
+
+  border-radius: 7px;
+
+  padding: 9px 10px;
+
+  font-size: 10px;
+
+  outline: none;
+}
+
+.setting-row {
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: center;
+
+  padding: 14px 0;
+
+  border-bottom: 1px solid #edf0ee;
+}
+
+.setting-row strong {
+  display: block;
+
+  font-size: 10px;
+
+  margin-bottom: 4px;
+}
+
+.setting-row small {
+  color: #87938d;
+
+  font-size: 8px;
+}
+
+
+/* =========================================================
+   RESPONSIVE IMPROVEMENTS
+========================================================= */
+
+@media (max-width: 1000px) {
+
+  .module-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .recommendation-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .report-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-grid {
+    grid-template-columns: 1fr;
+  }
+
+}
+
+
+@media (max-width: 700px) {
+
+  .analysis-page-header {
+    flex-direction: column;
+
+    gap: 15px;
+  }
+
+  .analysis-header-actions {
+    width: 100%;
+
+    justify-content: space-between;
+  }
+
+  .analysis-buttons {
+    flex-direction: column;
+
+    width: 100%;
+  }
+
+  .change-image-button,
+  .analyze-button {
+    width: 100%;
+  }
+
+  .module-header {
+    flex-direction: column;
+
+    gap: 12px;
+  }
+
+  .module-stats {
+    grid-template-columns: 1fr;
+  }
+
+}
+/* Profile three-dots menu */
+.profile-menu-container {
+  position: relative;
+}
+
+.profile-menu-dots {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 22px;
+  padding: 5px 8px;
+  border-radius: 6px;
+}
+
+.profile-menu-dots:hover {
+  background: #f1f5f9;
+}
+
+.profile-dropdown {
+  position: absolute;
+  right: 0;
+  top: 38px;
+  min-width: 130px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 6px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+  z-index: 9999;
+}
+
+.signout-button {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: #dc2626;
+  padding: 10px 12px;
+  border-radius: 7px;
+  cursor: pointer;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.signout-button:hover {
+  background: #fee2e2;
+}

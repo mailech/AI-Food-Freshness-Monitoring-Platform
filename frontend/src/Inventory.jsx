@@ -1,373 +1,595 @@
-import { useState } from "react";
+import React, { useMemo, useState } from "react";
+import "./Inventory.css";
 
-function Inventory() {
-  const [items, setItems] = useState([
-    {
-      id: 1,
-      name: "Gala Apple",
-      quantity: 25,
-      expiry: "2026-09-03",
-      location: "Cold Storage",
-      status: "Fresh",
-    },
-    {
-      id: 2,
-      name: "Tomato",
-      quantity: 18,
-      expiry: "2026-08-30",
-      location: "Storage Room",
-      status: "Use Soon",
-    },
-    {
-      id: 3,
-      name: "Banana",
-      quantity: 12,
-      expiry: "2026-08-29",
-      location: "Cold Storage",
-      status: "Fresh",
-    },
-  ]);
+const initialInventory = [
+  {
+    id: 1,
+    emoji: "🍎",
+    name: "Apple",
+    category: "Fruit",
+    quantity: 80,
+    unit: "kg",
+    freshness: "Fresh",
+    shelfLife: "7 Days",
+    batch: "APL-001",
+    lastAnalyzed: "Today",
+  },
+  {
+    id: 2,
+    emoji: "🍌",
+    name: "Banana",
+    category: "Fruit",
+    quantity: 45,
+    unit: "kg",
+    freshness: "Near Spoilage",
+    shelfLife: "1 Day",
+    batch: "BAN-002",
+    lastAnalyzed: "Today",
+  },
+  {
+    id: 3,
+    emoji: "🥕",
+    name: "Carrot",
+    category: "Vegetable",
+    quantity: 60,
+    unit: "kg",
+    freshness: "Fresh",
+    shelfLife: "5 Days",
+    batch: "CAR-003",
+    lastAnalyzed: "Yesterday",
+  },
+  {
+    id: 4,
+    emoji: "🥒",
+    name: "Cucumber",
+    category: "Vegetable",
+    quantity: 35,
+    unit: "kg",
+    freshness: "Fresh",
+    shelfLife: "4 Days",
+    batch: "CUC-004",
+    lastAnalyzed: "Today",
+  },
+  {
+    id: 5,
+    emoji: "🍓",
+    name: "Strawberry",
+    category: "Fruit",
+    quantity: 20,
+    unit: "kg",
+    freshness: "Spoiled",
+    shelfLife: "0 Days",
+    batch: "STR-005",
+    lastAnalyzed: "Yesterday",
+  },
+  {
+    id: 6,
+    emoji: "🥭",
+    name: "Mango",
+    category: "Fruit",
+    quantity: 50,
+    unit: "kg",
+    freshness: "Fresh",
+    shelfLife: "6 Days",
+    batch: "MAN-006",
+    lastAnalyzed: "Today",
+  },
+];
 
-  const [showForm, setShowForm] = useState(false);
+function Inventory({ onBack }) {
+  const [inventory, setInventory] = useState(initialInventory);
 
-  const [form, setForm] = useState({
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("All Categories");
+  const [status, setStatus] = useState("All Status");
+
+  const [showModal, setShowModal] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null);
+
+  const [newFood, setNewFood] = useState({
     name: "",
+    category: "Fruit",
     quantity: "",
-    expiry: "",
-    location: "",
+    unit: "kg",
+    freshness: "Fresh",
+    shelfLife: "",
+    emoji: "🍎",
   });
 
-  const handleChange = (e) => {
-    setForm({
-      ...form,
+  const stats = useMemo(() => {
+    return {
+      total: inventory.length,
+      fresh: inventory.filter((item) => item.freshness === "Fresh").length,
+      warning: inventory.filter(
+        (item) => item.freshness === "Near Spoilage"
+      ).length,
+      spoiled: inventory.filter((item) => item.freshness === "Spoiled").length,
+    };
+  }, [inventory]);
+
+  const filteredInventory = useMemo(() => {
+    return inventory.filter((item) => {
+      const matchesSearch =
+        item.name.toLowerCase().includes(search.toLowerCase()) ||
+        item.batch.toLowerCase().includes(search.toLowerCase());
+
+      const matchesCategory =
+        category === "All Categories" || item.category === category;
+
+      const matchesStatus =
+        status === "All Status" || item.freshness === status;
+
+      return matchesSearch && matchesCategory && matchesStatus;
+    });
+  }, [inventory, search, category, status]);
+
+  const handleInputChange = (e) => {
+    setNewFood({
+      ...newFood,
       [e.target.name]: e.target.value,
     });
   };
 
-  const addItem = (e) => {
+  const handleAddFood = (e) => {
     e.preventDefault();
 
-    if (
-      !form.name ||
-      !form.quantity ||
-      !form.expiry ||
-      !form.location
-    ) {
-      alert("Please fill all fields.");
+    if (!newFood.name || !newFood.quantity || !newFood.shelfLife) {
+      alert("Please fill all required fields.");
       return;
     }
 
     const newItem = {
       id: Date.now(),
-      name: form.name,
-      quantity: Number(form.quantity),
-      expiry: form.expiry,
-      location: form.location,
-      status: "Fresh",
+      emoji: newFood.emoji || "🍎",
+      name: newFood.name,
+      category: newFood.category,
+      quantity: Number(newFood.quantity),
+      unit: newFood.unit,
+      freshness: newFood.freshness,
+      shelfLife: newFood.shelfLife,
+      batch: `${newFood.name.substring(0, 3).toUpperCase()}-${Date.now()
+        .toString()
+        .slice(-3)}`,
+      lastAnalyzed: "Just now",
     };
 
-    setItems([...items, newItem]);
+    setInventory([newItem, ...inventory]);
 
-    setForm({
+    setNewFood({
       name: "",
+      category: "Fruit",
       quantity: "",
-      expiry: "",
-      location: "",
+      unit: "kg",
+      freshness: "Fresh",
+      shelfLife: "",
+      emoji: "🍎",
     });
 
-    setShowForm(false);
+    setShowModal(false);
   };
 
-  const deleteItem = (id) => {
-    setItems(items.filter((item) => item.id !== id));
+  const handleDelete = (id) => {
+    const confirmDelete = window.confirm(
+      "Are you sure you want to remove this item?"
+    );
+
+    if (confirmDelete) {
+      setInventory(inventory.filter((item) => item.id !== id));
+    }
+  };
+
+  const getStatusClass = (freshness) => {
+    if (freshness === "Fresh") return "status-fresh";
+    if (freshness === "Near Spoilage") return "status-warning";
+    return "status-spoiled";
   };
 
   return (
-    <div style={{ padding: "30px" }}>
-
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "25px",
-        }}
-      >
+    <div className="inventory-page">
+      {/* Header */}
+      <div className="inventory-header">
         <div>
-          <h1 style={{ marginBottom: "5px" }}>
-            Inventory
-          </h1>
-
-          <p style={{ color: "#777" }}>
-            Manage your food inventory and freshness.
-          </p>
+          <h1>Inventory</h1>
+          <p>Manage and monitor your food inventory</p>
         </div>
 
-        <button
-          onClick={() => setShowForm(!showForm)}
-          style={{
-            padding: "12px 20px",
-            border: "none",
-            borderRadius: "8px",
-            background: "#2e7d32",
-            color: "white",
-            cursor: "pointer",
-            fontWeight: "600",
-          }}
-        >
-          + Add Food
-        </button>
-      </div>
-
-
-      {showForm && (
-        <form
-          onSubmit={addItem}
-          style={{
-            background: "#fff",
-            padding: "25px",
-            borderRadius: "12px",
-            marginBottom: "25px",
-            boxShadow: "0 2px 10px rgba(0,0,0,0.08)",
-          }}
-        >
-
-          <h3>Add Food Item</h3>
-
-          <input
-            name="name"
-            placeholder="Food name"
-            value={form.name}
-            onChange={handleChange}
-            style={inputStyle}
-          />
-
-          <input
-            name="quantity"
-            type="number"
-            placeholder="Quantity"
-            value={form.quantity}
-            onChange={handleChange}
-            style={inputStyle}
-          />
-
-          <input
-            name="expiry"
-            type="date"
-            value={form.expiry}
-            onChange={handleChange}
-            style={inputStyle}
-          />
-
-          <input
-            name="location"
-            placeholder="Storage location"
-            value={form.location}
-            onChange={handleChange}
-            style={inputStyle}
-          />
+        <div className="inventory-header-buttons">
+          {onBack && (
+            <button className="inventory-back-btn" onClick={onBack}>
+              ← Dashboard
+            </button>
+          )}
 
           <button
-            type="submit"
-            style={{
-              padding: "10px 18px",
-              background: "#2e7d32",
-              color: "white",
-              border: "none",
-              borderRadius: "7px",
-              cursor: "pointer",
-            }}
+            className="inventory-add-btn"
+            onClick={() => setShowModal(true)}
           >
-            Save Item
+            + Add Food
           </button>
+        </div>
+      </div>
 
-        </form>
+      {/* Statistics */}
+      <div className="inventory-stats">
+        <div className="inventory-stat-card">
+          <div className="stat-icon total-icon">📦</div>
+          <div>
+            <span>Total Items</span>
+            <strong>{stats.total}</strong>
+          </div>
+        </div>
+
+        <div className="inventory-stat-card">
+          <div className="stat-icon fresh-icon">✓</div>
+          <div>
+            <span>Fresh</span>
+            <strong>{stats.fresh}</strong>
+          </div>
+        </div>
+
+        <div className="inventory-stat-card">
+          <div className="stat-icon warning-icon">⚠</div>
+          <div>
+            <span>Near Spoilage</span>
+            <strong>{stats.warning}</strong>
+          </div>
+        </div>
+
+        <div className="inventory-stat-card">
+          <div className="stat-icon spoiled-icon">!</div>
+          <div>
+            <span>Spoiled</span>
+            <strong>{stats.spoiled}</strong>
+          </div>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="inventory-toolbar">
+        <div className="inventory-search">
+          <span>🔍</span>
+          <input
+            type="text"
+            placeholder="Search food or batch..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+
+        <select
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+        >
+          <option>All Categories</option>
+          <option>Fruit</option>
+          <option>Vegetable</option>
+          <option>Dairy</option>
+        </select>
+
+        <select value={status} onChange={(e) => setStatus(e.target.value)}>
+          <option>All Status</option>
+          <option>Fresh</option>
+          <option>Near Spoilage</option>
+          <option>Spoiled</option>
+        </select>
+      </div>
+
+      {/* Table */}
+      <div className="inventory-table-container">
+        <div className="inventory-table-header">
+          <div>
+            <h2>Food Inventory</h2>
+            <p>{filteredInventory.length} items found</p>
+          </div>
+        </div>
+
+        {filteredInventory.length === 0 ? (
+          <div className="inventory-empty">
+            <div>📦</div>
+            <h3>No food items found</h3>
+            <p>Try changing your search or filters.</p>
+          </div>
+        ) : (
+          <div className="inventory-table-wrapper">
+            <table className="inventory-table">
+              <thead>
+                <tr>
+                  <th>Food Item</th>
+                  <th>Category</th>
+                  <th>Quantity</th>
+                  <th>Freshness</th>
+                  <th>Shelf Life</th>
+                  <th>Batch</th>
+                  <th>Last Analyzed</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {filteredInventory.map((item) => (
+                  <tr key={item.id}>
+                    <td>
+                      <div className="food-name-cell">
+                        <span className="food-emoji">{item.emoji}</span>
+
+                        <div>
+                          <strong>{item.name}</strong>
+                          <small>Food Item</small>
+                        </div>
+                      </div>
+                    </td>
+
+                    <td>
+                      <span className="category-badge">{item.category}</span>
+                    </td>
+
+                    <td>
+                      <strong>
+                        {item.quantity} {item.unit}
+                      </strong>
+                    </td>
+
+                    <td>
+                      <span
+                        className={`freshness-status ${getStatusClass(
+                          item.freshness
+                        )}`}
+                      >
+                        <span className="status-dot"></span>
+                        {item.freshness}
+                      </span>
+                    </td>
+
+                    <td>
+                      <span
+                        className={
+                          item.shelfLife === "0 Days"
+                            ? "shelf-danger"
+                            : item.shelfLife === "1 Day"
+                            ? "shelf-warning"
+                            : "shelf-normal"
+                        }
+                      >
+                        {item.shelfLife}
+                      </span>
+                    </td>
+
+                    <td>
+                      <span className="batch-code">{item.batch}</span>
+                    </td>
+
+                    <td>{item.lastAnalyzed}</td>
+
+                    <td>
+                      <div className="inventory-actions">
+                        <button
+                          className="view-btn"
+                          onClick={() => setSelectedItem(item)}
+                        >
+                          View
+                        </button>
+
+                        <button
+                          className="delete-btn"
+                          onClick={() => handleDelete(item.id)}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Add Food Modal */}
+      {showModal && (
+        <div
+          className="inventory-modal-overlay"
+          onClick={() => setShowModal(false)}
+        >
+          <div
+            className="inventory-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-header">
+              <div>
+                <h2>Add Food Item</h2>
+                <p>Add a new item to your inventory</p>
+              </div>
+
+              <button
+                className="modal-close"
+                onClick={() => setShowModal(false)}
+              >
+                ×
+              </button>
+            </div>
+
+            <form onSubmit={handleAddFood}>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Food Name *</label>
+                  <input
+                    type="text"
+                    name="name"
+                    placeholder="e.g. Apple"
+                    value={newFood.name}
+                    onChange={handleInputChange}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Emoji</label>
+                  <input
+                    type="text"
+                    name="emoji"
+                    value={newFood.emoji}
+                    onChange={handleInputChange}
+                    maxLength="2"
+                  />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Category</label>
+                  <select
+                    name="category"
+                    value={newFood.category}
+                    onChange={handleInputChange}
+                  >
+                    <option>Fruit</option>
+                    <option>Vegetable</option>
+                    <option>Dairy</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Freshness</label>
+                  <select
+                    name="freshness"
+                    value={newFood.freshness}
+                    onChange={handleInputChange}
+                  >
+                    <option>Fresh</option>
+                    <option>Near Spoilage</option>
+                    <option>Spoiled</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Quantity *</label>
+                  <input
+                    type="number"
+                    name="quantity"
+                    placeholder="e.g. 25"
+                    min="0"
+                    value={newFood.quantity}
+                    onChange={handleInputChange}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Unit</label>
+                  <select
+                    name="unit"
+                    value={newFood.unit}
+                    onChange={handleInputChange}
+                  >
+                    <option>kg</option>
+                    <option>g</option>
+                    <option>litres</option>
+                    <option>units</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Shelf Life *</label>
+                <input
+                  type="text"
+                  name="shelfLife"
+                  placeholder="e.g. 5 Days"
+                  value={newFood.shelfLife}
+                  onChange={handleInputChange}
+                />
+              </div>
+
+              <div className="modal-buttons">
+                <button
+                  type="button"
+                  className="modal-cancel"
+                  onClick={() => setShowModal(false)}
+                >
+                  Cancel
+                </button>
+
+                <button type="submit" className="modal-submit">
+                  + Add Food
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
-
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns:
-            "repeat(auto-fit, minmax(220px, 1fr))",
-          gap: "15px",
-          marginBottom: "25px",
-        }}
-      >
-
-        <div style={cardStyle}>
-          <small>Total Items</small>
-          <h2>{items.length}</h2>
-        </div>
-
-        <div style={cardStyle}>
-          <small>Total Quantity</small>
-          <h2>
-            {items.reduce(
-              (sum, item) => sum + item.quantity,
-              0
-            )}
-          </h2>
-        </div>
-
-        <div style={cardStyle}>
-          <small>Fresh Items</small>
-          <h2>
-            {
-              items.filter(
-                (item) => item.status === "Fresh"
-              ).length
-            }
-          </h2>
-        </div>
-
-        <div style={cardStyle}>
-          <small>Use Soon</small>
-          <h2>
-            {
-              items.filter(
-                (item) => item.status === "Use Soon"
-              ).length
-            }
-          </h2>
-        </div>
-
-      </div>
-
-
-      <div
-        style={{
-          background: "#fff",
-          borderRadius: "12px",
-          padding: "20px",
-          overflowX: "auto",
-        }}
-      >
-
-        <h3>Food Inventory</h3>
-
-        <table
-          style={{
-            width: "100%",
-            borderCollapse: "collapse",
-            marginTop: "15px",
-          }}
+      {/* View Item Modal */}
+      {selectedItem && (
+        <div
+          className="inventory-modal-overlay"
+          onClick={() => setSelectedItem(null)}
         >
+          <div
+            className="inventory-modal view-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-header">
+              <div>
+                <h2>
+                  {selectedItem.emoji} {selectedItem.name}
+                </h2>
+                <p>Inventory item details</p>
+              </div>
 
-          <thead>
-            <tr>
-              <th style={thStyle}>Food</th>
-              <th style={thStyle}>Quantity</th>
-              <th style={thStyle}>Expiry</th>
-              <th style={thStyle}>Location</th>
-              <th style={thStyle}>Status</th>
-              <th style={thStyle}>Action</th>
-            </tr>
-          </thead>
+              <button
+                className="modal-close"
+                onClick={() => setSelectedItem(null)}
+              >
+                ×
+              </button>
+            </div>
 
-          <tbody>
+            <div className="item-details">
+              <div>
+                <span>Category</span>
+                <strong>{selectedItem.category}</strong>
+              </div>
 
-            {items.map((item) => (
-              <tr key={item.id}>
+              <div>
+                <span>Quantity</span>
+                <strong>
+                  {selectedItem.quantity} {selectedItem.unit}
+                </strong>
+              </div>
 
-                <td style={tdStyle}>
-                  {item.name}
-                </td>
+              <div>
+                <span>Freshness</span>
+                <strong>{selectedItem.freshness}</strong>
+              </div>
 
-                <td style={tdStyle}>
-                  {item.quantity}
-                </td>
+              <div>
+                <span>Shelf Life</span>
+                <strong>{selectedItem.shelfLife}</strong>
+              </div>
 
-                <td style={tdStyle}>
-                  {item.expiry}
-                </td>
+              <div>
+                <span>Batch</span>
+                <strong>{selectedItem.batch}</strong>
+              </div>
 
-                <td style={tdStyle}>
-                  {item.location}
-                </td>
+              <div>
+                <span>Last Analyzed</span>
+                <strong>{selectedItem.lastAnalyzed}</strong>
+              </div>
+            </div>
 
-                <td style={tdStyle}>
-                  <span
-                    style={{
-                      padding: "5px 10px",
-                      borderRadius: "15px",
-                      background:
-                        item.status === "Fresh"
-                          ? "#e8f5e9"
-                          : "#fff3cd",
-                      color:
-                        item.status === "Fresh"
-                          ? "#2e7d32"
-                          : "#856404",
-                    }}
-                  >
-                    {item.status}
-                  </span>
-                </td>
-
-                <td style={tdStyle}>
-
-                  <button
-                    onClick={() =>
-                      deleteItem(item.id)
-                    }
-                    style={{
-                      border: "none",
-                      background: "#ffebee",
-                      color: "#c62828",
-                      padding: "7px 12px",
-                      borderRadius: "6px",
-                      cursor: "pointer",
-                    }}
-                  >
-                    Delete
-                  </button>
-
-                </td>
-
-              </tr>
-            ))}
-
-          </tbody>
-
-        </table>
-
-      </div>
-
+            <button
+              className="modal-submit full-width"
+              onClick={() => setSelectedItem(null)}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-
-
-const inputStyle = {
-  width: "100%",
-  padding: "11px",
-  margin: "8px 0",
-  border: "1px solid #ddd",
-  borderRadius: "7px",
-  boxSizing: "border-box",
-};
-
-
-const cardStyle = {
-  background: "#fff",
-  padding: "20px",
-  borderRadius: "12px",
-  boxShadow: "0 2px 10px rgba(0,0,0,0.06)",
-};
-
-
-const thStyle = {
-  textAlign: "left",
-  padding: "12px",
-  borderBottom: "1px solid #eee",
-};
-
-
-const tdStyle = {
-  padding: "12px",
-  borderBottom: "1px solid #eee",
-};
-
 
 export default Inventory;

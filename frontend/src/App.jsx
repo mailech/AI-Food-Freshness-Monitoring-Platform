@@ -6,12 +6,27 @@ import Register from "./Register";
 import ForgotPassword from "./ForgotPassword";
 import ResetPassword from "./ResetPassword";
 import Inventory from "./Inventory";
+import FoodBatches from "./FoodBatches";
+import FreshnessHistory from "./FreshnessHistory";
+import Recommendations from "./Recommendations";
+import Alerts from "./Alerts";
+import Reports from "./Reports";
+import Settings from "./Settings";
 
 import "./App.css";
 
-
 function Dashboard() {
   const [activePage, setActivePage] = useState("Dashboard");
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+
+  const storedUser = JSON.parse(localStorage.getItem("foodfresh_user") || "null");
+  const currentUser = storedUser || { name: "User", email: "", role: "user" };
+  const isAdmin = currentUser.role === "admin";
+
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [preview, setPreview] = useState(null);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState(null);
 
   const menuItems = [
     { name: "Dashboard", icon: "▦" },
@@ -22,24 +37,65 @@ function Dashboard() {
     { name: "Recommendations", icon: "✦" },
     { name: "Alerts", icon: "⚠" },
     { name: "Reports", icon: "▥" },
-    { name: "Settings", icon: "⚙" },
+    ...(isAdmin ? [{ name: "Settings", icon: "⚙" }] : []),
   ];
 
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [preview, setPreview] = useState(null);
-  const [analyzing, setAnalyzing] = useState(false);
-  const [analysisResult, setAnalysisResult] = useState(null);
+  // =========================
+  // FILE UPLOAD
+  // =========================
 
   const handleFileChange = (event) => {
-    const file = event.target.files[0];
+    const file = event.target.files?.[0];
 
     if (!file) return;
 
+    if (!file.type.startsWith("image/")) {
+      alert("Please select a valid image.");
+      return;
+    }
+
+    // Remove old preview URL
+    if (preview) {
+      URL.revokeObjectURL(preview);
+    }
+
+    const newPreview = URL.createObjectURL(file);
+
     setSelectedFile(file);
-    setPreview(URL.createObjectURL(file));
+    setPreview(newPreview);
     setAnalysisResult(null);
+
+    // Allows selecting the same image again
+    event.target.value = "";
   };
 
+  // =========================
+  // CLEAR / NEW ANALYSIS
+  // =========================
+
+  const handleNewAnalysis = () => {
+    if (preview) {
+      URL.revokeObjectURL(preview);
+    }
+
+    setSelectedFile(null);
+    setPreview(null);
+    setAnalysisResult(null);
+    setAnalyzing(false);
+  };
+
+  // =========================
+  // BACK TO DASHBOARD
+  // =========================
+
+  const handleBackToDashboard = () => {
+    handleNewAnalysis();
+    setActivePage("Dashboard");
+  };
+
+  // =========================
+  // ANALYZE IMAGE
+  // =========================
 
   const handleAnalyze = async () => {
     if (!selectedFile) {
@@ -52,10 +108,11 @@ function Dashboard() {
 
     try {
       const formData = new FormData();
+
       formData.append("file", selectedFile);
 
       const response = await fetch(
-        "http://127.0.0.1:8000/analyze",
+        "/api/analyze",
         {
           method: "POST",
           body: formData,
@@ -71,19 +128,30 @@ function Dashboard() {
       }
 
       setAnalysisResult(data.result);
-
     } catch (error) {
       console.error("Analysis error:", error);
 
       alert(
         "Unable to analyze image. Please make sure the backend is running."
       );
-
     } finally {
       setAnalyzing(false);
     }
   };
 
+  // =========================
+  // LOGOUT
+  // =========================
+
+  const handleLogout = () => {
+    localStorage.removeItem("foodfresh_logged_in");
+    localStorage.removeItem("foodfresh_user");
+    window.location.href = "/login";
+  };
+
+  // =========================
+  // SIDEBAR
+  // =========================
 
   const Sidebar = () => (
     <aside className="sidebar">
@@ -97,11 +165,9 @@ function Dashboard() {
         </div>
       </div>
 
-
       <div className="menu-title">
         MAIN MENU
       </div>
-
 
       <nav>
         {menuItems.map((item) => (
@@ -112,9 +178,9 @@ function Dashboard() {
                 ? "active"
                 : ""
             }`}
-            onClick={() =>
-              setActivePage(item.name)
-            }
+            onClick={() => {
+              setActivePage(item.name);
+            }}
           >
             <span className="menu-icon">
               {item.icon}
@@ -125,35 +191,56 @@ function Dashboard() {
         ))}
       </nav>
 
-
       <div className="sidebar-bottom">
 
         <div className="system-status">
-
           <span className="status-dot"></span>
 
           <div>
             <strong>System Status</strong>
+
             <small>
               All systems operational
             </small>
           </div>
-
         </div>
-
 
         <div className="user-box">
 
           <div className="avatar">
-            N
+            {(currentUser.name || "U").charAt(0).toUpperCase()}
           </div>
 
           <div>
-            <strong>Nanditha</strong>
-            <small>Administrator</small>
+            <strong>{currentUser.name || "User"}</strong>
+
+            <small>
+              {isAdmin ? "Administrator" : "User / Staff"}
+            </small>
           </div>
 
-          <span>⋮</span>
+          <div className="profile-menu-container">
+            <button
+              type="button"
+              className="profile-menu-dots"
+              onClick={() => setShowProfileMenu((prev) => !prev)}
+              title="Profile menu"
+            >
+              ⋮
+            </button>
+
+            {showProfileMenu && (
+              <div className="profile-dropdown">
+                <button
+                  type="button"
+                  className="signout-button"
+                  onClick={handleLogout}
+                >
+                  🚪 Sign Out
+                </button>
+              </div>
+            )}
+          </div>
 
         </div>
 
@@ -162,6 +249,9 @@ function Dashboard() {
     </aside>
   );
 
+  // =========================
+  // TOP BAR
+  // =========================
 
   const TopBar = () => (
     <header className="topbar">
@@ -177,7 +267,6 @@ function Dashboard() {
 
       </div>
 
-
       <div className="top-actions">
 
         <button className="notification">
@@ -189,16 +278,18 @@ function Dashboard() {
           ?
         </button>
 
-
         <div className="profile">
 
           <div className="avatar small">
-            N
+            {(currentUser.name || "U").charAt(0).toUpperCase()}
           </div>
 
           <div>
-            <strong>Nanditha</strong>
-            <small>Admin</small>
+            <strong>{currentUser.name || "User"}</strong>
+
+            <small>
+              {isAdmin ? "Admin" : "Staff"}
+            </small>
           </div>
 
           <span>⌄</span>
@@ -210,46 +301,24 @@ function Dashboard() {
     </header>
   );
 
-
-  if (activePage === "Inventory") {
-
-    return (
-      <div className="app">
-
-        <Sidebar />
-
-        <main className="main">
-
-          <TopBar />
-
-          <section className="content">
-
-            <Inventory />
-
-          </section>
-
-        </main>
-
-      </div>
-    );
-  }
-
+  // =========================
+  // MAIN DASHBOARD
+  // =========================
 
   return (
     <div className="app">
 
       <Sidebar />
 
-
       <main className="main">
 
         <TopBar />
 
-
         <section className="content">
 
-
-          {/* DASHBOARD */}
+          {/* ==================================================
+              DASHBOARD
+          ================================================== */}
 
           {activePage === "Dashboard" && (
             <>
@@ -269,13 +338,11 @@ function Dashboard() {
 
                 </div>
 
-
                 <div className="date-filter">
                   Last 30 days ▾
                 </div>
 
               </div>
-
 
               {/* STAT CARDS */}
 
@@ -284,16 +351,24 @@ function Dashboard() {
                 <div className="stat-card">
 
                   <div className="stat-top">
-                    <span>Total Food Items</span>
+
+                    <span>
+                      Total Food Items
+                    </span>
+
                     <div className="stat-icon">
                       ▦
                     </div>
+
                   </div>
 
-                  <h2>1,284</h2>
+                  <h2>
+                    1,284
+                  </h2>
 
                   <div className="stat-change positive">
                     ↑ 4.2%
+
                     <span>
                       from last month
                     </span>
@@ -301,15 +376,18 @@ function Dashboard() {
 
                 </div>
 
-
                 <div className="stat-card">
 
                   <div className="stat-top">
-                    <span>Fresh Items</span>
+
+                    <span>
+                      Fresh Items
+                    </span>
 
                     <div className="stat-icon fresh">
                       ✓
                     </div>
+
                   </div>
 
                   <h2 className="fresh-text">
@@ -317,14 +395,16 @@ function Dashboard() {
                   </h2>
 
                   <div className="stat-change positive">
+
                     ↑ 8.1%
+
                     <span>
                       of inventory
                     </span>
+
                   </div>
 
                 </div>
-
 
                 <div className="stat-card warning-card">
 
@@ -350,7 +430,6 @@ function Dashboard() {
 
                 </div>
 
-
                 <div className="stat-card">
 
                   <div className="stat-top">
@@ -370,14 +449,16 @@ function Dashboard() {
                   </h2>
 
                   <div className="stat-change danger-change">
+
                     ↓ 12.4%
+
                     <span>
                       waste reduction
                     </span>
+
                   </div>
 
                 </div>
-
 
                 <div className="stat-card score-card">
 
@@ -398,7 +479,9 @@ function Dashboard() {
                   </h2>
 
                   <div className="progress">
+
                     <div className="progress-fill"></div>
+
                   </div>
 
                   <small>
@@ -409,11 +492,9 @@ function Dashboard() {
 
               </div>
 
-
               {/* CHARTS */}
 
               <div className="charts-grid">
-
 
                 <div className="panel">
 
@@ -437,7 +518,6 @@ function Dashboard() {
 
                   </div>
 
-
                   <div className="distribution">
 
                     <div className="donut">
@@ -455,7 +535,6 @@ function Dashboard() {
                       </div>
 
                     </div>
-
 
                     <div className="legend">
 
@@ -489,7 +568,6 @@ function Dashboard() {
 
                 </div>
 
-
                 <div className="panel">
 
                   <div className="panel-header">
@@ -519,7 +597,6 @@ function Dashboard() {
                     </select>
 
                   </div>
-
 
                   <div className="bar-chart">
 
@@ -574,7 +651,6 @@ function Dashboard() {
 
                   </div>
 
-
                   <div className="chart-labels">
 
                     <span>Mon</span>
@@ -591,11 +667,9 @@ function Dashboard() {
 
               </div>
 
-
               {/* ANALYSIS + RECOMMENDATIONS */}
 
               <div className="lower-grid">
-
 
                 <div className="panel analysis-panel">
 
@@ -621,9 +695,7 @@ function Dashboard() {
 
                   </div>
 
-
                   <div className="analysis-content">
-
 
                     <div className="upload-area">
 
@@ -674,19 +746,34 @@ function Dashboard() {
                             {selectedFile?.name}
                           </p>
 
+                          <div className="analysis-buttons">
 
-                          <button
-                            className="analyze-button"
-                            onClick={handleAnalyze}
-                            disabled={analyzing}
-                          >
+                            <label className="change-image-button">
 
-                            {analyzing
-                              ? "⏳ Analyzing..."
-                              : "🔍 Analyze Freshness"
-                            }
+                              🔄 Change Image
 
-                          </button>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleFileChange}
+                                hidden
+                              />
+
+                            </label>
+
+                            <button
+                              className="analyze-button"
+                              onClick={handleAnalyze}
+                              disabled={analyzing}
+                            >
+
+                              {analyzing
+                                ? "⏳ Analyzing..."
+                                : "🔍 Analyze Freshness"}
+
+                            </button>
+
+                          </div>
 
                         </>
 
@@ -694,154 +781,13 @@ function Dashboard() {
 
                     </div>
 
-
-                    {/* RESULT */}
-
-                    <div className="result-card">
-
-                      {analysisResult ? (
-
-                        <>
-
-                          <div className="result-top">
-
-                            <span className="fresh-badge">
-                              ●{" "}
-                              {analysisResult.freshness?.toUpperCase()}
-                            </span>
-
-                            <span>
-                              {analysisResult.confidence}% confidence
-                            </span>
-
-                          </div>
-
-
-                          <h2>
-                            {analysisResult.food}
-                          </h2>
-
-
-                          <div className="result-info">
-
-                            <div>
-
-                              <span>
-                                FRESHNESS
-                              </span>
-
-                              <strong className="fresh-text">
-                                {analysisResult.freshness_score}/100
-                              </strong>
-
-                            </div>
-
-
-                            <div>
-
-                              <span>
-                                SHELF LIFE
-                              </span>
-
-                              <strong>
-                                {analysisResult.shelf_life}
-                              </strong>
-
-                            </div>
-
-                          </div>
-
-
-                          <div className="result-bar">
-
-                            <div
-                              style={{
-                                width:
-                                  `${analysisResult.freshness_score}%`,
-                              }}
-                            ></div>
-
-                          </div>
-
-
-                          <small>
-                            {analysisResult.recommendation}
-                          </small>
-
-                        </>
-
-                      ) : (
-
-                        <>
-
-                          <div className="result-top">
-
-                            <span className="fresh-badge">
-                              ● FRESH
-                            </span>
-
-                            <span>
-                              98.4% confidence
-                            </span>
-
-                          </div>
-
-
-                          <h2>
-                            Gala Apple
-                          </h2>
-
-
-                          <div className="result-info">
-
-                            <div>
-
-                              <span>
-                                FRESHNESS
-                              </span>
-
-                              <strong className="fresh-text">
-                                94/100
-                              </strong>
-
-                            </div>
-
-
-                            <div>
-
-                              <span>
-                                SHELF LIFE
-                              </span>
-
-                              <strong>
-                                ~7 Days
-                              </strong>
-
-                            </div>
-
-                          </div>
-
-
-                          <div className="result-bar">
-                            <div></div>
-                          </div>
-
-
-                          <small>
-                            Upload and analyze a food
-                            image to update this result.
-                          </small>
-
-                        </>
-
-                      )}
-
-                    </div>
+                    <AnalysisResult
+                      analysisResult={analysisResult}
+                    />
 
                   </div>
 
                 </div>
-
 
                 {/* RECOMMENDATIONS */}
 
@@ -868,7 +814,6 @@ function Dashboard() {
 
                   </div>
 
-
                   <div className="recommendation">
 
                     <span className="priority">
@@ -888,7 +833,6 @@ function Dashboard() {
 
                   </div>
 
-
                   <div className="recommendation">
 
                     <span className="priority logistics">
@@ -906,7 +850,6 @@ function Dashboard() {
                     </p>
 
                   </div>
-
 
                   <div className="waste-box">
 
@@ -926,7 +869,6 @@ function Dashboard() {
 
               </div>
 
-
               {/* RECENT ANALYSIS */}
 
               <div className="panel recent-panel">
@@ -945,12 +887,16 @@ function Dashboard() {
 
                   </div>
 
-                  <button className="view-all">
+                  <button
+                    className="view-all"
+                    onClick={() =>
+                      setActivePage("Freshness History")
+                    }
+                  >
                     View All →
                   </button>
 
                 </div>
-
 
                 <div className="table-wrapper">
 
@@ -970,7 +916,6 @@ function Dashboard() {
                       </tr>
 
                     </thead>
-
 
                     <tbody>
 
@@ -1004,7 +949,6 @@ function Dashboard() {
 
                       </tr>
 
-
                       <tr>
 
                         <td>
@@ -1034,7 +978,6 @@ function Dashboard() {
                         </td>
 
                       </tr>
-
 
                       <tr>
 
@@ -1077,14 +1020,15 @@ function Dashboard() {
             </>
           )}
 
-
-          {/* ANALYZE FOOD PAGE */}
+          {/* ==================================================
+              ANALYZE FOOD
+          ================================================== */}
 
           {activePage === "Analyze Food" && (
 
-            <div className="panel analysis-panel">
+            <div className="panel analysis-panel full-analysis-page">
 
-              <div className="panel-header">
+              <div className="analysis-page-header">
 
                 <div>
 
@@ -1099,12 +1043,22 @@ function Dashboard() {
 
                 </div>
 
-                <span className="model-badge">
-                  AI MODEL v1.0
-                </span>
+                <div className="analysis-header-actions">
+
+                  <span className="model-badge">
+                    AI MODEL v1.0
+                  </span>
+
+                  <button
+                    className="back-dashboard-button"
+                    onClick={handleBackToDashboard}
+                  >
+                    ← Back to Dashboard
+                  </button>
+
+                </div>
 
               </div>
-
 
               <div className="analysis-content">
 
@@ -1155,18 +1109,34 @@ function Dashboard() {
                         {selectedFile?.name}
                       </p>
 
-                      <button
-                        className="analyze-button"
-                        onClick={handleAnalyze}
-                        disabled={analyzing}
-                      >
+                      <div className="analysis-buttons">
 
-                        {analyzing
-                          ? "⏳ Analyzing..."
-                          : "🔍 Analyze Freshness"
-                        }
+                        <label className="change-image-button">
 
-                      </button>
+                          🔄 Change Image
+
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleFileChange}
+                            hidden
+                          />
+
+                        </label>
+
+                        <button
+                          className="analyze-button"
+                          onClick={handleAnalyze}
+                          disabled={analyzing}
+                        >
+
+                          {analyzing
+                            ? "⏳ Analyzing..."
+                            : "🔍 Analyze Freshness"}
+
+                        </button>
+
+                      </div>
 
                     </>
 
@@ -1174,134 +1144,52 @@ function Dashboard() {
 
                 </div>
 
-
-                <div className="result-card">
-
-                  {analysisResult ? (
-
-                    <>
-
-                      <div className="result-top">
-
-                        <span className="fresh-badge">
-                          ●{" "}
-                          {analysisResult.freshness?.toUpperCase()}
-                        </span>
-
-                        <span>
-                          {analysisResult.confidence}% confidence
-                        </span>
-
-                      </div>
-
-                      <h2>
-                        {analysisResult.food}
-                      </h2>
-
-                      <div className="result-info">
-
-                        <div>
-                          <span>
-                            FRESHNESS
-                          </span>
-
-                          <strong className="fresh-text">
-                            {analysisResult.freshness_score}/100
-                          </strong>
-                        </div>
-
-                        <div>
-                          <span>
-                            SHELF LIFE
-                          </span>
-
-                          <strong>
-                            {analysisResult.shelf_life}
-                          </strong>
-                        </div>
-
-                      </div>
-
-                      <div className="result-bar">
-
-                        <div
-                          style={{
-                            width:
-                              `${analysisResult.freshness_score}%`,
-                          }}
-                        ></div>
-
-                      </div>
-
-                      <small>
-                        {analysisResult.recommendation}
-                      </small>
-
-                    </>
-
-                  ) : (
-
-                    <>
-
-                      <div className="result-top">
-
-                        <span className="fresh-badge">
-                          ● FRESH
-                        </span>
-
-                        <span>
-                          Waiting for analysis
-                        </span>
-
-                      </div>
-
-                      <h2>
-                        Food Analysis
-                      </h2>
-
-                      <small>
-                        Upload an image and click
-                        Analyze Freshness.
-                      </small>
-
-                    </>
-
-                  )}
-
-                </div>
+                <AnalysisResult
+                  analysisResult={analysisResult}
+                  showNewAnalysis={true}
+                  onNewAnalysis={handleNewAnalysis}
+                />
 
               </div>
 
             </div>
-          )}
-
-
-          {/* OTHER PAGES */}
-
-          {[
-            "Food Batches",
-            "Freshness History",
-            "Recommendations",
-            "Alerts",
-            "Reports",
-            "Settings",
-          ].includes(activePage) && (
-
-            <div className="panel">
-
-              <h1>
-                {activePage}
-              </h1>
-
-              <p>
-                This module is ready for development.
-                We will connect it to the backend
-                after the ML dataset integration.
-              </p>
-
-            </div>
 
           )}
+
+          {/* ==================================================
+              INVENTORY
+          ================================================== */}
+          {activePage === "Inventory" && <Inventory />}
+
+          {/* ==================================================
+              FOOD BATCHES
+          ================================================== */}
+          {activePage === "Food Batches" && <FoodBatches />}
+
+          {/* ==================================================
+              FRESHNESS HISTORY
+          ================================================== */}
+          {activePage === "Freshness History" && <FreshnessHistory />}
+
+          {/* ==================================================
+              RECOMMENDATIONS
+          ================================================== */}
+          {activePage === "Recommendations" && <Recommendations />}
+
+          {/* ==================================================
+              ALERTS
+          ================================================== */}
+          {activePage === "Alerts" && <Alerts />}
+
+          {/* ==================================================
+              REPORTS
+          ================================================== */}
+          {activePage === "Reports" && <Reports />}
+
+          {/* ==================================================
+              SETTINGS
+          ================================================== */}
+          {activePage === "Settings" && isAdmin && <Settings />}
 
         </section>
 
@@ -1312,7 +1200,136 @@ function Dashboard() {
 }
 
 
-/* ROUTING */
+// ============================================================
+// ANALYSIS RESULT COMPONENT
+// ============================================================
+
+function AnalysisResult({
+  analysisResult,
+  showNewAnalysis = false,
+  onNewAnalysis,
+}) {
+
+  return (
+    <div className="result-card">
+
+      {analysisResult ? (
+
+        <>
+
+          <div className="result-top">
+
+            <span className="fresh-badge">
+
+              ●{" "}
+
+              {analysisResult.freshness?.toUpperCase()}
+
+            </span>
+
+            <span>
+              {analysisResult.confidence}% confidence
+            </span>
+
+          </div>
+
+          <h2>
+            {analysisResult.food}
+          </h2>
+
+          <div className="result-info">
+
+            <div>
+
+              <span>
+                FRESHNESS
+              </span>
+
+              <strong className="fresh-text">
+                {analysisResult.freshness_score}/100
+              </strong>
+
+            </div>
+
+            <div>
+
+              <span>
+                SHELF LIFE
+              </span>
+
+              <strong>
+                {analysisResult.shelf_life}
+              </strong>
+
+            </div>
+
+          </div>
+
+          <div className="result-bar">
+
+            <div
+              style={{
+                width:
+                  `${analysisResult.freshness_score}%`,
+              }}
+            ></div>
+
+          </div>
+
+          <small>
+            {analysisResult.recommendation}
+          </small>
+
+          {showNewAnalysis && (
+
+            <button
+              className="new-analysis-button"
+              onClick={onNewAnalysis}
+            >
+              + Analyze Another Image
+            </button>
+
+          )}
+
+        </>
+
+      ) : (
+
+        <>
+
+          <div className="result-top">
+
+            <span className="fresh-badge">
+              ● READY
+            </span>
+
+            <span>
+              Waiting for analysis
+            </span>
+
+          </div>
+
+          <h2>
+            Food Analysis
+          </h2>
+
+          <small>
+            Upload an image and click
+            Analyze Freshness.
+          </small>
+
+        </>
+
+      )}
+
+    </div>
+  );
+}
+
+
+// ============================================================
+// ROUTING
+// ============================================================
 
 function App() {
 
@@ -1366,8 +1383,8 @@ function App() {
       />
 
     </Routes>
+
   );
 }
-
 
 export default App;
