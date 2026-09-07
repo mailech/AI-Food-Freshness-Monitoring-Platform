@@ -102,7 +102,7 @@
       width: 20px;
       text-align: center;
     }
-     /* Red Notification Badge */
+
     .badge-count {
       background-color: #ef4444;
       color: #ffffff;
@@ -112,6 +112,7 @@
       border-radius: 12px;
       margin-left: auto;
     }
+
     /* User Profile Footer */
     .user-profile {
       display: flex;
@@ -270,7 +271,6 @@
       justify-content: center;
     }
 
-    /* Custom Layout for Pie/Doughnut Legends */
     .pie-container {
       display: flex;
       align-items: center;
@@ -364,8 +364,9 @@
           <li class="nav-item">
             <a href="notifications.html">
               <i class="fa-regular fa-bell"></i> Notifications
-              <span class="badge-count">1</span>
+              <span class="badge-count" id="notificationBadge">0</span>
             </a>
+          </li>
           <li class="nav-item">
             <a href="reports.html"><i class="fa-regular fa-file-lines"></i> Reports</a>
           </li>
@@ -376,10 +377,11 @@
             <a href="settings.html"><i class="fa-solid fa-gear"></i> Settings</a>
           </li>
           <li class="nav-item">
-            <a href="logout.html"><i class="fa-solid fa-gear"></i> Logout</a>
+            <a href="logout.html"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
           </li>
         </ul>
       </div>
+
       <!-- User Profile Card -->
       <div class="user-profile">
         <div class="avatar" id="sideAvatar">U</div>
@@ -399,7 +401,7 @@
             <i class="fa-solid fa-chevron-right" style="font-size:0.65rem;"></i>
             <span>Analytics</span>
           </div>
-          <h1 class="page-title">Analytics Page</h1>
+          <h1 class="page-title">Analytics</h1>
         </div>
 
         <div class="header-actions">
@@ -417,7 +419,7 @@
       <!-- Analytics Chart Grid -->
       <div class="analytics-grid">
         
-        <!-- 1. Food Category Distribution (Pie Chart) -->
+        <!-- 1. Food Category Distribution -->
         <div class="chart-card">
           <div class="chart-header">
             <h3 class="chart-title">Food Category Distribution</h3>
@@ -432,7 +434,7 @@
           </div>
         </div>
 
-        <!-- 2. Fresh vs Spoiled (Doughnut Chart) -->
+        <!-- 2. Fresh vs Spoiled -->
         <div class="chart-card">
           <div class="chart-header">
             <h3 class="chart-title">Fresh vs Spoiled</h3>
@@ -447,7 +449,7 @@
           </div>
         </div>
 
-        <!-- 3. Shelf Life Trend (Line Chart) -->
+        <!-- 3. Shelf Life Trend -->
         <div class="chart-card">
           <div class="chart-header">
             <h3 class="chart-title">Shelf Life Trend</h3>
@@ -457,11 +459,11 @@
           </div>
         </div>
 
-        <!-- 4. Waste Reduction (Bar Chart) -->
+        <!-- 4. Waste Reduction -->
         <div class="chart-card">
           <div class="chart-header">
-            <h3 class="chart-title">Waste Reduction</h3>
-            <span class="chart-metric">This Month: 12%</span>
+            <h3 class="chart-title">Waste Reduction Efficiency</h3>
+            <span class="chart-metric" id="wasteMetric">Calculating...</span>
           </div>
           <div class="chart-body">
             <canvas id="wasteChart"></canvas>
@@ -479,6 +481,7 @@
     <div class="footer-item"><i class="fa-solid fa-heart"></i> Healthy Future</div>
   </footer>
 
+  <script src="auth-check.js"></script>
   <script src="analytics.js"></script>
 </body>
 </html>

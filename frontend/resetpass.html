@@ -280,14 +280,14 @@
         <p>Verify your registered email address and create a strong new password.</p>
       </div>
 
-      <form action="#" method="POST">
+      <form id="resetForm">
         <!-- Registered Email Input -->
         <div class="form-group">
           <label for="email">Registered Email Address</label>
           <div class="input-wrapper">
             <i class="fa-regular fa-envelope"></i>
             <input type="email" id="email" placeholder="name@example.com" required />
-            <button type="button" class="btn-inline">Send Code</button>
+            <button type="button" id="sendCodeBtn" onclick="handleSendCode()" class="btn-inline">Send Code</button>
           </div>
         </div>
 
@@ -344,6 +344,6 @@
       <span>Healthy Future</span>
     </div>
   </footer>
-
+<script src="reset.js"></script>
 </body>
 </html>

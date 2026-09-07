@@ -1,0 +1,5 @@
+__pycache__/
+**/__pycache__/
+instance/
+backend/uploads/
+*.pyc

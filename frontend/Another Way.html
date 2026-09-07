@@ -413,14 +413,14 @@
         <p>Use your registered mobile number to log in</p>
       </div>
 
-      <form action="#" method="POST">
+      <form id="phoneLoginForm">
         <!-- Phone Number Input -->
         <div class="form-group">
           <label for="phone">Phone Number</label>
           <div class="input-wrapper">
             <i class="fa-solid fa-phone"></i>
-            <input type="tel" id="phone" placeholder="+1 (555) 000-0000" required />
-            <button type="button" class="btn-inline">Send OTP</button>
+            <input type="tel" id="phone" placeholder="phone number">
+            <button type="button" id="sendPhoneOtpBtn">Send OTP</button>
           </div>
         </div>
 
@@ -429,7 +429,7 @@
           <label for="password">Password or OTP Code</label>
           <div class="input-wrapper">
             <i class="fa-solid fa-lock"></i>
-            <input type="password" id="password" placeholder="Enter password or 6-digit OTP" required />
+            <input type="password" id="credential" placeholder="Enter password or 6-digit OTP">
           </div>
         </div>
 
@@ -445,6 +445,7 @@
         <button type="submit" class="btn-submit">
           Log In <i class="fa-solid fa-arrow-right"></i>
         </button>
+        
       </form>
 
       <!-- Alternative Methods -->
@@ -481,6 +482,6 @@
       <span>Healthy Future</span>
     </div>
   </footer>
-
+<script src="phone-login.js"></script>
 </body>
 </html>

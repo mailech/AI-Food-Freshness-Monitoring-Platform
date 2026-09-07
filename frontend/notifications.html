@@ -101,6 +101,16 @@
       text-align: center;
     }
 
+    .badge-count {
+      background-color: #ef4444;
+      color: #ffffff;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 12px;
+      margin-left: auto;
+    }
+
     /* User Profile Footer */
     .user-profile {
       display: flex;
@@ -350,12 +360,14 @@
             <a href="analytics.html"><i class="fa-solid fa-chart-column"></i> Analytics</a>
           </li>
           <li class="nav-item active">
-            <a href="notifications.html"><i class="fa-regular fa-bell"></i> Notifications</a>
+            <a href="notifications.html">
+              <i class="fa-regular fa-bell"></i> Notifications
+              <span class="badge-count" id="notificationBadge">0</span>
+            </a>
           </li>
           <li class="nav-item">
             <a href="reports.html"><i class="fa-regular fa-file-lines"></i> Reports</a>
           </li>
-    
           <li class="nav-item">
             <a href="profile.html"><i class="fa-regular fa-user"></i> Profile</a>
           </li>
@@ -363,7 +375,7 @@
             <a href="settings.html"><i class="fa-solid fa-gear"></i> Settings</a>
           </li>
           <li class="nav-item">
-            <a href="logout.html"><i class="fa-solid fa-gear"></i> Logout</a>
+            <a href="logout.html"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
           </li>
         </ul>
       </div>
@@ -386,7 +398,7 @@
           <i class="fa-solid fa-chevron-right" style="font-size:0.65rem;"></i>
           <span>Notifications</span>
         </div>
-        <h1 class="page-title">Notifications Page</h1>
+        <h1 class="page-title">Notifications</h1>
       </div>
 
       <!-- Notifications Card -->
@@ -414,6 +426,7 @@
     <div class="footer-item"><i class="fa-solid fa-heart"></i> Healthy Future</div>
   </footer>
 
+  <script src="auth-check.js"></script>
   <script src="notifications.js"></script>
 </body>
 </html>

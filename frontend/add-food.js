@@ -1,168 +1,197 @@
 /**
- * FreshCheck - Add Food & Live Scanner Controller
+ * FreshCheck - Add Food Controller
+ * Orchestrates image file uploads, prediction calls (/predict),
+ * and record persistence (/api/food).
  */
 
-let cameraStream = null;
+document.addEventListener("DOMContentLoaded", () => {
+    const fileInput = document.getElementById("fileInput");
+    const dropArea = document.getElementById("dropArea");
+    const imagePreviewContainer = document.getElementById("imagePreviewContainer");
+    const imagePreview = document.getElementById("imagePreview");
+    const fileNameDisplay = document.getElementById("fileNameDisplay");
+    const scanButton = document.getElementById("scanButton");
+    const purchaseDateInput = document.getElementById("purchaseDate");
 
-document.addEventListener('DOMContentLoaded', () => {
-  initUserProfile();
-  initDateInputs();
-
-  // Tab Elements
-  const tabUpload = document.getElementById('tabUpload');
-  const tabCamera = document.getElementById('tabCamera');
-  const uploadSection = document.getElementById('uploadSection');
-  const cameraSection = document.getElementById('cameraSection');
-
-  // Input & Preview Elements
-  const fileInput = document.getElementById('fileInput');
-  const previewContainer = document.getElementById('previewContainer');
-  const previewImg = document.getElementById('previewImg');
-  const previewFileName = document.getElementById('previewFileName');
-  const btnToggleCamera = document.getElementById('btnToggleCamera');
-  const addFoodForm = document.getElementById('addFoodForm');
-
-  // Tab Switch: Upload
-  tabUpload.addEventListener('click', () => {
-    tabUpload.classList.add('active');
-    tabCamera.classList.remove('active');
-    uploadSection.classList.remove('hidden');
-    cameraSection.classList.add('hidden');
-    stopCamera();
-  });
-
-  // Tab Switch: Camera
-  tabCamera.addEventListener('click', () => {
-    tabCamera.classList.add('active');
-    tabUpload.classList.remove('active');
-    cameraSection.classList.remove('hidden');
-    uploadSection.classList.add('hidden');
-  });
-
-  // Handle File Upload
-  fileInput.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        previewImg.src = event.target.result;
-        previewFileName.innerText = file.name;
-        previewContainer.style.display = 'flex';
-      };
-      reader.readAsDataURL(file);
+    // Initialize purchase date input to today in YYYY-MM-DD
+    if (purchaseDateInput && !purchaseDateInput.value) {
+        const todayStr = new Date().toISOString().split("T")[0];
+        purchaseDateInput.value = todayStr;
     }
-  });
 
-  // Handle Camera Toggle
-  btnToggleCamera.addEventListener('click', toggleCamera);
+    // Drag & Drop handlers
+    if (dropArea && fileInput) {
+        ["dragenter", "dragover"].forEach(eventName => {
+            dropArea.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropArea.classList.add("highlight");
+            });
+        });
 
-  // Form Submit
-  addFoodForm.addEventListener('submit', handleAddFoodSubmit);
+        ["dragleave", "drop"].forEach(eventName => {
+            dropArea.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropArea.classList.remove("highlight");
+            });
+        });
+
+        dropArea.addEventListener("drop", (e) => {
+            const dt = e.dataTransfer;
+            if (dt && dt.files && dt.files.length > 0) {
+                fileInput.files = dt.files;
+                handleFileSelection(dt.files[0]);
+            }
+        });
+
+        dropArea.addEventListener("click", () => {
+            fileInput.click();
+        });
+    }
+
+    if (fileInput) {
+        fileInput.addEventListener("change", (e) => {
+            if (e.target.files && e.target.files.length > 0) {
+                handleFileSelection(e.target.files[0]);
+            }
+        });
+    }
+
+    if (scanButton) {
+        scanButton.addEventListener("click", handleAddFoodProcess);
+    }
 });
 
-/**
- * Initializes User Sidebar Details
- */
-function initUserProfile() {
-  const name = localStorage.getItem('freshCheck_userName') || 'User Name';
-  const email = localStorage.getItem('freshCheck_userContact') || 'User.@example.com';
+function handleFileSelection(file) {
+    const imagePreviewContainer = document.getElementById("imagePreviewContainer");
+    const imagePreview = document.getElementById("imagePreview");
+    const fileNameDisplay = document.getElementById("fileNameDisplay");
 
-  const nameParts = name.trim().split(' ');
-  const initials = nameParts.length > 1 
-    ? (nameParts[0][0] + nameParts[1][0]).toUpperCase() 
-    : nameParts[0][0].toUpperCase();
-
-  document.getElementById('sideName').innerText = name;
-  document.getElementById('sideEmail').innerText = email;
-  document.getElementById('sideAvatar').innerText = initials;
-}
-
-/**
- * Sets initial dates into date pickers (Today for Purchase, Today + 7 days suggested for Expiry)
- */
-function initDateInputs() {
-  const today = new Date();
-  const todayFormatted = today.toISOString().split('T')[0];
-  
-  // Suggested Expiry (default +7 days)
-  const defaultExpiry = new Date();
-  defaultExpiry.setDate(today.getDate() + 7);
-  const expiryFormatted = defaultExpiry.toISOString().split('T')[0];
-
-  document.getElementById('purchaseDate').value = todayFormatted;
-  document.getElementById('expiryDate').value = expiryFormatted;
-}
-
-/**
- * Live Camera Stream Handler
- */
-async function toggleCamera() {
-  const video = document.getElementById('webcam');
-  const scanOverlay = document.getElementById('scanOverlay');
-  const cameraPlaceholder = document.getElementById('cameraPlaceholder');
-  const btnToggleCamera = document.getElementById('btnToggleCamera');
-
-  if (cameraStream) {
-    stopCamera();
-    btnToggleCamera.innerHTML = '<i class="fa-solid fa-power-off"></i> Start Camera';
-  } else {
-    try {
-      cameraStream = await navigator.mediaDevices.getUserMedia({ video: true });
-      video.srcObject = cameraStream;
-      video.classList.remove('hidden');
-      scanOverlay.classList.remove('hidden');
-      cameraPlaceholder.classList.add('hidden');
-      btnToggleCamera.innerHTML = '<i class="fa-solid fa-circle-stop"></i> Stop Camera';
-    } catch (err) {
-      alert('Unable to access webcam. Please ensure camera permissions are allowed.');
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            if (imagePreview) imagePreview.src = e.target.result;
+            if (fileNameDisplay) fileNameDisplay.innerText = file.name;
+            if (imagePreviewContainer) imagePreviewContainer.classList.remove("hidden");
+        };
+        reader.readAsDataURL(file);
     }
-  }
 }
 
-function stopCamera() {
-  if (cameraStream) {
-    cameraStream.getTracks().forEach(track => track.stop());
-    cameraStream = null;
-  }
-  const video = document.getElementById('webcam');
-  const scanOverlay = document.getElementById('scanOverlay');
-  const cameraPlaceholder = document.getElementById('cameraPlaceholder');
+async function handleAddFoodProcess(e) {
+    if (e) e.preventDefault();
 
-  if (video) video.classList.add('hidden');
-  if (scanOverlay) scanOverlay.classList.add('hidden');
-  if (cameraPlaceholder) cameraPlaceholder.classList.remove('hidden');
-}
+    const foodNameInput = document.getElementById("foodName");
+    const foodCategorySelect = document.getElementById("foodCategory");
+    const purchaseDateInput = document.getElementById("purchaseDate");
+    const fileInput = document.getElementById("fileInput");
+    const scanButton = document.getElementById("scanButton");
 
-/**
- * Saves new food item details (including Expiry Date) and redirects to Dashboard
- */
-function handleAddFoodSubmit(e) {
-  e.preventDefault();
+    const aiResultContainer = document.getElementById("aiResult");
+    const aiPredictionText = document.getElementById("aiPredictionText");
+    const aiConfidenceText = document.getElementById("aiConfidenceText");
 
-  const foodName = document.getElementById('foodName').value.trim();
-  const foodCategory = document.getElementById('foodCategory').value;
-  const purchaseDate = document.getElementById('purchaseDate').value;
-  const expiryDate = document.getElementById('expiryDate').value;
+    const foodName = foodNameInput ? foodNameInput.value.trim() : "";
+    const category = foodCategorySelect ? foodCategorySelect.value : "General";
+    const scannedDate = purchaseDateInput ? purchaseDateInput.value : new Date().toISOString().split("T")[0];
 
-  // Store item entry in array
-  const newItem = {
-    id: Date.now(),
-    name: foodName,
-    category: foodCategory,
-    purchaseDate: purchaseDate,
-    expiryDate: expiryDate || 'N/A'
-  };
+    if (!foodName) {
+        alert("Please enter a food name.");
+        if (foodNameInput) foodNameInput.focus();
+        return;
+    }
 
-  // Update localStorage inventory state
-  const existingItems = JSON.parse(localStorage.getItem('freshCheck_inventory') || '[]');
-  existingItems.unshift(newItem);
-  localStorage.setItem('freshCheck_inventory', JSON.stringify(existingItems));
+    if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+        alert("Please select or upload a food image first.");
+        return;
+    }
 
-  // Change user state so dashboard loads the active view
-  localStorage.setItem('freshCheck_isNewUser', 'false');
+    const selectedFile = fileInput.files[0];
+    const originalButtonText = scanButton ? scanButton.innerHTML : "Run AI Scan & Save";
 
-  stopCamera();
+    if (scanButton) {
+        scanButton.disabled = true;
+        scanButton.innerHTML = "<span>Analyzing & Saving...</span>";
+    }
 
-  // Redirect back to Dashboard
-  window.location.href = 'dashboard.html';
+    try {
+        // STEP 1: AI Prediction Request
+        const formData = new FormData();
+        formData.append("image", selectedFile);
+        formData.append("food_name", foodName);
+        formData.append("category", category);
+
+        const predictResponse = await fetch("http://127.0.0.1:5000/predict", {
+            method: "POST",
+            body: formData
+        });
+
+        if (!predictResponse.ok) {
+            const errData = await predictResponse.json().catch(() => ({}));
+            throw new Error(errData.error || `AI Scan failed with status ${predictResponse.status}`);
+        }
+
+        const aiData = await predictResponse.json();
+
+        const predictedStatus = aiData.status || "Fresh";
+        const shelfLifeDays = parseInt(aiData.shelf_life_days, 10) || 5;
+
+        let rawConf = aiData.confidence !== undefined ? aiData.confidence : (aiData.ai_confidence !== undefined ? aiData.ai_confidence : 0.95);
+        let confNum = parseFloat(rawConf);
+        if (confNum > 1.0) {
+            confNum = confNum / 100.0;
+        } else if (isNaN(confNum) || confNum <= 0) {
+            confNum = 0.95;
+        }
+
+        const displayConfPct = `${Math.round(confNum * 100)}%`;
+
+        if (aiPredictionText) {
+            aiPredictionText.innerText = `Prediction: ${predictedStatus}`;
+        }
+        if (aiConfidenceText) {
+            aiConfidenceText.innerText = `Confidence: ${displayConfPct}`;
+        }
+        if (aiResultContainer) {
+            aiResultContainer.style.display = "flex";
+            aiResultContainer.classList.remove("hidden");
+        }
+
+        // STEP 2: Database Save Request
+        const foodPayload = {
+            food_name: foodName,
+            category: category,
+            scanned_date: scannedDate,
+            expiry_date: "",
+            shelf_life_days: shelfLifeDays,
+            status: predictedStatus,
+            ai_confidence: confNum
+        };
+
+        const saveResponse = await fetch("http://127.0.0.1:5000/api/food", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(foodPayload)
+        });
+
+        if (!saveResponse.ok) {
+            const saveErr = await saveResponse.json().catch(() => ({}));
+            throw new Error(saveErr.error || saveErr.message || "Failed to save food record to database.");
+        }
+
+        alert("Food item successfully scanned and saved to database!");
+        window.location.href = "Dashboard.html";
+
+    } catch (error) {
+        console.error("Add Food process error:", error);
+        alert(`Error: ${error.message}`);
+    } finally {
+        if (scanButton) {
+            scanButton.disabled = false;
+            scanButton.innerHTML = originalButtonText;
+        }
+    }
 }

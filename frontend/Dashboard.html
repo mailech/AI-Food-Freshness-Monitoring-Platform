@@ -33,7 +33,7 @@
       min-height: calc(100vh - 54px);
     }
 
-    /* Sidebar Navigation (Matching design) */
+    /* Sidebar Navigation */
     aside {
       width: 250px;
       background: rgba(15, 23, 42, 0.75);
@@ -388,8 +388,7 @@
     <!-- Sidebar -->
     <aside>
       <div class="sidebar-top">
-        <a href="index.html.html" class="logo">
-
+        <a href="index.html" class="logo">
           <i class="fa-solid fa-leaf"></i> FreshCheck
         </a>
 
@@ -422,7 +421,7 @@
             <a href="settings.html"><i class="fa-solid fa-gear"></i> Settings</a>
           </li>
           <li class="nav-item">
-            <a href="logout.html"><i class="fa-solid fa-gear"></i> Logout</a>
+            <a href="logout.html"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
           </li>
         </ul>
       </div>
@@ -448,8 +447,8 @@
 
         <!-- Dynamic Controls for preview testing -->
         <div class="demo-controls">
-          <button class="btn-demo" onclick="setNewUserState()">Preview New User</button>
-          <button class="btn-demo" onclick="setExistingUserState()">Preview Existing User</button>
+          <button class="btn-demo" id="btnNewUser">Preview New User</button>
+          <button class="btn-demo" id="btnExistingUser">Preview Existing User</button>
         </div>
       </div>
 
@@ -465,7 +464,7 @@
         <div class="stat-card">
           <div class="stat-icon yellow"><i class="fa-solid fa-triangle-exclamation"></i></div>
           <div class="stat-details">
-            <h3 id="warningCount">0</h3>
+            <h3 id="expiringCount">0</h3>
             <p>Expiring Soon</p>
           </div>
         </div>
@@ -488,9 +487,9 @@
           </div>
           <h3>No Food Items Monitored Yet</h3>
           <p>Your inventory is completely clear. Scan or add your first food item to track freshness and shelf-life!</p>
-          <button class="btn-action-primary" onclick="setExistingUserState()">
+          <a href="add-food.html" class="btn-action-primary">
             <i class="fa-solid fa-plus"></i> Add First Item
-          </button>
+          </a>
         </div>
 
         <!-- View 2: Data Table for Existing User -->
@@ -501,44 +500,14 @@
                 <th>Item Name</th>
                 <th>Category</th>
                 <th>Scanned Date</th>
-                <th>Freshness Score</th>
+                <th>Expiry Date</th>
+                <th>AI Confidence</th>
                 <th>Est. Shelf Life</th>
                 <th>Status</th>
               </tr>
             </thead>
-            <tbody>
-              <tr>
-                <td>Organic Strawberries</td>
-                <td>Fruits</td>
-                <td>Aug 01, 2026</td>
-                <td>92%</td>
-                <td>4 Days Left</td>
-                <td><span class="status-badge fresh">Optimal</span></td>
-              </tr>
-              <tr>
-                <td>Whole Milk (1L)</td>
-                <td>Dairy</td>
-                <td>Jul 29, 2026</td>
-                <td>58%</td>
-                <td>1 Day Left</td>
-                <td><span class="status-badge warning">Consume Soon</span></td>
-              </tr>
-              <tr>
-                <td>Fresh Spinach</td>
-                <td>Vegetables</td>
-                <td>Aug 01, 2026</td>
-                <td>88%</td>
-                <td>5 Days Left</td>
-                <td><span class="status-badge fresh">Optimal</span></td>
-              </tr>
-              <tr>
-                <td>Avocado</td>
-                <td>Fruits</td>
-                <td>Jul 22, 2026</td>
-                <td>12%</td>
-                <td>Expired</td>
-                <td><span class="status-badge spoiled">Spoiled</span></td>
-              </tr>
+            <tbody id="dashboardTableBody">
+              <!-- Dynamic Data Inserted Here -->
             </tbody>
           </table>
         </div>
@@ -562,6 +531,7 @@
       <span>Healthy Future</span>
     </div>
   </footer>
+
   <script src="dashboard.js"></script>
 </body>
 </html>

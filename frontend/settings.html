@@ -100,7 +100,8 @@
       width: 20px;
       text-align: center;
     }
-.badge-count {
+
+    .badge-count {
       background-color: #ef4444;
       color: #ffffff;
       font-size: 0.72rem;
@@ -319,12 +320,6 @@
     }
 
     /* Buttons */
-    .btn-container {
-      display: flex;
-      gap: 12px;
-      margin-top: 10px;
-    }
-
     .btn-save {
       background-color: #22c55e;
       color: #0f172a;
@@ -409,7 +404,7 @@
           <li class="nav-item">
              <a href="notifications.html">
               <i class="fa-regular fa-bell"></i> Notifications
-              <span class="badge-count">1</span>
+              <span class="badge-count" id="notificationBadge">0</span>
             </a>
           </li>
           <li class="nav-item">
@@ -422,16 +417,17 @@
             <a href="settings.html"><i class="fa-solid fa-gear"></i> Settings</a>
           </li>
           <li class="nav-item">
-            <a href="logout.html"><i class="fa-solid fa-gear"></i> Logout</a>
+            <a href="logout.html"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
           </li>
         </ul>
       </div>
-       <!-- User Profile (Dynamically Rendered) -->
+
+      <!-- User Profile (Dynamically Rendered) -->
       <div class="user-profile">
-        <div class="avatar" id="userAvatar">U</div>
+        <div class="avatar" id="sidebarAvatar">U</div>
         <div class="user-info">
-          <h4 id="userName">User Name</h4>
-          <p id="userContact">user@example.com</p>
+          <h4 id="sidebarUserName">User Name</h4>
+          <p id="sidebarUserEmail">user@example.com</p>
         </div>
       </div>
     </aside>
@@ -454,11 +450,11 @@
           <form id="profileForm" class="form-grid">
             <div class="form-group">
               <label for="userName">Full Name</label>
-              <input type="text" id="userName" placeholder="John Doe" />
+              <input type="text" id="userName" placeholder="User Name" />
             </div>
             <div class="form-group">
               <label for="userEmail">Email Address</label>
-              <input type="email" id="userEmail" placeholder="john@example.com" />
+              <input type="email" id="userEmail" placeholder="user@example.com" />
             </div>
             <div class="form-group full-width">
               <button type="submit" class="btn-save" style="width: fit-content;">
@@ -474,8 +470,8 @@
           
           <div class="setting-item">
             <div class="setting-info">
-              <h4>Expiration Alerts</h4>
-              <p>Receive alerts when items are within 1–2 days of expiring.</p>
+              <h4>Expiration Reminders</h4>
+              <p>Receive notifications when items are close to expiring.</p>
             </div>
             <label class="switch">
               <input type="checkbox" id="toggleExpiryAlerts" checked />
@@ -485,8 +481,8 @@
 
           <div class="setting-item">
             <div class="setting-info">
-              <h4>Storage Temperature Warnings</h4>
-              <p>Get notified if storage area temperature deviates from optimal range.</p>
+              <h4>Temperature Change Alerts</h4>
+              <p>Get notified when ambient temperatures risk food spoilage.</p>
             </div>
             <label class="switch">
               <input type="checkbox" id="toggleTempAlerts" checked />
@@ -496,8 +492,8 @@
 
           <div class="setting-item">
             <div class="setting-info">
-              <h4>Weekly Consumption Summary</h4>
-              <p>Receive a weekly digest report on waste stats and freshness overall.</p>
+              <h4>Weekly Freshness Summary</h4>
+              <p>Receive a weekly digest of consumed vs wasted food items.</p>
             </div>
             <label class="switch">
               <input type="checkbox" id="toggleWeeklySummary" />
@@ -537,7 +533,7 @@
               <h4>Clear All Saved Data</h4>
               <p>Resets local inventory items, logs, and notification preferences.</p>
             </div>
-            <button class="btn-danger" onclick="resetAppData()">Clear Data</button>
+            <button class="btn-danger" id="btnClearData">Clear Data</button>
           </div>
         </div>
       </div>
@@ -551,6 +547,7 @@
     <div class="footer-item"><i class="fa-solid fa-heart"></i> Healthy Future</div>
   </footer>
 
+  <script src="auth-check.js"></script>
   <script src="settings.js"></script>
 </body>
 </html>

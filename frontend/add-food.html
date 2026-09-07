@@ -1,15 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FreshCheck - Add Food</title>
-  <!-- Google Fonts & FontAwesome Icons -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+  <!-- Google Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
   <style>
-    /* Reset & Base Styles */
     * {
       margin: 0;
       padding: 0;
@@ -19,21 +22,21 @@
 
     body {
       background: linear-gradient(rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0.75)),
-                  url('https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=1920&q=80') center/cover fixed no-repeat;
+        url('https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=1920&q=80') center/cover fixed no-repeat;
       min-height: 100vh;
       color: #ffffff;
       display: flex;
       flex-direction: column;
     }
 
-    /* Layout Structure */
+    /* LAYOUT */
     .dashboard-layout {
       display: flex;
       flex: 1;
       min-height: calc(100vh - 54px);
     }
 
-    /* Sidebar Navigation */
+    /* SIDEBAR */
     aside {
       width: 250px;
       background: rgba(15, 23, 42, 0.75);
@@ -100,7 +103,8 @@
       width: 20px;
       text-align: center;
     }
-.badge-count {
+
+    .badge-count {
       background-color: #ef4444;
       color: #ffffff;
       font-size: 0.72rem;
@@ -110,7 +114,7 @@
       margin-left: auto;
     }
 
-    /* User Profile Footer */
+    /* USER PROFILE STYLING */
     .user-profile {
       display: flex;
       align-items: center;
@@ -131,20 +135,24 @@
       font-weight: 700;
       font-size: 0.95rem;
       text-transform: uppercase;
+      flex-shrink: 0;
     }
 
     .user-info h4 {
       font-size: 0.88rem;
       font-weight: 600;
       color: #ffffff;
+      margin: 0;
     }
 
     .user-info p {
       font-size: 0.74rem;
       color: #9ca3af;
+      margin: 0;
+      word-break: break-all;
     }
 
-    /* Main View Area */
+    /* MAIN CONTENT */
     main {
       flex: 1;
       padding: 30px 40px;
@@ -166,14 +174,13 @@
       color: #9ca3af;
     }
 
-    /* Add Food Grid */
+    /* GRID & CARDS */
     .add-food-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 24px;
     }
 
-    /* Glass Cards */
     .card {
       background: rgba(255, 255, 255, 0.1);
       backdrop-filter: blur(16px);
@@ -193,7 +200,7 @@
       color: #22c55e;
     }
 
-    /* Tab Controls (Scan vs Upload) */
+    /* TABS */
     .method-tabs {
       display: flex;
       gap: 10px;
@@ -225,7 +232,7 @@
       color: #0f172a;
     }
 
-    /* Upload Area */
+    /* UPLOAD */
     .upload-box {
       border: 2px dashed rgba(255, 255, 255, 0.25);
       border-radius: 14px;
@@ -269,7 +276,7 @@
       cursor: pointer;
     }
 
-    /* Live Scanner Box */
+    /* CAMERA */
     .camera-box {
       width: 100%;
       height: 230px;
@@ -289,22 +296,6 @@
       object-fit: cover;
     }
 
-    .scan-overlay {
-      position: absolute;
-      width: 160px;
-      height: 160px;
-      border: 2px solid #22c55e;
-      border-radius: 12px;
-      box-shadow: 0 0 0 4000px rgba(0, 0, 0, 0.4);
-      animation: pulse 2s infinite;
-    }
-
-    @keyframes pulse {
-      0% { border-color: #22c55e; }
-      50% { border-color: rgba(34, 197, 94, 0.3); }
-      100% { border-color: #22c55e; }
-    }
-
     .btn-camera {
       margin-top: 12px;
       width: 100%;
@@ -321,10 +312,10 @@
       gap: 8px;
     }
 
-    /* Preview Thumbnail */
+    /* PREVIEW */
     .preview-container {
       margin-top: 16px;
-      display: none;
+      display: flex;
       align-items: center;
       gap: 12px;
       background: rgba(255, 255, 255, 0.08);
@@ -353,7 +344,7 @@
       color: #22c55e;
     }
 
-    /* Form Section & Row Alignment */
+    /* FORM STYLES */
     .form-group {
       margin-bottom: 16px;
     }
@@ -383,9 +374,11 @@
       left: 14px;
       color: #9ca3af;
       font-size: 0.88rem;
+      z-index: 1;
     }
 
-    .input-wrapper input, .input-wrapper select {
+    .input-wrapper input,
+    .input-wrapper select {
       width: 100%;
       padding: 11px 14px 11px 38px;
       background: rgba(255, 255, 255, 0.08);
@@ -399,7 +392,6 @@
 
     .input-wrapper select {
       cursor: pointer;
-      color: #ffffff;
     }
 
     .input-wrapper select option {
@@ -407,11 +399,34 @@
       color: #ffffff;
     }
 
-    .input-wrapper input:focus, .input-wrapper select:focus {
+    .input-wrapper input:focus,
+    .input-wrapper select:focus {
       border-color: #22c55e;
     }
 
-    /* Primary Action Button */
+    /* AI RESULT */
+    .ai-result {
+      display: none;
+      margin-top: 20px;
+      padding: 18px;
+      border-radius: 12px;
+      background: rgba(34, 197, 94, 0.15);
+      border: 2px solid #22c55e;
+      box-shadow: 0 4px 15px rgba(34, 197, 94, 0.2);
+    }
+
+    .ai-result h3 {
+      color: #22c55e;
+      font-size: 1rem;
+      margin-bottom: 8px;
+    }
+
+    .ai-result p {
+      font-size: 0.85rem;
+      color: #e5e7eb;
+      margin: 4px 0;
+    }
+
     .btn-submit {
       width: 100%;
       background-color: #22c55e;
@@ -434,7 +449,11 @@
       background-color: #16a34a;
     }
 
-    /* Footer */
+    .btn-submit:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
     footer {
       background-color: #1a2a22;
       color: #9ca3af;
@@ -458,62 +477,52 @@
     .hidden {
       display: none !important;
     }
+
+    @media (max-width: 900px) {
+      aside { width: 210px; }
+      main { padding: 25px; }
+      .add-food-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 600px) {
+      .dashboard-layout { flex-direction: column; }
+      aside { width: 100%; }
+      .form-row { grid-template-columns: 1fr; }
+      footer { flex-direction: column; gap: 10px; }
+    }
   </style>
 </head>
-<body>
 
+<body>
   <div class="dashboard-layout">
-    <!-- Sidebar Navigation -->
     <aside>
       <div>
         <a href="dashboard.html" class="logo">
-          <i class="fa-solid fa-leaf"></i> FreshCheck
+          <i class="fa-solid fa-leaf"></i>
+          FreshCheck
         </a>
 
         <ul class="nav-menu">
-          <li class="nav-item">
-            <a href="dashboard.html"><i class="fa-solid fa-table-cells-large"></i> Dashboard</a>
-          </li>
-          <li class="nav-item active">
-            <a href="add-food.html"><i class="fa-solid fa-plus"></i> Add Food</a>
-          </li>
-          <li class="nav-item">
-            <a href="inventory.html"><i class="fa-solid fa-box-archive"></i> Inventory</a>
-          </li>
-          <li class="nav-item">
-            <a href="analytics.html"><i class="fa-solid fa-chart-column"></i> Analytics</a>
-          </li>
-           <li class="nav-item">
-            <a href="notifications.html">
-              <i class="fa-regular fa-bell"></i> Notifications
-              <span class="badge-count">1</span>
-            </a>
-          <li class="nav-item">
-            <a href="#"><i class="fa-regular fa-file-lines"></i> Reports</a>
-          </li>
-          <li class="nav-item">
-            <a href="profile.html"><i class="fa-regular fa-user"></i> Profile</a>
-          </li>
-          <li class="nav-item">
-            <a href="settings.html"><i class="fa-solid fa-gear"></i> Settings</a>
-          </li>
-          <li class="nav-item">
-            <a href="logout.html"><i class="fa-solid fa-gear"></i> Logout</a>
-          </li>
+          <li class="nav-item"><a href="dashboard.html"><i class="fa-solid fa-table-cells-large"></i> Dashboard</a></li>
+          <li class="nav-item active"><a href="add-food.html"><i class="fa-solid fa-plus"></i> Add Food</a></li>
+          <li class="nav-item"><a href="inventory.html"><i class="fa-solid fa-box-archive"></i> Inventory</a></li>
+          <li class="nav-item"><a href="analytics.html"><i class="fa-solid fa-chart-column"></i> Analytics</a></li>
+          <li class="nav-item"><a href="notifications.html"><i class="fa-regular fa-bell"></i> Notifications <span class="badge-count">1</span></a></li>
+          <li class="nav-item"><a href="profile.html"><i class="fa-regular fa-user"></i> Profile</a></li>
+          <li class="nav-item"><a href="settings.html"><i class="fa-solid fa-gear"></i> Settings</a></li>
+          <li class="nav-item"><a href="logout.html"><i class="fa-solid fa-right-from-bracket"></i> Logout</a></li>
         </ul>
       </div>
-      
-      <!-- User Profile Card -->
+
       <div class="user-profile">
-        <div class="avatar" id="sideAvatar">U</div>
+        <div class="avatar" id="sidebarAvatar">U</div>
         <div class="user-info">
-          <h4 id="sideName">User Name</h4>
-          <p id="sideEmail">user@example.com</p>
+          <h4 id="sidebarUserName">User Name</h4>
+          <p id="sidebarUserEmail">user@example.com</p>
         </div>
       </div>
     </aside>
 
-    <!-- Main Content View -->
     <main>
       <div class="page-header">
         <h1 class="page-title">Add & Scan Food Item</h1>
@@ -521,55 +530,61 @@
       </div>
 
       <div class="add-food-grid">
-        <!-- Media Input Card -->
         <div class="card">
-          <h2 class="card-title"><i class="fa-solid fa-camera"></i> Food Capture Method</h2>
+          <h2 class="card-title">
+            <i class="fa-solid fa-camera"></i> Food Capture Method
+          </h2>
 
           <div class="method-tabs">
-            <button class="tab-btn active" id="tabUpload"><i class="fa-solid fa-upload"></i> Upload Image</button>
-            <button class="tab-btn" id="tabCamera"><i class="fa-solid fa-video"></i> Live Camera</button>
+            <button type="button" class="tab-btn active" id="tabUpload">
+              <i class="fa-solid fa-upload"></i> Upload Image
+            </button>
+            <button type="button" class="tab-btn" id="tabCamera">
+              <i class="fa-solid fa-video"></i> Live Camera
+            </button>
           </div>
 
-          <!-- Section A: File Upload -->
           <div id="uploadSection">
-            <div class="upload-box">
+            <div class="upload-box" id="dropArea">
               <i class="fa-solid fa-cloud-arrow-up"></i>
               <p>Drag & Drop food image or <strong>Browse</strong></p>
               <span>Supports JPG, PNG, WEBP</span>
-              <input type="file" id="fileInput" accept="image/*" />
+              <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp">
             </div>
           </div>
 
-          <!-- Section B: Live Scanner -->
           <div id="cameraSection" class="hidden">
             <div class="camera-box">
               <video id="webcam" autoplay playsinline class="hidden"></video>
-              <div class="scan-overlay hidden" id="scanOverlay"></div>
-              <p id="cameraPlaceholder" style="font-size:0.85rem; color:#9ca3af;">Click "Start Camera" to enable live scanner</p>
+              <canvas id="cameraCanvas" class="hidden"></canvas>
+              <p id="cameraPlaceholder" style="font-size:0.85rem;color:#9ca3af;">Click "Start Camera" to enable live scanner</p>
             </div>
-            <button class="btn-camera" id="btnToggleCamera"><i class="fa-solid fa-power-off"></i> Start Camera</button>
+            <button type="button" class="btn-camera" id="btnToggleCamera">
+              <i class="fa-solid fa-power-off"></i> Start Camera
+            </button>
           </div>
 
-          <!-- Captured/Uploaded Image Preview -->
-          <div class="preview-container" id="previewContainer">
-            <img id="previewImg" class="preview-thumb" src="" alt="Food Preview" />
+          <!-- FIXED IDS FOR IMAGE PREVIEW -->
+          <div class="preview-container hidden" id="imagePreviewContainer">
+            <img id="imagePreview" class="preview-thumb" src="" alt="Food Preview">
             <div class="preview-info">
-              <p id="previewFileName">Food_Scan.jpg</p>
+              <p id="fileNameDisplay">Food_Scan.jpg</p>
               <span><i class="fa-solid fa-circle-check"></i> Image Loaded</span>
             </div>
           </div>
         </div>
 
-        <!-- Details & Save Form Card -->
         <div class="card">
-          <h2 class="card-title"><i class="fa-solid fa-pen-to-square"></i> Item Details</h2>
+          <h2 class="card-title">
+            <i class="fa-solid fa-pen-to-square"></i> Item Details
+          </h2>
 
           <form id="addFoodForm">
             <div class="form-group">
               <label for="foodName">Food Name</label>
               <div class="input-wrapper">
                 <i class="fa-solid fa-utensils"></i>
-                <input type="text" id="foodName" placeholder="e.g. Fresh Bananas, Milk, Spinach" required />
+                <input type="text" id="foodName" placeholder="e.g. Fresh Bananas, Milk, Spinach" required>
               </div>
             </div>
 
@@ -588,13 +603,12 @@
               </div>
             </div>
 
-            <!-- Date Fields Row (Purchase & Expiry) -->
             <div class="form-row">
               <div class="form-group">
                 <label for="purchaseDate">Purchase / Scan Date</label>
                 <div class="input-wrapper">
                   <i class="fa-regular fa-calendar"></i>
-                  <input type="date" id="purchaseDate" required />
+                  <input type="date" id="purchaseDate" required>
                 </div>
               </div>
 
@@ -602,12 +616,18 @@
                 <label for="expiryDate">Expiry Date (Optional)</label>
                 <div class="input-wrapper">
                   <i class="fa-solid fa-calendar-xmark"></i>
-                  <input type="date" id="expiryDate" />
+                  <input type="date" id="expiryDate">
                 </div>
               </div>
             </div>
 
-            <button type="submit" class="btn-submit">
+            <!-- FIXED IDS FOR AI RESULTS -->
+            <div class="ai-result" id="aiResult">
+              <h3><i class="fa-solid fa-robot"></i> AI Scan Result</h3>
+              <p id="aiPredictionText">Prediction: Fresh</p>
+              <p id="aiConfidenceText" style="margin-top: 4px;">Confidence: 95%</p>
+            </div>
+            <button type="button" class="btn-submit" id="scanButton">
               <i class="fa-solid fa-robot"></i> Run AI Scan & Save
             </button>
           </form>
@@ -616,13 +636,45 @@
     </main>
   </div>
 
-  <!-- Footer -->
   <footer>
     <div class="footer-item"><i class="fa-solid fa-shield-halved"></i> Trusted by Thousands</div>
     <div class="footer-item"><i class="fa-solid fa-bullseye"></i> Accurate Predictions</div>
     <div class="footer-item"><i class="fa-solid fa-heart"></i> Healthy Future</div>
   </footer>
 
+  <script>
+    // Tab switching & Camera Setup Helper
+    document.addEventListener("DOMContentLoaded", () => {
+      const tabUpload = document.getElementById("tabUpload");
+      const tabCamera = document.getElementById("tabCamera");
+      const uploadSection = document.getElementById("uploadSection");
+      const cameraSection = document.getElementById("cameraSection");
+      const purchaseDateInput = document.getElementById("purchaseDate");
+
+      if (purchaseDateInput && !purchaseDateInput.value) {
+        purchaseDateInput.value = new Date().toISOString().split('T')[0];
+      }
+
+      if (tabUpload && tabCamera) {
+        tabUpload.addEventListener("click", () => {
+          tabUpload.classList.add("active");
+          tabCamera.classList.remove("active");
+          uploadSection.classList.remove("hidden");
+          cameraSection.classList.add("hidden");
+        });
+
+        tabCamera.addEventListener("click", () => {
+          tabCamera.classList.add("active");
+          tabUpload.classList.remove("active");
+          cameraSection.classList.remove("hidden");
+          uploadSection.classList.add("hidden");
+        });
+      }
+    });
+  </script>
+
+  <script src="auth-check.js"></script>
   <script src="add-food.js"></script>
 </body>
+
 </html>
