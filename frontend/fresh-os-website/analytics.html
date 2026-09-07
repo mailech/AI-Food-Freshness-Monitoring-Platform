@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Fresh.OS - Analytics &amp; Reports</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Google Fonts: Manrope & Sora -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&amp;family=Sora:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- jsPDF (for real PDF download instead of browser print) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<!-- Tailwind Config -->
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+                "on-surface": "#181d17",
+                "surface-variant": "#e0e4da",
+                "on-error": "#ffffff",
+                "on-background": "#181d17",
+                "on-error-container": "#93000a",
+                "error": "#ba1a1a",
+                "on-tertiary-fixed": "#3f001c",
+                "background": "#f7fbf0",
+                "tertiary": "#923357",
+                "surface": "#f7fbf0",
+                "surface-container-highest": "#e0e4da",
+                "on-primary-fixed-variant": "#005312",
+                "surface-container-high": "#e5eadf",
+                "tertiary-fixed": "#ffd9e2",
+                "surface-tint": "#1b6d24",
+                "tertiary-container": "#b14b6f",
+                "outline-variant": "#bfcaba",
+                "on-surface-variant": "#40493d",
+                "on-tertiary": "#ffffff",
+                "error-container": "#ffdad6",
+                "on-secondary-fixed": "#002203",
+                "surface-container": "#ebefe5",
+                "on-secondary-fixed-variant": "#0c5216",
+                "on-secondary-container": "#307231",
+                "inverse-on-surface": "#eef2e8",
+                "primary-container": "#2e7d32",
+                "tertiary-fixed-dim": "#ffb1c7",
+                "on-primary": "#ffffff",
+                "on-primary-container": "#cbffc2",
+                "secondary-container": "#acf4a4",
+                "primary-fixed": "#a3f69c",
+                "inverse-surface": "#2d322b",
+                "surface-dim": "#d7dbd2",
+                "surface-bright": "#f7fbf0",
+                "on-tertiary-container": "#ffedf0",
+                "surface-container-lowest": "#ffffff",
+                "secondary-fixed": "#acf4a4",
+                "on-primary-fixed": "#002204",
+                "on-tertiary-fixed-variant": "#7f2448",
+                "surface-container-low": "#f1f5eb",
+                "secondary": "#2a6b2c",
+                "primary-fixed-dim": "#88d982",
+                "inverse-primary": "#88d982",
+                "outline": "#707a6c",
+                "secondary-fixed-dim": "#91d78a",
+                "on-secondary": "#ffffff",
+                "primary": "#0d631b"
+        },
+        "borderRadius": {
+                "DEFAULT": "0.25rem",
+                "lg": "0.5rem",
+                "xl": "0.75rem",
+                "full": "9999px"
+        },
+        "spacing": {
+                "unit": "8px",
+                "margin-desktop": "32px",
+                "margin-mobile": "16px",
+                "container-max": "1440px",
+                "gutter": "24px"
+        },
+        "fontFamily": {
+                "headline-lg-mobile": ["Sora"],
+                "body-md": ["Manrope"],
+                "body-lg": ["Manrope"],
+                "headline-md": ["Sora"],
+                "display": ["Sora"],
+                "label-sm": ["Manrope"],
+                "label-md": ["Manrope"],
+                "headline-lg": ["Sora"],
+                "title-lg": ["Manrope"]
+        },
+        "fontSize": {
+                "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "700"}],
+                "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                "display": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "600"}],
+                "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600"}],
+                "headline-lg": ["28px", {"lineHeight": "36px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                "title-lg": ["18px", {"lineHeight": "24px", "fontWeight": "600"}]
+        },
+        "boxShadow": {
+            "soft": "0 2px 8px rgba(0, 0, 0, 0.04)",
+            "ambient": "0 4px 16px rgba(0, 0, 0, 0.06)"
+        }
+      }
+    }
+  }
+</script>
+<style type="text/tailwindcss">
+    body {
+        background-color: #F7FBF0;
+    }
+    .data-card {
+        background-color: #FFFFFF;
+        border-radius: 12px;
+        border: 1px solid #E0E4DA;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+        padding: 20px;
+    }
+    .sidebar-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.625rem 1rem;
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+        transition: background-color 0.2s ease, color 0.2s ease;
+        cursor: pointer;
+        color: #40493d;
+        text-decoration: none;
+    }
+    .sidebar-item.active {
+        background-color: #2e7d32;
+        color: #ffffff;
+    }
+    .sidebar-item:not(.active):hover {
+        background-color: #ebefe5;
+        color: #181d17;
+    }
+    /* Minimalist Chart Styles */
+    .chart-grid-line {
+        stroke: #E0E4DA;
+        stroke-dasharray: 4 4;
+    }
+    .chart-path {
+        fill: none;
+        stroke: #2E7D32;
+        stroke-width: 3;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+    }
+    .chart-area {
+        fill: url(#chart-gradient);
+    }
+    .status-badge {
+        padding: 0.25rem 0.625rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+    }
+    .status-fresh { background-color: #DCFCE7; color: #166534; }
+    .status-good { background-color: #FEF9C3; color: #854D0E; }
+    .status-alert { background-color: #FEE2E2; color: #991B1B; }
+</style>
+</head>
+<body class="font-body-md text-on-background flex h-screen overflow-hidden">
+<!-- Sidebar -->
+<aside class="w-64 bg-surface-container-lowest border-r border-outline-variant/50 flex flex-col h-full flex-shrink-0 z-40">
+<div class="h-16 flex items-center px-6 border-b border-outline-variant/30">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary-container text-[24px]" style="font-variation-settings: 'FILL' 1;">eco</span>
+<span class="font-display text-headline-md font-bold text-primary">Fresh.OS</span>
+</div>
+</div>
+<div class="p-4 flex-1 overflow-y-auto flex flex-col gap-1">
+<div class="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant/70 px-4 py-2 mt-2">Core</div>
+<a class="sidebar-item" href="dashboard.html">
+<span class="material-symbols-outlined text-[20px]">dashboard</span> Dashboard
+        </a>
+<a class="sidebar-item" href="inventory.html">
+<span class="material-symbols-outlined text-[20px]">inventory_2</span> Inventory
+        </a>
+<a class="sidebar-item" href="upload-scan.html">
+<span class="material-symbols-outlined text-[20px]">qr_code_scanner</span> Scans
+        </a>
+<div class="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant/70 px-4 py-2 mt-4">Insights</div>
+<a class="sidebar-item active" href="analytics.html">
+<span class="material-symbols-outlined text-[20px]">monitoring</span> Analytics
+        </a>
+<a class="sidebar-item active" href="analytics.html">
+<span class="material-symbols-outlined text-[20px]">lab_profile</span> Reports
+        </a>
+<div class="mt-auto">
+<div class="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant/70 px-4 py-2">System</div>
+<a class="sidebar-item" href="settings.html">
+<span class="material-symbols-outlined text-[20px]">settings</span> Settings
+            </a>
+<a class="sidebar-item" href="support.html">
+<span class="material-symbols-outlined text-[20px]">help</span> Support
+            </a>
+<button onclick="logout()" class="sidebar-item w-full text-left text-on-surface-variant hover:text-error transition-colors">
+<span class="material-symbols-outlined text-[20px]">logout</span> Sign Out
+</button>
+</div>
+</div>
+</aside>
+<!-- Main Workspace -->
+<div class="flex-1 flex flex-col h-full min-w-0">
+<!-- Top Navigation -->
+<header class="h-16 bg-surface-container-lowest border-b border-outline-variant/50 flex items-center justify-between px-margin-desktop flex-shrink-0">
+<div class="relative w-96">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">search</span>
+<input class="w-full pl-10 pr-4 py-2 bg-surface border border-outline-variant/50 rounded-lg text-sm focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-all" placeholder="Search inventory, batches, or alerts..." type="text"/>
+</div>
+<div class="flex items-center gap-6">
+<button class="relative text-on-surface-variant hover:text-on-surface transition-colors">
+<span class="material-symbols-outlined text-[24px]">notifications</span>
+<span class="absolute 1 top-0 right-0 w-2.5 h-2.5 bg-error rounded-full border-2 border-white"></span>
+</button>
+<div class="h-6 w-px bg-outline-variant/50"></div>
+<button onclick="window.location.href='settings.html'" class="flex items-center gap-3 hover:bg-surface-container px-2 py-1.5 rounded-lg transition-colors">
+<div class="text-right hidden sm:block">
+<div class="text-sm font-semibold text-on-surface leading-tight header-user-name">Sarah Jenkins</div>
+<div class="text-[11px] text-on-surface-variant header-user-role">Facility Admin</div>
+</div>
+<div class="w-8 h-8 rounded-full bg-primary-container/20 overflow-hidden">
+<img alt="User" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAIcnlZ5dH4PsEhOFtN6P0DjXgLB75euiormIiMJorJuejL-28L8iSeI3EbUIAqaG8-8njXp3Lu4mppgBp1_5uWhtIUdm7iB8WfNOD1NCGskWbxucb6jWcVqJZWiFgAl2fIfUxi_TCmxW9fZvcTwta36P2BjyjQMzz9DMGzy0FAUWTLt7JzS3rw0yXBv9UvCLTcDF6M8Ro67qnhYn7bcoJ9HlKMagyVY76pNtU3A5oH7RKsQZKs733-"/>
+</div>
+<span class="material-symbols-outlined text-[20px] text-on-surface-variant">keyboard_arrow_down</span>
+</button>
+</div>
+</header>
+<!-- Scrollable Content -->
+<div class="max-w-container-max mx-auto flex flex-col gap-6">
+<!-- Header Section -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+<div>
+<h1 class="font-display text-headline-lg text-on-surface">Analytics &amp; Reports</h1>
+<p class="text-on-surface-variant mt-1 text-sm">Freshness trends, waste reduction insights, and exportable reports.</p>
+</div>
+<div class="flex gap-3">
+<button onclick="exportCSV()" class="px-4 py-2 bg-white border border-outline-variant rounded-lg text-sm font-semibold hover:bg-surface-container transition-colors shadow-sm flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">table_view</span> Export as Excel (CSV)
+</button>
+<button onclick="exportPDF()" class="px-4 py-2 bg-primary-container text-on-primary rounded-lg text-sm font-semibold hover:bg-primary-container/90 transition-colors shadow-sm flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">picture_as_pdf</span> Export as PDF
+</button>
+</div>
+</div>
+
+<!-- Metrics Row -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+<div class="data-card">
+<div class="flex justify-between items-start mb-2">
+<div class="text-sm font-semibold text-on-surface-variant">Waste Reduced</div>
+<span class="material-symbols-outlined text-[20px] text-on-surface-variant/50">eco</span>
+</div>
+<div class="text-display text-on-surface mb-2">28%</div>
+<div class="text-xs font-semibold text-[#166534] flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">trending_up</span> vs last month
+</div>
+</div>
+<div class="data-card">
+<div class="flex justify-between items-start mb-2">
+<div class="text-sm font-semibold text-on-surface-variant">Items Tracked</div>
+<span class="material-symbols-outlined text-[20px] text-on-surface-variant/50">inventory_2</span>
+</div>
+<div class="text-display text-on-surface mb-2">1,492</div>
+<div class="text-xs font-semibold text-on-surface-variant">Across all facilities</div>
+</div>
+<div class="data-card">
+<div class="flex justify-between items-start mb-2">
+<div class="text-sm font-semibold text-on-surface-variant">Avg Freshness Score</div>
+<span class="material-symbols-outlined text-[20px] text-on-surface-variant/50">verified</span>
+</div>
+<div class="text-display text-on-surface mb-2">91%</div>
+<div class="text-xs font-semibold text-on-surface-variant">Last 30 days</div>
+</div>
+<div class="data-card">
+<div class="flex justify-between items-start mb-2">
+<div class="text-sm font-semibold text-on-surface-variant">Alerts Triggered</div>
+<span class="material-symbols-outlined text-[20px] text-on-surface-variant/50">notifications_active</span>
+</div>
+<div class="text-display text-on-surface mb-2">14</div>
+<div class="text-xs font-semibold text-on-surface-variant">This week</div>
+</div>
+</div>
+
+<!-- Main Content Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<!-- Trend Chart -->
+<div class="data-card lg:col-span-2 flex flex-col">
+<div class="flex justify-between items-center mb-6">
+<h2 class="font-title-lg text-on-surface">Freshness Trends</h2>
+<select class="bg-surface-container-low border-outline-variant/30 text-sm rounded-md py-1 pl-2 pr-8 focus:ring-1 focus:ring-primary-container">
+<option>Last 7 Days</option>
+<option>Last 30 Days</option>
+</select>
+</div>
+<div class="flex-1 w-full min-h-[250px] relative">
+<svg class="w-full h-full" preserveaspectratio="none" viewbox="0 0 600 200">
+<defs>
+<lineargradient id="chart-gradient-2" x1="0%" x2="0%" y1="0%" y2="100%">
+<stop offset="0%" stop-color="#2E7D32" stop-opacity="0.2"></stop>
+<stop offset="100%" stop-color="#2E7D32" stop-opacity="0"></stop>
+</lineargradient>
+</defs>
+<line class="chart-grid-line" x1="0" x2="600" y1="50" y2="50"></line>
+<line class="chart-grid-line" x1="0" x2="600" y1="100" y2="100"></line>
+<line class="chart-grid-line" x1="0" x2="600" y1="150" y2="150"></line>
+<line class="chart-grid-line" x1="0" x2="600" y1="200" y2="200"></line>
+<path class="chart-area" d="M0 150 C 50 140, 100 80, 150 90 C 200 100, 250 160, 300 140 C 350 120, 400 60, 450 70 C 500 80, 550 40, 600 30 L 600 200 L 0 200 Z" style="fill:url(#chart-gradient-2)"></path>
+<path class="chart-path" d="M0 150 C 50 140, 100 80, 150 90 C 200 100, 250 160, 300 140 C 350 120, 400 60, 450 70 C 500 80, 550 40, 600 30"></path>
+<circle cx="150" cy="90" fill="#FFFFFF" r="4" stroke="#2E7D32" stroke-width="2"></circle>
+<circle cx="300" cy="140" fill="#FFFFFF" r="4" stroke="#2E7D32" stroke-width="2"></circle>
+<circle cx="450" cy="70" fill="#FFFFFF" r="4" stroke="#2E7D32" stroke-width="2"></circle>
+<circle cx="600" cy="30" fill="#FFFFFF" r="4" stroke="#2E7D32" stroke-width="2"></circle>
+</svg>
+</div>
+</div>
+
+<!-- Category Breakdown -->
+<div class="data-card flex flex-col">
+<h2 class="font-title-lg text-on-surface mb-6">By Category</h2>
+<div class="flex flex-col gap-4">
+<div>
+<div class="flex justify-between text-sm mb-1"><span class="font-semibold text-on-surface">Produce</span><span class="text-on-surface-variant">642 items</span></div>
+<div class="w-full bg-surface-variant rounded-full h-2"><div class="h-2 rounded-full" style="width: 82%; background-color:#2E7D32"></div></div>
+</div>
+<div>
+<div class="flex justify-between text-sm mb-1"><span class="font-semibold text-on-surface">Dairy</span><span class="text-on-surface-variant">318 items</span></div>
+<div class="w-full bg-surface-variant rounded-full h-2"><div class="h-2 rounded-full" style="width: 65%; background-color:#2E7D32"></div></div>
+</div>
+<div>
+<div class="flex justify-between text-sm mb-1"><span class="font-semibold text-on-surface">Meat</span><span class="text-on-surface-variant">204 items</span></div>
+<div class="w-full bg-surface-variant rounded-full h-2"><div class="h-2 rounded-full" style="width: 54%; background-color:#F59E0B"></div></div>
+</div>
+<div>
+<div class="flex justify-between text-sm mb-1"><span class="font-semibold text-on-surface">Dry Goods</span><span class="text-on-surface-variant">328 items</span></div>
+<div class="w-full bg-surface-variant rounded-full h-2"><div class="h-2 rounded-full" style="width: 90%; background-color:#2E7D32"></div></div>
+</div>
+</div>
+</div>
+
+<!-- Report Table (full width, source for exports) -->
+<div class="data-card lg:col-span-3">
+<div class="flex justify-between items-center mb-6">
+<h2 class="font-title-lg text-on-surface">Report Data</h2>
+<span class="text-xs text-on-surface-variant">This table is what gets exported</span>
+</div>
+<div class="overflow-x-auto">
+<table id="reportTable" class="w-full text-left border-collapse">
+<thead>
+<tr class="border-b border-outline-variant/30 text-xs text-on-surface-variant uppercase tracking-wider">
+<th class="pb-3 font-semibold pl-2">Product</th>
+<th class="pb-3 font-semibold">Category</th>
+<th class="pb-3 font-semibold">Freshness Score</th>
+<th class="pb-3 font-semibold">Status</th>
+<th class="pb-3 font-semibold text-right pr-2">Waste Saved</th>
+</tr>
+</thead>
+<tbody class="text-sm divide-y divide-outline-variant/20">
+<tr><td class="py-3 pl-2 font-semibold text-on-surface">Organic Berries</td><td class="py-3 text-on-surface-variant">Produce</td><td class="py-3 font-semibold text-on-surface">98%</td><td class="py-3"><span class="status-badge status-fresh">Fresh</span></td><td class="py-3 text-right pr-2 text-on-surface-variant">$320</td></tr>
+<tr><td class="py-3 pl-2 font-semibold text-on-surface">Romaine Lettuce</td><td class="py-3 text-on-surface-variant">Produce</td><td class="py-3 font-semibold text-on-surface">95%</td><td class="py-3"><span class="status-badge status-fresh">Fresh</span></td><td class="py-3 text-right pr-2 text-on-surface-variant">$180</td></tr>
+<tr><td class="py-3 pl-2 font-semibold text-on-surface">Whole Milk (Batch B-12)</td><td class="py-3 text-on-surface-variant">Dairy</td><td class="py-3 font-semibold text-on-surface">88%</td><td class="py-3"><span class="status-badge status-good">Good</span></td><td class="py-3 text-right pr-2 text-on-surface-variant">$95</td></tr>
+<tr><td class="py-3 pl-2 font-semibold text-on-surface">Ground Beef (Lot G-04)</td><td class="py-3 text-on-surface-variant">Meat</td><td class="py-3 font-semibold text-on-surface">61%</td><td class="py-3"><span class="status-badge status-alert">Near Spoilage</span></td><td class="py-3 text-right pr-2 text-on-surface-variant">$0</td></tr>
+<tr><td class="py-3 pl-2 font-semibold text-on-surface">Canned Beans</td><td class="py-3 text-on-surface-variant">Dry Goods</td><td class="py-3 font-semibold text-on-surface">99%</td><td class="py-3"><span class="status-badge status-fresh">Fresh</span></td><td class="py-3 text-right pr-2 text-on-surface-variant">$0</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+
+<style>
+@media print {
+  aside, header, button, select { display: none !important; }
+  main { padding: 0 !important; overflow: visible !important; }
+  body { background: #fff !important; }
+  .data-card { box-shadow: none !important; border: 1px solid #ddd !important; }
+}
+</style>
+
+<script>
+function exportPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    doc.text('Fresh.OS - Analytics Report', 14, 18);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text('Generated ' + new Date().toLocaleDateString(), 14, 25);
+
+    const table = document.getElementById('reportTable');
+    const head = [Array.from(table.querySelectorAll('thead th')).map(th => th.innerText.trim())];
+    const body = Array.from(table.querySelectorAll('tbody tr')).map(row =>
+        Array.from(row.querySelectorAll('td')).map(td => td.innerText.trim())
+    );
+
+    doc.autoTable({
+        head: head,
+        body: body,
+        startY: 32,
+        headStyles: { fillColor: [46, 125, 50] },
+        styles: { fontSize: 9 }
+    });
+
+    doc.save('freshos-report.pdf');
+}
+
+function exportCSV() {
+    const table = document.getElementById('reportTable');
+    let csv = [];
+    const headerCells = table.querySelectorAll('thead th');
+    csv.push(Array.from(headerCells).map(th => `"${th.innerText.trim()}"`).join(','));
+    const rows = table.querySelectorAll('tbody tr');
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        csv.push(Array.from(cells).map(td => `"${td.innerText.trim().replace(/"/g, '""')}"`).join(','));
+    });
+    const csvContent = csv.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'freshos-report.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+}
+</script>
+<script src="auth.js"></script>
+<script>
+    requireAuth();
+</script>
+</body></html>

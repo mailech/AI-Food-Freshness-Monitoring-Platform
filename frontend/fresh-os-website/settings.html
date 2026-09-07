@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Fresh.OS - Settings</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Google Fonts: Manrope & Sora -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&amp;family=Sora:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Config -->
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+                "on-surface": "#181d17",
+                "surface-variant": "#e0e4da",
+                "on-error": "#ffffff",
+                "on-background": "#181d17",
+                "on-error-container": "#93000a",
+                "error": "#ba1a1a",
+                "on-tertiary-fixed": "#3f001c",
+                "background": "#f7fbf0",
+                "tertiary": "#923357",
+                "surface": "#f7fbf0",
+                "surface-container-highest": "#e0e4da",
+                "on-primary-fixed-variant": "#005312",
+                "surface-container-high": "#e5eadf",
+                "tertiary-fixed": "#ffd9e2",
+                "surface-tint": "#1b6d24",
+                "tertiary-container": "#b14b6f",
+                "outline-variant": "#bfcaba",
+                "on-surface-variant": "#40493d",
+                "on-tertiary": "#ffffff",
+                "error-container": "#ffdad6",
+                "on-secondary-fixed": "#002203",
+                "surface-container": "#ebefe5",
+                "on-secondary-fixed-variant": "#0c5216",
+                "on-secondary-container": "#307231",
+                "inverse-on-surface": "#eef2e8",
+                "primary-container": "#2e7d32",
+                "tertiary-fixed-dim": "#ffb1c7",
+                "on-primary": "#ffffff",
+                "on-primary-container": "#cbffc2",
+                "secondary-container": "#acf4a4",
+                "primary-fixed": "#a3f69c",
+                "inverse-surface": "#2d322b",
+                "surface-dim": "#d7dbd2",
+                "surface-bright": "#f7fbf0",
+                "on-tertiary-container": "#ffedf0",
+                "surface-container-lowest": "#ffffff",
+                "secondary-fixed": "#acf4a4",
+                "on-primary-fixed": "#002204",
+                "on-tertiary-fixed-variant": "#7f2448",
+                "surface-container-low": "#f1f5eb",
+                "secondary": "#2a6b2c",
+                "primary-fixed-dim": "#88d982",
+                "inverse-primary": "#88d982",
+                "outline": "#707a6c",
+                "secondary-fixed-dim": "#91d78a",
+                "on-secondary": "#ffffff",
+                "primary": "#0d631b"
+        },
+        "borderRadius": {
+                "DEFAULT": "0.25rem",
+                "lg": "0.5rem",
+                "xl": "0.75rem",
+                "full": "9999px"
+        },
+        "spacing": {
+                "unit": "8px",
+                "margin-desktop": "32px",
+                "margin-mobile": "16px",
+                "container-max": "1440px",
+                "gutter": "24px"
+        },
+        "fontFamily": {
+                "headline-lg-mobile": ["Sora"],
+                "body-md": ["Manrope"],
+                "body-lg": ["Manrope"],
+                "headline-md": ["Sora"],
+                "display": ["Sora"],
+                "label-sm": ["Manrope"],
+                "label-md": ["Manrope"],
+                "headline-lg": ["Sora"],
+                "title-lg": ["Manrope"]
+        },
+        "fontSize": {
+                "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "700"}],
+                "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                "display": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "600"}],
+                "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600"}],
+                "headline-lg": ["28px", {"lineHeight": "36px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                "title-lg": ["18px", {"lineHeight": "24px", "fontWeight": "600"}]
+        },
+        "boxShadow": {
+            "soft": "0 2px 8px rgba(0, 0, 0, 0.04)",
+            "ambient": "0 4px 16px rgba(0, 0, 0, 0.06)"
+        }
+      }
+    }
+  }
+</script>
+<style type="text/tailwindcss">
+    body {
+        background-color: #F7FBF0;
+    }
+    .data-card {
+        background-color: #FFFFFF;
+        border-radius: 12px;
+        border: 1px solid #E0E4DA;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+        padding: 20px;
+    }
+    .sidebar-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.625rem 1rem;
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+        transition: background-color 0.2s ease, color 0.2s ease;
+        cursor: pointer;
+        color: #40493d;
+        text-decoration: none;
+    }
+    .sidebar-item.active {
+        background-color: #2e7d32;
+        color: #ffffff;
+    }
+    .sidebar-item:not(.active):hover {
+        background-color: #ebefe5;
+        color: #181d17;
+    }
+    /* Minimalist Chart Styles */
+    .chart-grid-line {
+        stroke: #E0E4DA;
+        stroke-dasharray: 4 4;
+    }
+    .chart-path {
+        fill: none;
+        stroke: #2E7D32;
+        stroke-width: 3;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+    }
+    .chart-area {
+        fill: url(#chart-gradient);
+    }
+    .status-badge {
+        padding: 0.25rem 0.625rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+    }
+    .status-fresh { background-color: #DCFCE7; color: #166534; }
+    .status-good { background-color: #FEF9C3; color: #854D0E; }
+    .status-alert { background-color: #FEE2E2; color: #991B1B; }
+</style>
+</head>
+<body class="font-body-md text-on-background flex h-screen overflow-hidden">
+<!-- Sidebar -->
+<aside class="w-64 bg-surface-container-lowest border-r border-outline-variant/50 flex flex-col h-full flex-shrink-0 z-40">
+<div class="h-16 flex items-center px-6 border-b border-outline-variant/30">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary-container text-[24px]" style="font-variation-settings: 'FILL' 1;">eco</span>
+<span class="font-display text-headline-md font-bold text-primary">Fresh.OS</span>
+</div>
+</div>
+<div class="p-4 flex-1 overflow-y-auto flex flex-col gap-1">
+<div class="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant/70 px-4 py-2 mt-2">Core</div>
+<a class="sidebar-item" href="dashboard.html">
+<span class="material-symbols-outlined text-[20px]">dashboard</span> Dashboard
+        </a>
+<a class="sidebar-item" href="inventory.html">
+<span class="material-symbols-outlined text-[20px]">inventory_2</span> Inventory
+        </a>
+<a class="sidebar-item" href="upload-scan.html">
+<span class="material-symbols-outlined text-[20px]">qr_code_scanner</span> Scans
+        </a>
+<div class="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant/70 px-4 py-2 mt-4">Insights</div>
+<a class="sidebar-item" href="analytics.html">
+<span class="material-symbols-outlined text-[20px]">monitoring</span> Analytics
+        </a>
+<a class="sidebar-item" href="analytics.html">
+<span class="material-symbols-outlined text-[20px]">lab_profile</span> Reports
+        </a>
+<div class="mt-auto">
+<div class="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant/70 px-4 py-2">System</div>
+<a class="sidebar-item active" href="settings.html">
+<span class="material-symbols-outlined text-[20px]">settings</span> Settings
+            </a>
+<a class="sidebar-item" href="support.html">
+<span class="material-symbols-outlined text-[20px]">help</span> Support
+            </a>
+<button onclick="logout()" class="sidebar-item w-full text-left text-on-surface-variant hover:text-error transition-colors">
+<span class="material-symbols-outlined text-[20px]">logout</span> Sign Out
+</button>
+</div>
+</div>
+</aside>
+<!-- Main Workspace -->
+<div class="flex-1 flex flex-col h-full min-w-0">
+<!-- Top Navigation -->
+<header class="h-16 bg-surface-container-lowest border-b border-outline-variant/50 flex items-center justify-between px-margin-desktop flex-shrink-0">
+<div class="relative w-96">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">search</span>
+<input class="w-full pl-10 pr-4 py-2 bg-surface border border-outline-variant/50 rounded-lg text-sm focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-all" placeholder="Search inventory, batches, or alerts..." type="text"/>
+</div>
+<div class="flex items-center gap-6">
+<button class="relative text-on-surface-variant hover:text-on-surface transition-colors">
+<span class="material-symbols-outlined text-[24px]">notifications</span>
+<span class="absolute 1 top-0 right-0 w-2.5 h-2.5 bg-error rounded-full border-2 border-white"></span>
+</button>
+<div class="h-6 w-px bg-outline-variant/50"></div>
+<button onclick="window.location.href='settings.html'" class="flex items-center gap-3 hover:bg-surface-container px-2 py-1.5 rounded-lg transition-colors">
+<div class="text-right hidden sm:block">
+<div class="text-sm font-semibold text-on-surface leading-tight header-user-name">Sarah Jenkins</div>
+<div class="text-[11px] text-on-surface-variant header-user-role">Facility Admin</div>
+</div>
+<div class="w-8 h-8 rounded-full bg-primary-container/20 overflow-hidden">
+<img alt="User" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAIcnlZ5dH4PsEhOFtN6P0DjXgLB75euiormIiMJorJuejL-28L8iSeI3EbUIAqaG8-8njXp3Lu4mppgBp1_5uWhtIUdm7iB8WfNOD1NCGskWbxucb6jWcVqJZWiFgAl2fIfUxi_TCmxW9fZvcTwta36P2BjyjQMzz9DMGzy0FAUWTLt7JzS3rw0yXBv9UvCLTcDF6M8Ro67qnhYn7bcoJ9HlKMagyVY76pNtU3A5oH7RKsQZKs733-"/>
+</div>
+<span class="material-symbols-outlined text-[20px] text-on-surface-variant">keyboard_arrow_down</span>
+</button>
+</div>
+</header>
+<!-- Scrollable Content -->
+<main class="flex-1 overflow-y-auto p-margin-desktop bg-surface">
+<div class="max-w-3xl mx-auto flex flex-col gap-6">
+<h1 class="font-display text-headline-lg text-on-surface mb-1">Settings</h1>
+
+<!-- Account -->
+<div class="data-card">
+<h2 class="font-title-lg text-on-surface mb-4">Account</h2>
+<div class="flex flex-col gap-4">
+<div>
+<label class="block text-sm font-semibold text-on-surface mb-1">Full Name</label>
+<input id="settings-name" type="text" value="Sarah Jenkins" class="w-full px-4 py-2 rounded-lg border border-outline-variant/50 bg-surface text-sm focus:outline-none focus:ring-1 focus:ring-primary-container"/>
+</div>
+<div>
+<label class="block text-sm font-semibold text-on-surface mb-1">Email</label>
+<input id="settings-email" type="email" value="sarah.jenkins@freshos.io" class="w-full px-4 py-2 rounded-lg border border-outline-variant/50 bg-surface text-sm focus:outline-none focus:ring-1 focus:ring-primary-container"/>
+</div>
+<div>
+<label class="block text-sm font-semibold text-on-surface mb-1">Role</label>
+<select id="settings-role" class="w-full px-4 py-2 rounded-lg border border-outline-variant/50 bg-surface text-sm focus:outline-none focus:ring-1 focus:ring-primary-container">
+<option value="consumer">Consumer</option>
+<option value="retail_manager">Retail Manager</option>
+<option value="warehouse_operator">Warehouse Operator</option>
+<option value="food_quality_inspector">Food Quality Inspector</option>
+<option value="admin">Administrator</option>
+</select>
+</div>
+</div>
+</div>
+
+<!-- Notifications -->
+<div class="data-card">
+<h2 class="font-title-lg text-on-surface mb-4">Notifications</h2>
+<div class="flex flex-col divide-y divide-outline-variant/20">
+<div class="flex items-center justify-between py-3">
+<div>
+<div class="text-sm font-semibold text-on-surface">Email Alerts</div>
+<div class="text-xs text-on-surface-variant">Spoilage warnings and daily summaries</div>
+</div>
+<input type="checkbox" checked="" class="w-5 h-5 accent-primary cursor-pointer"/>
+</div>
+<div class="flex items-center justify-between py-3">
+<div>
+<div class="text-sm font-semibold text-on-surface">SMS Alerts</div>
+<div class="text-xs text-on-surface-variant">Urgent, near-spoilage batches only</div>
+</div>
+<input type="checkbox" class="w-5 h-5 accent-primary cursor-pointer"/>
+</div>
+<div class="flex items-center justify-between py-3">
+<div>
+<div class="text-sm font-semibold text-on-surface">Push Notifications</div>
+<div class="text-xs text-on-surface-variant">Real-time alerts on the mobile app</div>
+</div>
+<input type="checkbox" checked="" class="w-5 h-5 accent-primary cursor-pointer"/>
+</div>
+<div class="flex items-center justify-between py-3">
+<div>
+<div class="text-sm font-semibold text-on-surface">In-App Notifications</div>
+<div class="text-xs text-on-surface-variant">Badge and banner alerts inside Fresh.OS</div>
+</div>
+<input type="checkbox" checked="" class="w-5 h-5 accent-primary cursor-pointer"/>
+</div>
+</div>
+</div>
+
+<!-- Security & Data -->
+<div class="data-card">
+<h2 class="font-title-lg text-on-surface mb-4">Security &amp; Data</h2>
+<div class="flex flex-col divide-y divide-outline-variant/20">
+<div class="flex items-center justify-between py-3">
+<div>
+<div class="text-sm font-semibold text-on-surface">Two-Factor Authentication</div>
+<div class="text-xs text-on-surface-variant">Adds an access-control layer at login</div>
+</div>
+<button class="px-4 py-1.5 rounded-full border border-outline-variant text-sm font-semibold hover:bg-surface-container transition-colors">Enable</button>
+</div>
+<div class="flex items-center justify-between py-3">
+<div>
+<div class="text-sm font-semibold text-on-surface">Active Sessions</div>
+<div class="text-xs text-on-surface-variant">Review devices currently signed in</div>
+</div>
+<button class="px-4 py-1.5 rounded-full border border-outline-variant text-sm font-semibold hover:bg-surface-container transition-colors">View</button>
+</div>
+<div class="flex items-center justify-between py-3">
+<div>
+<div class="text-sm font-semibold text-on-surface">Export My Data</div>
+<div class="text-xs text-on-surface-variant">Download your inventory &amp; scan history</div>
+</div>
+<button class="px-4 py-1.5 rounded-full border border-outline-variant text-sm font-semibold hover:bg-surface-container transition-colors">Export</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+<script src="auth.js"></script>
+<script>
+    requireAuth().then(user => {
+        if (user) {
+            const nameInput = document.getElementById('settings-name');
+            const emailInput = document.getElementById('settings-email');
+            const roleSelect = document.getElementById('settings-role');
+            if (nameInput) nameInput.value = user.full_name;
+            if (emailInput) emailInput.value = user.email;
+            if (roleSelect) roleSelect.value = user.role;
+        }
+    });
+</script>
+</body></html>

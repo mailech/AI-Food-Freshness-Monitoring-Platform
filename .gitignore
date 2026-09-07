@@ -1,0 +1,35 @@
+# Environment variables
+.env
+*.env
+
+# Python / Virtual Environment
+__pycache__/
+*.py[cod]
+*.class
+venv/
+.venv/
+env/
+ENV/
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# IDEs and Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Node dependencies (if any)
+node_modules/
