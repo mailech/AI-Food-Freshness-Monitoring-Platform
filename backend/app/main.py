@@ -11,6 +11,7 @@ from app.api.recommendations import router as recommendations_router
 from app.api.alerts import router as alerts_router
 from app.api.dashboard import router as dashboard_router
 from app.api.reports import router as reports_router
+from app.services.ai_client import ai_client
 
 app = FastAPI(
     title="Food Freshness Monitoring Platform API",
@@ -51,9 +52,16 @@ def root():
         "docs_url": "/docs"
     }
 
+@app.get("/health")
 @app.get("/api/health")
-def health_check():
-    return {"status": "healthy", "ai_engine": "modular_mock_active"}
+async def health_check():
+    ai_status = await ai_client.check_health()
+    return {
+        "status": "healthy",
+        "backend": "operational",
+        "ai_service": ai_status,
+        "database": "connected"
+    }
 
 if __name__ == "__main__":
     import uvicorn

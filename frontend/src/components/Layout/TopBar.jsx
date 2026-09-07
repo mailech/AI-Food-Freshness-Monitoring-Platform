@@ -79,62 +79,38 @@ export const TopBar = ({ onOpenSidebar, onNavigateAlerts, onSearch, searchQuery 
           )}
         </div>
 
-        {/* Notification Bell */}
+        {/* System Status Notification */}
         <div className="relative">
           <button
             onClick={() => setShowNotificationMenu(!showNotificationMenu)}
             className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors relative"
+            title="System Status"
           >
             <Bell className="w-5 h-5" />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-emerald-400" />
           </button>
 
           {showNotificationMenu && (
-            <div className="absolute right-0 mt-2 w-80 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl py-3 z-50">
+            <div className="absolute right-0 mt-2 w-72 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl py-3 z-50">
               <div className="flex items-center justify-between px-4 pb-2 border-b border-slate-800">
-                <h4 className="text-xs font-bold text-white uppercase tracking-wider">Freshness Alerts</h4>
-                <button
-                  onClick={() => {
-                    setShowNotificationMenu(false);
-                    onNavigateAlerts?.();
-                  }}
-                  className="text-[11px] text-emerald-400 hover:underline"
-                >
-                  View All (5)
-                </button>
+                <h4 className="text-xs font-bold text-white uppercase tracking-wider">System Status</h4>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400">
+                  Online
+                </span>
               </div>
-              <div className="divide-y divide-slate-800/60 max-h-64 overflow-y-auto">
-                <div
-                  onClick={() => {
-                    setShowNotificationMenu(false);
-                    onNavigateAlerts?.();
-                  }}
-                  className="p-3 hover:bg-slate-800/50 cursor-pointer transition-colors"
-                >
-                  <div className="flex items-start gap-2.5">
-                    <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-xs font-semibold text-slate-200">5 products expiring soon</p>
-                      <p className="text-[11px] text-slate-400 mt-0.5">Bananas and Salmon batches expire in &lt; 48h.</p>
-                      <span className="text-[10px] text-slate-500 mt-1 inline-block">12m ago</span>
-                    </div>
+              <div className="p-3 space-y-2.5">
+                <div className="flex items-start gap-2.5 text-xs">
+                  <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-semibold text-slate-200">AI Inference Service</p>
+                    <p className="text-[11px] text-slate-400">EfficientNet-B0 vision model active.</p>
                   </div>
                 </div>
-
-                <div
-                  onClick={() => {
-                    setShowNotificationMenu(false);
-                    onNavigateAlerts?.();
-                  }}
-                  className="p-3 hover:bg-slate-800/50 cursor-pointer transition-colors"
-                >
-                  <div className="flex items-start gap-2.5">
-                    <span className="w-2 h-2 rounded-full bg-red-500 mt-1.5 flex-shrink-0" />
-                    <div>
-                      <p className="text-xs font-semibold text-slate-200">Spoilage Alert: Strawberries</p>
-                      <p className="text-[11px] text-slate-400 mt-0.5">Batch BATCH-SB-104 score dropped to 24/100.</p>
-                      <span className="text-[10px] text-slate-500 mt-1 inline-block">45m ago</span>
-                    </div>
+                <div className="flex items-start gap-2.5 text-xs pt-2 border-t border-slate-800/80">
+                  <Sparkles className="w-4 h-4 text-teal-400 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-semibold text-slate-200">Active Modules</p>
+                    <p className="text-[11px] text-slate-400">Inventory, Food Analysis, Shelf Life.</p>
                   </div>
                 </div>
               </div>

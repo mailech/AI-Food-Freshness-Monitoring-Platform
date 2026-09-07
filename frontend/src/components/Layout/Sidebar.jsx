@@ -16,20 +16,26 @@ import {
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 
+// Active Navigation: Exclusively active features
+export const ACTIVE_NAV_ITEMS = [
+  { id: "inventory", label: "Food Inventory", icon: Boxes, badge: "17" },
+  { id: "analysis", label: "Food Analysis", icon: ScanLine, highlight: true },
+  { id: "shelflife", label: "Shelf Life", icon: Hourglass },
+  { id: "settings", label: "Settings", icon: Settings },
+];
+
+// Preserved Navigation Items (temporarily hidden until backend/AI functionality is complete)
+export const DISABLED_NAV_ITEMS = [
+  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { id: "storage", label: "Storage Monitoring", icon: ThermometerSnowflake },
+  { id: "recommendations", label: "Recommendations", icon: Sparkles },
+  { id: "alerts", label: "Alerts & Notifications", icon: Bell, badge: "3", badgeColor: "bg-red-500" },
+  { id: "reports", label: "Reports & Audits", icon: FileBarChart },
+];
+
 export const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen }) => {
   const { user, logout } = useAuth();
-
-  const navItems = [
-    { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { id: "inventory", label: "Food Inventory", icon: Boxes, badge: "17" },
-    { id: "analysis", label: "Food Analysis", icon: ScanLine, highlight: true },
-    { id: "shelflife", label: "Shelf Life", icon: Hourglass },
-    { id: "storage", label: "Storage Monitoring", icon: ThermometerSnowflake },
-    { id: "recommendations", label: "Recommendations", icon: Sparkles },
-    { id: "alerts", label: "Alerts & Notifications", icon: Bell, badge: "3", badgeColor: "bg-red-500" },
-    { id: "reports", label: "Reports & Audits", icon: FileBarChart },
-    { id: "settings", label: "Settings", icon: Settings },
-  ];
+  const navItems = ACTIVE_NAV_ITEMS;
 
   return (
     <>

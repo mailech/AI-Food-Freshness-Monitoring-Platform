@@ -1,0 +1,15 @@
+{
+  "architecture": "EfficientNetB0 Transfer Learning (PyTorch)",
+  "num_classes": 6,
+  "classes": {
+    "0": "freshapples",
+    "1": "freshbanana",
+    "2": "freshoranges",
+    "3": "rottenapples",
+    "4": "rottenbanana",
+    "5": "rottenoranges"
+  },
+  "epochs": 5,
+  "final_val_acc": 0.9843,
+  "training_time_seconds": 899.27
+}

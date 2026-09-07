@@ -1,40 +1,55 @@
+"""
+Alert Service Layer using SQLAlchemy ORM
+"""
 from typing import List, Dict, Any, Optional
-from app.services.db import db
-import uuid
+from app.db.session import SessionLocal
+from app.models.orm import AlertORM
 
 class AlertService:
-    def get_all(self, alert_type: Optional[str] = None, unread_only: bool = False) -> List[Dict[str, Any]]:
-        alerts = list(db.alerts)
-        if alert_type and alert_type != "All":
-            alerts = [a for a in alerts if a["type"].lower() == alert_type.lower()]
-        if unread_only:
-            alerts = [a for a in alerts if not a["is_read"]]
-        return alerts
-
-    def mark_read(self, alert_id: str) -> bool:
-        for alert in db.alerts:
-            if alert["id"] == alert_id:
-                alert["is_read"] = True
-                return True
-        return False
-
-    def mark_all_read(self) -> bool:
-        for alert in db.alerts:
-            alert["is_read"] = True
-        return True
-
-    def create_alert(self, title: str, message: str, alert_type: str, severity: str = "warning", related_item_id: str = None) -> Dict[str, Any]:
-        new_alert = {
-            "id": f"alt-{uuid.uuid4().hex[:6]}",
-            "title": title,
-            "message": message,
-            "type": alert_type,
-            "severity": severity,
-            "timestamp": "Just now",
-            "is_read": False,
-            "related_item_id": related_item_id
+    def _to_dict(self, a: AlertORM) -> Dict[str, Any]:
+        return {
+            "id": a.id,
+            "title": a.title,
+            "message": a.message,
+            "type": a.type,
+            "severity": a.severity,
+            "timestamp": a.timestamp,
+            "is_read": bool(a.is_read),
+            "related_item_id": a.related_item_id
         }
-        db.alerts.insert(0, new_alert)
-        return new_alert
+
+    def get_all(self, alert_type: Optional[str] = None, unread_only: bool = False) -> List[Dict[str, Any]]:
+        db = SessionLocal()
+        try:
+            query = db.query(AlertORM)
+            if alert_type and alert_type.lower() != "all":
+                query = query.filter(AlertORM.type.ilike(f"%{alert_type}%"))
+            if unread_only:
+                query = query.filter(AlertORM.is_read == False)
+            alerts = query.order_by(AlertORM.created_at.desc()).all()
+            return [self._to_dict(a) for a in alerts]
+        finally:
+            db.close()
+
+    def mark_as_read(self, alert_id: str) -> bool:
+        db = SessionLocal()
+        try:
+            alert = db.query(AlertORM).filter(AlertORM.id == alert_id).first()
+            if alert:
+                alert.is_read = True
+                db.commit()
+                return True
+            return False
+        finally:
+            db.close()
+
+    def mark_all_as_read(self) -> bool:
+        db = SessionLocal()
+        try:
+            db.query(AlertORM).update({"is_read": True})
+            db.commit()
+            return True
+        finally:
+            db.close()
 
 alert_service = AlertService()

@@ -1,0 +1,14 @@
+{
+  "dataset_name": "sriramr/fruits-fresh-and-rotten-for-classification",
+  "raw_download_path": "C:\\Users\\HP\\.cache\\kagglehub\\datasets\\sriramr\\fruits-fresh-and-rotten-for-classification\\versions\\1",
+  "classes": {
+    "freshapples": 4176,
+    "freshbanana": 3924,
+    "freshoranges": 3708,
+    "rottenapples": 5886,
+    "rottenbanana": 5508,
+    "rottenoranges": 3996
+  },
+  "total_valid_images": 27198,
+  "corrupt_images": 0
+}

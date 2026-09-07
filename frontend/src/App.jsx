@@ -22,7 +22,7 @@ const MainContent = () => {
   const { isAuthenticated } = useAuth();
   const [authView, setAuthView] = useState("login"); // "login", "register", "forgot"
 
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const [activeTab, setActiveTab] = useState("inventory");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedFoodItem, setSelectedFoodItem] = useState(null);
   const [globalSearch, setGlobalSearch] = useState("");
@@ -68,13 +68,7 @@ const MainContent = () => {
     }
 
     switch (activeTab) {
-      case "dashboard":
-        return (
-          <Dashboard
-            onNavigateTab={(tab) => setActiveTab(tab)}
-            onSelectFoodItem={handleSelectFood}
-          />
-        );
+      // Primary Active Pages
       case "inventory":
         return (
           <Inventory
@@ -86,6 +80,17 @@ const MainContent = () => {
         return <FoodAnalysis onNavigateInventory={() => setActiveTab("inventory")} />;
       case "shelflife":
         return <ShelfLife onSelectFoodItem={handleSelectFood} />;
+      case "settings":
+        return <Settings />;
+
+      // Preserved Feature Routes (Code & components retained for future activation)
+      case "dashboard":
+        return (
+          <Dashboard
+            onNavigateTab={(tab) => setActiveTab(tab)}
+            onSelectFoodItem={handleSelectFood}
+          />
+        );
       case "storage":
         return <StorageMonitoring />;
       case "recommendations":
@@ -94,13 +99,13 @@ const MainContent = () => {
         return <Alerts onSelectFoodItem={handleSelectFood} />;
       case "reports":
         return <Reports />;
-      case "settings":
-        return <Settings />;
+
+      // Default to primary active landing page (Food Inventory)
       default:
         return (
-          <Dashboard
-            onNavigateTab={(tab) => setActiveTab(tab)}
+          <Inventory
             onSelectFoodItem={handleSelectFood}
+            initialSearch={globalSearch}
           />
         );
     }
