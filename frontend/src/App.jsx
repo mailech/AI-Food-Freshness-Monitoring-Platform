@@ -96,7 +96,6 @@ function AppRoutes() {
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login onLogin={setToken} />} />
         <Route path="/profile" element={<Profile />} />
-        <Route path="/inventory" element={<Inventory />} />
       </Routes>
     </BrowserRouter>
   );
