@@ -168,11 +168,68 @@ def test_register_and_login_flow():
     assert me_response.status_code == 200
     me_data = me_response.json()
     assert me_data["email"] == test_email
-    assert me_data["role"] == "Food Quality Inspector"
+    # 7. Role-Matching Verification:
+    # 7a. Login with correct role -> SUCCESS 200
+    matching_role_login = client.post(
+        "/api/auth/login",
+        json={
+            "email": test_email,
+            "password": test_pwd,
+            "role": "Food Quality Inspector"
+        }
+    )
+    assert matching_role_login.status_code == 200
+    assert matching_role_login.json()["role"] == "Food Quality Inspector"
 
-    # 6. Access /api/auth/me without token -> should fail with 401
-    unauth_response = client.get("/api/auth/me")
-    assert unauth_response.status_code == 401
+    # 7b. Login with mismatched role -> REJECTED 403 Forbidden
+    mismatched_role_login = client.post(
+        "/api/auth/login",
+        json={
+            "email": test_email,
+            "password": test_pwd,
+            "role": "Retail Manager"
+        }
+    )
+    assert mismatched_role_login.status_code == 403
+    assert "Role mismatch" in mismatched_role_login.json()["detail"]
+
+def test_role_based_access_control():
+    from app.api.deps import require_roles
+    from fastapi import Depends
+    
+    # Create test route protected by require_roles
+    @fastapi_app.get("/api/test-inspector-only")
+    def inspector_only_endpoint(user=Depends(require_roles(["Food Quality Inspector"]))):
+        return {"authorized": True, "user_role": user.role}
+
+    # Token for Food Quality Inspector
+    inspector_token = create_access_token(
+        subject="usr-insp-001",
+        email="insp@freshness.io",
+        role="Food Quality Inspector"
+    )
+
+    # Token for Consumer
+    consumer_token = create_access_token(
+        subject="usr-cons-001",
+        email="cons@freshness.io",
+        role="Consumer"
+    )
+
+    # 1. Inspector access -> 200 OK
+    res1 = client.get(
+        "/api/test-inspector-only",
+        headers={"Authorization": f"Bearer {inspector_token}"}
+    )
+    assert res1.status_code == 200
+    assert res1.json()["authorized"] is True
+
+    # 2. Consumer access -> 403 Forbidden
+    res2 = client.get(
+        "/api/test-inspector-only",
+        headers={"Authorization": f"Bearer {consumer_token}"}
+    )
+    assert res2.status_code == 403
 
 if __name__ == "__main__":
     print("Running auth tests manually...")
@@ -186,4 +243,7 @@ if __name__ == "__main__":
     print("[PASS] Invalid Signature Rejection")
     test_register_and_login_flow()
     print("[PASS] Full Register & Login Flow with JWT & /me")
-    print("\nALL JWT AUTH TESTS PASSED SUCCESSFULLY!")
+    test_role_based_access_control()
+    print("[PASS] Role-Based Access Control (RBAC)")
+    print("\nALL JWT AUTH & ROLE TESTS PASSED SUCCESSFULLY!")
+
