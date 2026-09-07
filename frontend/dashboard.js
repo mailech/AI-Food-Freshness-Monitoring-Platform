@@ -1,129 +1,4 @@
-// /**
-//  * FreshCheck - Dashboard Controller
-//  * Fetches inventory from GET /api/food and renders real food items without hardcoded defaults.
-//  */
-
-// document.addEventListener("DOMContentLoaded", () => {
-//     loadDashboardData();
-// });
-
-// async function loadDashboardData() {
-//     const tableBody = document.getElementById("inventoryTableBody");
-//     const totalItemsCount = document.getElementById("totalItemsCount");
-//     const freshItemsCount = document.getElementById("freshItemsCount");
-//     const expiringItemsCount = document.getElementById("expiringItemsCount");
-//     const spoiledItemsCount = document.getElementById("spoiledItemsCount");
-//     const token = localStorage.getItem('token'); //  sessionStorage.getItem('token')
-//     let foodItems = [];
-
-//     try {
-//         const response = await fetch("http://127.0.0.1:5000/api/food", {
-//             method: "GET",
-//             headers: {
-//         'Content-Type': 'application/json',
-//         'Authorization': `Bearer ${token}`
-//       }
-//         });
-
-//         if (response.ok) {
-//             foodItems = await response.json();
-//         } else {
-//             throw new Error(`API error HTTP ${response.status}`);
-//         }
-//     } catch (err) {
-//         console.warn("Backend API unavailable. Checking fallback storage...", err);
-//         try {
-//             foodItems = JSON.parse(localStorage.getItem("freshCheck_inventory") || "[]");
-//         } catch (e) {
-//             foodItems = [];
-//         }
-//     }
-
-//     renderSummaryCards(foodItems, { totalItemsCount, freshItemsCount, expiringItemsCount, spoiledItemsCount });
-//     renderInventoryTable(foodItems, tableBody);
-// }
-
-// function renderSummaryCards(items, elements) {
-//     let fresh = 0;
-//     let expiring = 0;
-//     let spoiled = 0;
-
-//     items.forEach(item => {
-//         const st = (item.status || "").toLowerCase();
-//         if (st === "fresh") fresh++;
-//         else if (st === "expiring soon" || st === "expiring") expiring++;
-//         else if (st === "spoiled" || st === "expired") spoiled++;
-//     });
-
-//     if (elements.totalItemsCount) elements.totalItemsCount.innerText = items.length;
-//     if (elements.freshItemsCount) elements.freshItemsCount.innerText = fresh;
-//     if (elements.expiringItemsCount) elements.expiringItemsCount.innerText = expiring;
-//     if (elements.spoiledItemsCount) elements.spoiledItemsCount.innerText = spoiled;
-// }
-
-// function renderInventoryTable(items, container) {
-//     if (!container) return;
-
-//     if (!items || items.length === 0) {
-//         container.innerHTML = `
-//             <tr>
-//                 <td colspan="7" style="text-align: center; padding: 20px; color: #888;">
-//                     No food items found in inventory. Add your first item using the "Add Food" form.
-//                 </td>
-//             </tr>
-//         `;
-//         return;
-//     }
-
-//     container.innerHTML = items.map(item => {
-//         const foodName = item.food_name || "Unknown Item";
-//         const category = item.category || "General";
-//         const scannedDate = item.scanned_date || "N/A";
-//         const expiryDate = item.expiry_date || "N/A";
-//         const shelfLife = item.shelf_life_days !== undefined ? `${item.shelf_life_days} days` : "N/A";
-        
-//         let confVal = item.ai_confidence;
-//         let formattedConf = "N/A";
-//         if (confVal !== undefined && confVal !== null) {
-//             let num = parseFloat(confVal);
-//             if (!isNaN(num)) {
-//                 if (num > 1.0) num = num / 100.0;
-//                 formattedConf = `${Math.round(num * 100)}%`;
-//             }
-//         }
-
-//         const status = item.status || "Fresh";
-//         const statusBadgeClass = getStatusClass(status);
-
-//         return `
-//             <tr>
-//                 <td style="font-weight: 600;">${escapeHtml(foodName)}</td>
-//                 <td>${escapeHtml(category)}</td>
-//                 <td>${escapeHtml(scannedDate)}</td>
-//                 <td>${escapeHtml(expiryDate)}</td>
-//                 <td>${escapeHtml(shelfLife)}</td>
-//                 <td>${formattedConf}</td>
-//                 <td><span class="status-badge ${statusBadgeClass}">${escapeHtml(status)}</span></td>
-//             </tr>
-//         `;
-//     }).join("");
-// }
-
-// function getStatusClass(status) {
-//     const st = (status || "").toLowerCase();
-//     if (st === "fresh") return "badge-fresh";
-//     if (st === "expiring soon" || st === "expiring") return "badge-expiring";
-//     if (st === "spoiled" || st === "expired") return "badge-spoiled";
-//     return "badge-general";
-// }
-
-// function escapeHtml(str) {
-//     return String(str)
-//         .replace(/&/g, "&amp;")
-//         .replace(/</g, "&lt;")
-//         .replace(/>/g, "&gt;")
-//         .replace(/"/g, "&quot;");
-// }  
+  
 
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -222,7 +97,13 @@ function renderDashboardData(items, summary) {
           <td>${item.category || 'General'}</td>
           <td>${item.purchase_date || item.created_at || 'Today'}</td>
           <td>${item.expiry_date || 'N/A'}</td>
-          <td>${item.ai_confidence || item.confidence || '95'}%</td>
+          <td>${
+              item.ai_confidence !== undefined
+             ? Math.round(item.ai_confidence * 100) + '%'
+             : (item.confidence !== undefined
+             ? Math.round(item.confidence * 100) + '%'
+             : '95%')
+             }</td>
           <td>${item.shelf_life_days ? item.shelf_life_days + ' Days' : '5 Days'}</td>
           <td><span class="status-badge ${statusClass}">${item.status || 'Fresh'}</span></td>
         </tr>
