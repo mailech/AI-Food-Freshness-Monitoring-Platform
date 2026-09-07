@@ -102,12 +102,17 @@ def login(payload: UserLogin, db: Session = Depends(get_db)):
         user.password_hash = hash_password(password)
         db.commit()
         
-    # Update role if explicitly supplied and user chose to switch persona
-    if payload.role and payload.role != user.role:
-        user.role = payload.role
-        db.commit()
+    # Verify role: User can only log in if the selected role matches their registered role (or user is Administrator)
+    if payload.role:
+        selected_role = payload.role.strip()
+        if selected_role.lower() != user.role.strip().lower() and user.role.strip().lower() != "administrator":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Role mismatch: This account is registered as '{user.role}', not '{selected_role}'. Please choose '{user.role}' to sign in.",
+                headers={"WWW-Authenticate": "Bearer"}
+            )
         
-    # Generate cryptographically signed JWT token
+    # Generate cryptographically signed JWT token with verified role
     token = create_access_token(
         subject=user.id,
         email=user.email,
