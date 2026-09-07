@@ -54,3 +54,44 @@ def login(credentials: schemas.UserLogin, db: Session = Depends(get_db)):
 @app.get("/me", response_model=schemas.UserResponse)
 def read_current_user(current_user: models.User = Depends(get_current_user)):
     return current_user
+@app.post("/food-items", response_model=schemas.FoodItemResponse)
+def create_food_item(
+    item: schemas.FoodItemCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    new_item = models.FoodItem(**item.model_dump(), owner_id=current_user.id)
+    db.add(new_item)
+    db.commit()
+    db.refresh(new_item)
+    return new_item
+@app.get("/food-items", response_model=list[schemas.FoodItemResponse])
+def list_food_items(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    return db.query(models.FoodItem).filter(models.FoodItem.owner_id == current_user.id).order_by(models.FoodItem.created_at.desc()).all()
+
+@app.get("/food-items/{item_id}", response_model=schemas.FoodItemResponse)
+def get_food_item(item_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    item = db.query(models.FoodItem).filter(models.FoodItem.id == item_id, models.FoodItem.owner_id == current_user.id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Food item not found")
+    return item
+
+@app.put("/food-items/{item_id}", response_model=schemas.FoodItemResponse)
+def update_food_item(item_id: int, updates: schemas.FoodItemCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    item = db.query(models.FoodItem).filter(models.FoodItem.id == item_id, models.FoodItem.owner_id == current_user.id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Food item not found")
+    for key, value in updates.model_dump().items():
+        setattr(item, key, value)
+    db.commit()
+    db.refresh(item)
+    return item
+
+@app.delete("/food-items/{item_id}")
+def delete_food_item(item_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    item = db.query(models.FoodItem).filter(models.FoodItem.id == item_id, models.FoodItem.owner_id == current_user.id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Food item not found")
+    db.delete(item)
+    db.commit()
+    return {"message": "Food item deleted"}

@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import Register from './pages/Register';
 import Login from './pages/Login';
 import Profile from './pages/Profile';
-
+import Inventory from './pages/Inventory';
 function Navbar({ token, onLogout }) {
   return (
     <nav className="border-b border-border bg-surface">
@@ -90,11 +90,13 @@ function AppRoutes() {
   return (
     <BrowserRouter>
       <Navbar token={token} onLogout={handleLogout} />
+      <Link to="/inventory" className="text-ink-muted hover:text-ink transition">Inventory</Link>
       <Routes>
         <Route path="/" element={<Home token={token} />} />
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login onLogin={setToken} />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/inventory" element={<Inventory />} />
       </Routes>
     </BrowserRouter>
   );
