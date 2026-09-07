@@ -9,6 +9,7 @@ from app.models.orm import (
     UserORM, FoodItemORM, FoodBatchORM, StorageConditionORM,
     RecommendationORM, AlertORM, ReportORM, FoodAnalysisORM
 )
+from app.core.security import hash_password
 
 def init_db():
     print("[*] Creating database tables...")
@@ -24,14 +25,45 @@ def init_db():
 
         print("[*] Seeding initial data...")
         
-        # 1. Seed Users
-        demo_user = UserORM(
-            id=str(uuid.uuid4()),
-            name="Food Quality Inspector",
-            email="inspector@freshness.io",
-            role="Food Quality Inspector"
-        )
-        db.add(demo_user)
+        # 1. Seed Users with hashed passwords
+        demo_users = [
+            UserORM(
+                id="usr-inspector-01",
+                name="Dr. Elena Rostova",
+                email="inspector@freshness.io",
+                password_hash=hash_password("password123"),
+                role="Food Quality Inspector"
+            ),
+            UserORM(
+                id="usr-admin-01",
+                name="System Administrator",
+                email="admin@freshness.io",
+                password_hash=hash_password("admin123"),
+                role="Administrator"
+            ),
+            UserORM(
+                id="usr-manager-01",
+                name="Marcus Vance",
+                email="manager@freshness.io",
+                password_hash=hash_password("manager123"),
+                role="Retail Manager"
+            ),
+            UserORM(
+                id="usr-warehouse-01",
+                name="Sarah Jenkins",
+                email="warehouse@freshness.io",
+                password_hash=hash_password("warehouse123"),
+                role="Warehouse Operator"
+            ),
+            UserORM(
+                id="usr-consumer-01",
+                name="Alice Green",
+                email="consumer@freshness.io",
+                password_hash=hash_password("consumer123"),
+                role="Consumer"
+            ),
+        ]
+        db.add_all(demo_users)
 
         # 2. Seed Storage Conditions
         storage_zones = [

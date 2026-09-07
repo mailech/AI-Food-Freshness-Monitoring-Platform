@@ -1,30 +1,34 @@
 import React, { useState } from "react";
-import { Leaf, Lock, Mail, Shield, ArrowRight, Sparkles, CheckCircle } from "lucide-react";
+import { Leaf, Lock, Mail, Shield, ArrowRight, Sparkles, AlertCircle } from "lucide-react";
 import { useAuth, ROLES } from "../context/AuthContext";
 
 export const Login = ({ onNavigateRegister, onNavigateForgot }) => {
   const { login } = useAuth();
-  const [email, setEmail] = useState("elena.inspector@freshguard.io");
-  const [password, setPassword] = useState("••••••••••••");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [role, setRole] = useState("Food Quality Inspector");
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setErrorMessage("");
     setIsLoading(true);
     try {
       await login(email, password, role);
     } catch (err) {
-      console.error(err);
+      setErrorMessage(err.message || "Login failed. Please check your credentials or sign up.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleQuickRole = (r, defaultEmail) => {
+  const handleQuickRole = (r, defaultEmail, defaultPwd) => {
     setRole(r);
     setEmail(defaultEmail);
+    setPassword(defaultPwd);
+    setErrorMessage("");
   };
 
   return (
@@ -50,6 +54,13 @@ export const Login = ({ onNavigateRegister, onNavigateForgot }) => {
 
         {/* Login Form */}
         <div className="glass-card rounded-2xl p-6 sm:p-8 shadow-2xl border border-slate-800">
+          {errorMessage && (
+            <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 flex items-start gap-2.5 text-xs text-red-400">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              <div className="flex-1">{errorMessage}</div>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Role selection */}
             <div>
@@ -83,7 +94,10 @@ export const Login = ({ onNavigateRegister, onNavigateForgot }) => {
                   type="email"
                   required
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (errorMessage) setErrorMessage("");
+                  }}
                   placeholder="name@company.com"
                   className="w-full bg-slate-800/90 border border-slate-700/80 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
                 />
@@ -110,7 +124,10 @@ export const Login = ({ onNavigateRegister, onNavigateForgot }) => {
                   type="password"
                   required
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (errorMessage) setErrorMessage("");
+                  }}
                   placeholder="Enter password"
                   className="w-full bg-slate-800/90 border border-slate-700/80 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
                 />
@@ -148,37 +165,37 @@ export const Login = ({ onNavigateRegister, onNavigateForgot }) => {
             </button>
           </form>
 
-          {/* Quick Demo Role Shortcuts */}
+          {/* Quick Demo Personas */}
           <div className="mt-6 pt-5 border-t border-slate-800">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-2.5 flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-              Quick Demo Personas:
+              Demo Personas (Instant Fill):
             </p>
             <div className="grid grid-cols-2 gap-1.5">
               <button
                 type="button"
-                onClick={() => handleQuickRole("Food Quality Inspector", "elena.inspector@freshguard.io")}
+                onClick={() => handleQuickRole("Food Quality Inspector", "inspector@freshness.io", "password123")}
                 className="text-left px-2.5 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-[11px] text-slate-300 transition-colors"
               >
                 🔬 Inspector
               </button>
               <button
                 type="button"
-                onClick={() => handleQuickRole("Retail Manager", "marcus.retail@freshguard.io")}
+                onClick={() => handleQuickRole("Retail Manager", "manager@freshness.io", "manager123")}
                 className="text-left px-2.5 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-[11px] text-slate-300 transition-colors"
               >
                 🛒 Retail Mgr
               </button>
               <button
                 type="button"
-                onClick={() => handleQuickRole("Warehouse Operator", "sam.warehouse@freshguard.io")}
+                onClick={() => handleQuickRole("Warehouse Operator", "warehouse@freshness.io", "warehouse123")}
                 className="text-left px-2.5 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-[11px] text-slate-300 transition-colors"
               >
                 📦 Warehouse
               </button>
               <button
                 type="button"
-                onClick={() => handleQuickRole("Administrator", "admin@freshguard.io")}
+                onClick={() => handleQuickRole("Administrator", "admin@freshness.io", "admin123")}
                 className="text-left px-2.5 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-[11px] text-slate-300 transition-colors"
               >
                 ⚙️ Admin
@@ -194,7 +211,7 @@ export const Login = ({ onNavigateRegister, onNavigateForgot }) => {
             onClick={onNavigateRegister}
             className="text-emerald-400 hover:text-emerald-300 font-semibold underline"
           >
-            Create account
+            Create account / Sign Up
           </button>
         </p>
       </div>

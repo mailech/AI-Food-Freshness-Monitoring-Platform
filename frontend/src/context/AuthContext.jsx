@@ -13,22 +13,18 @@ export const ROLES = [
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
-    const saved = localStorage.getItem("ffm_user");
-    return saved
-      ? JSON.parse(saved)
-      : {
-          id: "usr-demo-01",
-          name: "Dr. Elena Rostova",
-          email: "elena.inspector@freshguard.io",
-          role: "Food Quality Inspector",
-          token: "demo-jwt-token-active",
-        };
+    try {
+      const saved = localStorage.getItem("ffm_user");
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      return null;
+    }
   });
 
   const [isAuthenticated, setIsAuthenticated] = useState(!!user);
 
   useEffect(() => {
-    if (user) {
+    if (user && user.token) {
       localStorage.setItem("ffm_user", JSON.stringify(user));
       setIsAuthenticated(true);
     } else {
@@ -39,6 +35,12 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password, role) => {
     const data = await api.login(email, password, role);
+    setUser(data);
+    return data;
+  };
+
+  const register = async (name, email, password, role) => {
+    const data = await api.register(name, email, password, role);
     setUser(data);
     return data;
   };
@@ -54,7 +56,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, login, logout, setRole }}>
+    <AuthContext.Provider value={{ user, isAuthenticated, login, register, logout, setRole }}>
       {children}
     </AuthContext.Provider>
   );

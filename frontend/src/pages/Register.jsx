@@ -1,22 +1,24 @@
 import React, { useState } from "react";
-import { Leaf, Lock, Mail, User, Shield, ArrowRight } from "lucide-react";
+import { Leaf, Lock, Mail, User, Shield, ArrowRight, AlertCircle } from "lucide-react";
 import { useAuth, ROLES } from "../context/AuthContext";
 
 export const Register = ({ onNavigateLogin }) => {
-  const { login } = useAuth();
+  const { register } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("Consumer");
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setErrorMessage("");
     setIsLoading(true);
     try {
-      await login(email, password, role);
+      await register(name, email, password, role);
     } catch (err) {
-      console.error(err);
+      setErrorMessage(err.message || "Registration failed. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -38,6 +40,13 @@ export const Register = ({ onNavigateLogin }) => {
         </div>
 
         <div className="glass-card rounded-2xl p-6 sm:p-8 shadow-2xl border border-slate-800">
+          {errorMessage && (
+            <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 flex items-start gap-2.5 text-xs text-red-400">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              <div className="flex-1">{errorMessage}</div>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
@@ -49,8 +58,11 @@ export const Register = ({ onNavigateLogin }) => {
                   type="text"
                   required
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Dr. Alex Mercer"
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    if (errorMessage) setErrorMessage("");
+                  }}
+                  placeholder="e.g. Alex Mercer"
                   className="w-full bg-slate-800/90 border border-slate-700/80 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
                 />
               </div>
@@ -66,7 +78,10 @@ export const Register = ({ onNavigateLogin }) => {
                   type="email"
                   required
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (errorMessage) setErrorMessage("");
+                  }}
                   placeholder="alex.mercer@organization.com"
                   className="w-full bg-slate-800/90 border border-slate-700/80 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
                 />
@@ -103,8 +118,11 @@ export const Register = ({ onNavigateLogin }) => {
                   type="password"
                   required
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Min. 8 characters"
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (errorMessage) setErrorMessage("");
+                  }}
+                  placeholder="Min. 6 characters"
                   className="w-full bg-slate-800/90 border border-slate-700/80 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
                 />
               </div>
@@ -119,7 +137,7 @@ export const Register = ({ onNavigateLogin }) => {
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
                 <>
-                  <span>Create Account</span>
+                  <span>Sign Up & Continue</span>
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}

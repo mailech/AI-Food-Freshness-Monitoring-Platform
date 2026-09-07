@@ -1,38 +1,143 @@
-from fastapi import APIRouter, HTTPException, status
-from app.models.schemas import UserLogin, UserRegister, UserResponse
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+from datetime import datetime
 import uuid
+
+from app.db.session import get_db
+from app.models.orm import UserORM
+from app.models.schemas import (
+    UserLogin, UserRegister, UserResponse, UserProfile
+)
+from app.core.security import (
+    hash_password, verify_password, create_access_token
+)
+from app.api.deps import get_current_user
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
-@router.post("/login", response_model=UserResponse)
-def login(payload: UserLogin):
-    # Polished demo login accepting demo credentials and any valid format
-    email = payload.email.strip()
-    role = payload.role or "Food Quality Inspector"
+@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+def register(payload: UserRegister, db: Session = Depends(get_db)):
+    """Register a new user account with hashed password and return JWT access token."""
+    email = payload.email.strip().lower()
     
-    # Simple role mapping based on email or specified role
-    name = email.split("@")[0].replace(".", " ").title() if "@" in email else "Demo User"
-    if not name:
-        name = "Quality Inspector"
+    # Check if user already exists
+    existing_user = db.query(UserORM).filter(UserORM.email == email).first()
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="An account with this email address already exists. Please log in instead."
+        )
+    
+    if not payload.name or len(payload.name.strip()) < 2:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Please provide a valid full name."
+        )
 
-    return UserResponse(
-        id=f"user-{uuid.uuid4().hex[:6]}",
-        name=name,
+    if not payload.password or len(payload.password) < 6:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password must be at least 6 characters long."
+        )
+    
+    # Hash password securely with bcrypt
+    hashed = hash_password(payload.password)
+    role = payload.role or "Consumer"
+    user_id = f"user-{uuid.uuid4().hex[:8]}"
+    
+    user = UserORM(
+        id=user_id,
+        name=payload.name.strip(),
         email=email,
+        password_hash=hashed,
         role=role,
-        token=f"demo-jwt-token-{uuid.uuid4().hex}"
+        created_at=datetime.utcnow()
+    )
+    
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    
+    # Generate cryptographic JWT
+    token = create_access_token(
+        subject=user.id,
+        email=user.email,
+        role=user.role,
+        name=user.name
+    )
+    
+    return UserResponse(
+        id=user.id,
+        name=user.name,
+        email=user.email,
+        role=user.role,
+        token=token
     )
 
-@router.post("/register", response_model=UserResponse)
-def register(payload: UserRegister):
+@router.post("/login", response_model=UserResponse)
+def login(payload: UserLogin, db: Session = Depends(get_db)):
+    """Authenticate existing user credentials and issue a signed JWT access token."""
+    email = payload.email.strip().lower()
+    password = payload.password
+    
+    user = db.query(UserORM).filter(UserORM.email == email).first()
+    
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Account not found. Please create an account / sign up first.",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+    
+    # Check password hash
+    if user.password_hash:
+        if not verify_password(password, user.password_hash):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect password. Please try again.",
+                headers={"WWW-Authenticate": "Bearer"}
+            )
+    else:
+        # If legacy demo record without hash, set hash on first login
+        user.password_hash = hash_password(password)
+        db.commit()
+        
+    # Update role if explicitly supplied and user chose to switch persona
+    if payload.role and payload.role != user.role:
+        user.role = payload.role
+        db.commit()
+        
+    # Generate cryptographically signed JWT token
+    token = create_access_token(
+        subject=user.id,
+        email=user.email,
+        role=user.role,
+        name=user.name
+    )
+    
     return UserResponse(
-        id=f"user-{uuid.uuid4().hex[:6]}",
-        name=payload.name,
-        email=payload.email,
-        role=payload.role,
-        token=f"demo-jwt-token-{uuid.uuid4().hex}"
+        id=user.id,
+        name=user.name,
+        email=user.email,
+        role=user.role,
+        token=token
+    )
+
+@router.get("/me", response_model=UserProfile)
+def get_me(current_user: UserORM = Depends(get_current_user)):
+    """Fetch current user profile authenticated via JWT Bearer token."""
+    return UserProfile(
+        id=current_user.id,
+        name=current_user.name,
+        email=current_user.email,
+        role=current_user.role,
+        created_at=str(current_user.created_at) if current_user.created_at else None
     )
 
 @router.post("/forgot-password")
 def forgot_password(email: str):
-    return {"message": f"Password reset instructions sent to {email}", "success": True}
+    """Initiate password recovery flow."""
+    return {
+        "message": f"Password reset instructions sent to {email.strip()}",
+        "success": True
+    }

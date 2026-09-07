@@ -3,3 +3,7 @@ uvicorn>=0.28.0
 pydantic>=2.6.0
 python-multipart>=0.0.9
 pillow>=10.2.0
+pyjwt>=2.8.0
+bcrypt>=4.1.0
+sqlalchemy>=2.0.0
+python-dotenv>=1.0.0

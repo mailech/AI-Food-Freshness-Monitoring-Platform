@@ -1,18 +1,31 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional, Dict, Any
 from datetime import datetime, date
+
+class TokenPayload(BaseModel):
+    sub: str
+    email: str
+    role: str
+    name: Optional[str] = None
+    exp: int
+    iat: Optional[int] = None
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    expires_in: int
 
 class UserLogin(BaseModel):
     email: str
     password: str
     remember_me: Optional[bool] = False
-    role: Optional[str] = "Food Quality Inspector"
+    role: Optional[str] = None
 
 class UserRegister(BaseModel):
     name: str
     email: str
     password: str
-    role: str = "Consumer"
+    role: Optional[str] = "Consumer"
 
 class UserResponse(BaseModel):
     id: str
@@ -20,6 +33,13 @@ class UserResponse(BaseModel):
     email: str
     role: str
     token: str
+
+class UserProfile(BaseModel):
+    id: str
+    name: str
+    email: str
+    role: str
+    created_at: Optional[str] = None
 
 class FoodItemCreate(BaseModel):
     name: str

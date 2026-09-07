@@ -378,38 +378,67 @@ const FALLBACK_FOODS = [
   }
 ];
 
+export const getAuthToken = () => {
+  try {
+    const saved = localStorage.getItem("ffm_user");
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      return parsed.token || null;
+    }
+  } catch (e) {
+    // Ignore storage parse error
+  }
+  return null;
+};
+
+export const getAuthHeaders = (extra = {}) => {
+  const token = getAuthToken();
+  const headers = { ...extra };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  return headers;
+};
+
 export const api = {
   // Auth
   login: async (email, password, role) => {
-    try {
-      const res = await fetch(`${API_BASE}/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, role }),
-      });
-      if (!res.ok) throw new Error("Login failed");
-      return await res.json();
-    } catch (e) {
-      return {
-        id: "demo-user-1",
-        name: email.split("@")[0].replace(".", " ") || "Demo User",
-        email,
-        role: role || "Food Quality Inspector",
-        token: "demo-token"
-      };
+    const res = await fetch(`${API_BASE}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password, role }),
+    });
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.detail || "Invalid credentials or account not found");
     }
+    return await res.json();
   },
 
   register: async (name, email, password, role) => {
+    const res = await fetch(`${API_BASE}/auth/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, email, password, role }),
+    });
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.detail || "Registration failed");
+    }
+    return await res.json();
+  },
+
+  getMe: async () => {
+    const token = getAuthToken();
+    if (!token) return null;
     try {
-      const res = await fetch(`${API_BASE}/auth/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password, role }),
+      const res = await fetch(`${API_BASE}/auth/me`, {
+        headers: getAuthHeaders({ "Content-Type": "application/json" }),
       });
+      if (!res.ok) throw new Error("Invalid session");
       return await res.json();
     } catch (e) {
-      return { id: "demo-user-2", name, email, role, token: "demo-token" };
+      return null;
     }
   },
 
