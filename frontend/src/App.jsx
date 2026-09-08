@@ -4,6 +4,7 @@ import * as auth from './services/auth'
 import { ApiError } from './services/api'
 import * as inventoryApi from './services/inventory'
 import * as freshnessApi from './services/freshness'
+import * as freshnessScoringApi from './services/freshnessScoring'
 import * as shelfLifeApi from './services/shelfLife'
 import './App.css'
 import './Analysis.css'
@@ -14,7 +15,7 @@ import './Alerts.css'
 
 const allPages = [
   ['dashboard', 'Dashboard', '▦'], ['inventory', 'Inventory', '□'],
-  ['analysis', 'Freshness Analysis', '◔'], ['shelfLife', 'Shelf-Life Prediction', '◷'], ['storage', 'Storage Monitoring', '♧'], ['recommendations', 'Recommendations', '✦'],
+  ['analysis', 'Freshness Analysis', '◔'], ['scoring', 'Freshness Scoring', '◎'], ['shelfLife', 'Shelf-Life Prediction', '◷'], ['storage', 'Storage Monitoring', '♧'], ['recommendations', 'Recommendations', '✦'],
   ['alerts', 'Alerts & Notifications', '!'], ['reports', 'Reports & Export', '▤'], ['profile', 'Profile', '◉'],
 ]
 const items = [
@@ -26,8 +27,8 @@ const alerts = [['Critical', 'Shelf-life warning: chicken batch', '12 min ago'],
 const category = score => score >= 85 ? ['Fresh', 'success'] : score >= 70 ? ['Good', 'success'] : score >= 50 ? ['Acceptable', 'warning'] : score >= 35 ? ['Near Spoilage', 'warning'] : ['Spoiled', 'danger']
 const toSession = user => ({ ...user, identity: user.name })
 const allowedFor = role => {
-  if (role === 'Consumer') return ['dashboard', 'inventory', 'analysis', 'shelfLife', 'alerts', 'recommendations', 'profile']
-  if (role === 'Food Quality Inspector') return ['dashboard', 'inventory', 'analysis', 'shelfLife', 'alerts', 'recommendations', 'reports', 'profile']
+  if (role === 'Consumer') return ['dashboard', 'inventory', 'analysis', 'scoring', 'shelfLife', 'alerts', 'recommendations', 'profile']
+  if (role === 'Food Quality Inspector') return ['dashboard', 'inventory', 'analysis', 'scoring', 'shelfLife', 'alerts', 'recommendations', 'reports', 'profile']
   return allPages.map(([id]) => id)
 }
 
@@ -71,6 +72,7 @@ export default function App() {
         {page === 'dashboard' && <Dashboard role={session.role} />}
         {page === 'inventory' && <Inventory role={session.role} onUnauthorized={() => setSession(null)} />}
         {page === 'analysis' && <AnalysisPage role={session.role} onUnauthorized={() => setSession(null)} />}
+        {page === 'scoring' && <FreshnessScoring role={session.role} onUnauthorized={() => setSession(null)} />}
         {page === 'shelfLife' && <ShelfLife role={session.role} onUnauthorized={() => setSession(null)} />}
         {page === 'storage' && <StorageMonitoring />}
         {page === 'recommendations' && <Recommendations />}
@@ -204,6 +206,28 @@ const freshnessError = error => {
   return error.message || 'Unable to complete the freshness request.'
 }
 const analysisStatus = analysis => analysis.analysis_result?.status || (analysis.freshness_category ? 'complete' : 'pending_model_integration')
+const SCORING_WEIGHT_LABELS = [
+  ['Visual freshness', '40%'],
+  ['Storage conditions', '25%'],
+  ['Shelf-life', '20%'],
+  ['Product age', '15%'],
+]
+const canManageFreshnessScoring = role => ['Retail Manager', 'Warehouse Operator', 'Food Quality Inspector', 'Administrator'].includes(role)
+const scoringError = error => {
+  if (!(error instanceof ApiError)) return 'Unable to complete the freshness scoring request.'
+  if (error.status === 403) return 'Access denied. Your account cannot modify freshness scores.'
+  if (error.status === 404) return error.message || 'The selected food batch or freshness score was not found.'
+  if (error.status === 409) return error.message || 'This freshness score conflicts with an existing record.'
+  if (error.status === 422) return error.message || 'Please correct the scoring details.'
+  return error.message || 'Unable to complete the freshness scoring request.'
+}
+const isPendingScore = entry => !entry || entry.status === 'pending_model_integration' || entry.freshness_score == null
+const scoringValue = value => (value == null || value === '' ? 'Not available' : String(value))
+const scoringWeight = value => {
+  if (value == null || value === '') return 'Not available'
+  const percent = Number(value) * 100
+  return Number.isNaN(percent) ? String(value) : `${Number.isInteger(percent) ? percent : percent.toFixed(0)}%`
+}
 const analysisDate = value => new Date(value).toLocaleString()
 
 function AnalysisPage({ role, onUnauthorized }) {
@@ -393,6 +417,132 @@ function StorageMonitoring() {
     <Panel title="Update storage conditions" text="Enter the latest environmental conditions."><div className="storage-form"><FormField label="Temperature (°C)"><input required type="number" step="0.1" value={form.temperature} onChange={update('temperature')} /></FormField><FormField label="Humidity (%)"><input required type="number" min="0" max="100" value={form.humidity} onChange={update('humidity')} /></FormField><FormField label="Air Circulation"><select value={form.air} onChange={update('air')}><option>Good</option><option>Limited</option><option>Poor</option></select></FormField><FormField label="Light Exposure"><select value={form.light} onChange={update('light')}><option>Low</option><option>Moderate</option><option>High</option></select></FormField><FormField label="Storage Duration (days)"><input required type="number" min="0" value={form.duration} onChange={update('duration')} /></FormField><div className="storage-update"><button className="button primary" disabled={!complete} onClick={updateConditions}>Update Conditions</button>{message && <p className="upload-error">{message}</p>}</div></div></Panel>
     <div className="storage-main-grid"><Panel title="Storage impact" text="How the current environment may affect food freshness."><div className="storage-impact-copy"><b>{condition.status === 'Optimal' ? 'Current storage conditions are stable.' : 'Current storage conditions need closer attention.'}</b><p>{condition.status === 'Optimal' ? 'Maintaining consistent environmental conditions can help preserve freshness and shelf life.' : 'Review the highlighted conditions to help protect freshness and expected shelf life.'}</p></div></Panel><Panel title="Storage alerts" text="Current storage-related notifications."><div className="storage-alerts">{alerts.length ? alerts.map(alert => <div className="storage-alert" key={alert}><i>!</i><span>{alert}</span></div>) : <div className="storage-alert clear"><i>✓</i><span>No active storage alerts</span></div>}</div></Panel></div>
     <Panel title="Storage trend" text="Temperature and humidity readings over recent storage checks."><div className="storage-trend"><div className="trend-legend"><span><i className="temperature-dot"></i>Temperature</span><span><i className="humidity-dot"></i>Humidity</span></div><div className="storage-chart"><div className="chart-line temperature-line"><i></i><i></i><i></i><i></i><i></i></div><div className="chart-line humidity-line"><i></i><i></i><i></i><i></i><i></i></div><div className="chart-dates"><span>Day 1</span><span>Day 2</span><span>Day 3</span><span>Day 4</span><span>Today</span></div></div></div></Panel>
+  </>
+}
+
+function FreshnessScoring({ role, onUnauthorized }) {
+  const [batches, setBatches] = useState([])
+  const [batchesLoading, setBatchesLoading] = useState(true)
+  const [foodBatchId, setFoodBatchId] = useState('')
+  const [result, setResult] = useState(null)
+  const [history, setHistory] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [message, setMessage] = useState('')
+  const [error, setError] = useState('')
+  const editable = canManageFreshnessScoring(role)
+  const busy = loading || deleting
+  const selectedBatch = batches.find(entry => String(entry.id) === String(foodBatchId))
+  const pending = result && isPendingScore(result)
+  const handleError = caught => {
+    if (caught instanceof ApiError && caught.status === 401) { auth.logout(); onUnauthorized(); return }
+    setError(scoringError(caught))
+  }
+  const loadHistory = async batchId => {
+    if (!batchId) { setHistory([]); return }
+    try { setHistoryLoading(true); setHistory(await freshnessScoringApi.getBatchScores(batchId)) }
+    catch (requestError) { handleError(requestError) }
+    finally { setHistoryLoading(false) }
+  }
+  useEffect(() => {
+    setBatchesLoading(true)
+    inventoryApi.getBatches().then(setBatches).catch(handleError).finally(() => setBatchesLoading(false))
+  }, [])
+  const selectBatch = event => {
+    const batchId = event.target.value
+    setFoodBatchId(batchId)
+    setResult(null); setError(''); setMessage('')
+    loadHistory(batchId)
+  }
+  const createScore = async () => {
+    if (!foodBatchId) { setError('Please select a food batch.'); return }
+    if (!editable) { setError('Access denied. Your account cannot modify freshness scores.'); return }
+    try {
+      setLoading(true); setError(''); setMessage('')
+      const created = await freshnessScoringApi.createScore(foodBatchId)
+      setResult(created)
+      setMessage('Freshness score record created.')
+      await loadHistory(foodBatchId)
+    } catch (requestError) { handleError(requestError) }
+    finally { setLoading(false) }
+  }
+  const removeScore = async scoreId => {
+    try {
+      setDeleting(true); setError(''); setMessage('')
+      await freshnessScoringApi.deleteScore(scoreId)
+      if (result?.id === scoreId) setResult(null)
+      await loadHistory(foodBatchId)
+      setMessage('Freshness score deleted.')
+    } catch (requestError) { handleError(requestError) }
+    finally { setDeleting(false) }
+  }
+  const reset = () => { setResult(null); setError(''); setMessage('') }
+  const components = result ? [
+    ['Visual freshness', result.visual_freshness_score, result.visual_weight],
+    ['Storage conditions', result.storage_condition_score, result.storage_weight],
+    ['Shelf-life', result.shelf_life_score, result.shelf_life_weight],
+    ['Product age', result.product_age_score, result.product_age_weight],
+  ] : []
+  return <>
+    <Title title="Freshness Scoring" text="Create a composite freshness-score evaluation for a real inventory batch. Component scores are stored by the backend and are not calculated in the browser." />
+    <div className="scoring-note">Documented model weights: Visual freshness 40% · Storage conditions 25% · Shelf-life 20% · Product age 15%. The overall score is returned by the API when component values exist.</div>
+    {message && <p className="inventory-note" role="status">{message}</p>}
+    {error && <p className="error inventory-note" role="alert">{error}</p>}
+    <div className="scoring-workspace">
+      <Panel title="Food batch" text="Select a real inventory batch. Scores are created for this batch only.">
+        <div className="scoring-fields">
+          <FormField label="Food batch">
+            <select required value={foodBatchId} onChange={selectBatch} disabled={batchesLoading}>
+              <option value="">{batchesLoading ? 'Loading inventory batches…' : batches.length ? 'Select an inventory batch' : 'No inventory batches available'}</option>
+              {batches.map(batch => <option key={batch.id} value={batch.id}>{batch.food_item.name} · {batch.batch_number}</option>)}
+            </select>
+          </FormField>
+          <FormField label="Food/Product Name"><input value={selectedBatch?.food_item?.name || ''} readOnly placeholder="Selected from the batch" /></FormField>
+          <FormField label="Category"><input value={selectedBatch?.food_item?.category || ''} readOnly placeholder="Selected from the batch" /></FormField>
+        </div>
+        <div className="scoring-actions">
+          <button className="button primary" disabled={!editable || busy || !foodBatchId || batchesLoading} onClick={createScore}>{loading ? 'Saving…' : 'Generate Score'}</button>
+        </div>
+        {!editable && <small className="button-hint">Your role can view score history but cannot create or delete scores.</small>}
+        {editable && !foodBatchId && <small className="button-hint">Select an inventory batch to create a score record.</small>}
+      </Panel>
+      <Panel title="Scoring model" text="Explanatory weights used by the backend scoring model.">
+        {SCORING_WEIGHT_LABELS.map(item => <div className="signal" key={item[0]}><span>{item[0]}</span><b>{item[1]} weight</b></div>)}
+      </Panel>
+    </div>
+    {result && <section className="scoring-results">
+      <div className="scoring-heading">
+        <div>
+          <small>FRESHNESS SCORE</small>
+          <h2>{selectedBatch?.food_item?.name || 'Selected batch'}</h2>
+          <p>{[selectedBatch?.food_item?.category, selectedBatch?.batch_number ? `Batch ${selectedBatch.batch_number}` : '', `Record #${result.id}`].filter(Boolean).join(' · ')}</p>
+        </div>
+        <button className="button secondary" onClick={reset}>New Score</button>
+      </div>
+      {pending && <div className="analysis-summary"><b>Score pending model integration</b><p>The evaluation record was created with status {result.status}. Component scores and the overall score are not available until the backend supplies them.</p></div>}
+      <div className="scoring-grid">
+        <article className="scoring-highlight"><span>Overall freshness score</span><b>{pending ? 'Not available' : scoringValue(result.freshness_score)}</b><small>{pending ? 'Unavailable until component scores exist' : 'Returned by the scoring API'}</small></article>
+        <article className="scoring-stat"><span>Status</span><b>{result.status || 'Not available'}</b><small>Backend evaluation status</small></article>
+        <article className="scoring-stat"><span>Created</span><b>{result.created_at ? analysisDate(result.created_at) : 'Not available'}</b><small>Recorded timestamp</small></article>
+      </div>
+      <div className="scoring-components">
+        {components.map(item => <div className="signal" key={item[0]}><span>{item[0]}</span><b>{scoringValue(item[1])} · {scoringWeight(item[2])}</b></div>)}
+      </div>
+    </section>}
+    <Panel title="Score history" text={foodBatchId ? 'Persisted scoring evaluations for the selected inventory batch.' : 'Select an inventory batch to view persisted scores.'}>
+      <div className="scoring-history">
+        {historyLoading ? <p className="button-hint">Loading score history…</p> : history.length ? history.map(entry => {
+          const pendingEntry = isPendingScore(entry)
+          return <div className="history-row" key={entry.id}>
+            <div><b>Score #{entry.id}</b><small>{entry.created_at ? analysisDate(entry.created_at) : 'Timestamp not available'}</small></div>
+            <strong>{pendingEntry ? 'Pending' : scoringValue(entry.freshness_score)}</strong>
+            <em className={'badge ' + (pendingEntry ? 'warning' : 'success')}>{pendingEntry ? entry.status || 'Pending' : 'Recorded'}</em>
+            {editable && <button className="link delete" disabled={busy} onClick={() => removeScore(entry.id)}>Delete</button>}
+          </div>
+        }) : <p className="button-hint">{foodBatchId ? 'No freshness scores have been recorded for this batch.' : 'Select an inventory batch to view persisted scores.'}</p>}
+      </div>
+    </Panel>
   </>
 }
 
