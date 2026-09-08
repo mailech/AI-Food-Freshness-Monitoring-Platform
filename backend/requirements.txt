@@ -1,2 +1,12 @@
+alembic
+email-validator
 fastapi
+pydantic-settings
+pwdlib[argon2]
+psycopg[binary]
+PyJWT
+SQLAlchemy
+python-multipart
+openpyxl
+reportlab
 uvicorn[standard]

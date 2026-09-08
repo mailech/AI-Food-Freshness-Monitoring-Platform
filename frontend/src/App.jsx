@@ -1,5 +1,10 @@
-import { useState } from 'react'
-import DemoAuth from './components/DemoAuth'
+import { useEffect, useState } from 'react'
+import Auth from './components/Auth'
+import * as auth from './services/auth'
+import { ApiError } from './services/api'
+import * as inventoryApi from './services/inventory'
+import * as freshnessApi from './services/freshness'
+import * as shelfLifeApi from './services/shelfLife'
 import './App.css'
 import './Analysis.css'
 import './ShelfLife.css'
@@ -19,6 +24,7 @@ const items = [
 ]
 const alerts = [['Critical', 'Shelf-life warning: chicken batch', '12 min ago'], ['Warning', 'Cold room A needs review', '34 min ago'], ['Normal', 'Fresh batch ready for dispatch', '1 hour ago']]
 const category = score => score >= 85 ? ['Fresh', 'success'] : score >= 70 ? ['Good', 'success'] : score >= 50 ? ['Acceptable', 'warning'] : score >= 35 ? ['Near Spoilage', 'warning'] : ['Spoiled', 'danger']
+const toSession = user => ({ ...user, identity: user.name })
 const allowedFor = role => {
   if (role === 'Consumer') return ['dashboard', 'inventory', 'analysis', 'shelfLife', 'alerts', 'recommendations', 'profile']
   if (role === 'Food Quality Inspector') return ['dashboard', 'inventory', 'analysis', 'shelfLife', 'alerts', 'recommendations', 'reports', 'profile']
@@ -27,9 +33,27 @@ const allowedFor = role => {
 
 export default function App() {
   const [session, setSession] = useState(null)
+  const [restoringSession, setRestoringSession] = useState(true)
   const [page, setPage] = useState('dashboard')
   const [open, setOpen] = useState(false)
-  if (!session) return <DemoAuth onAuthenticated={account => { setSession(account); setPage('dashboard') }} />
+  useEffect(() => {
+    const restore = async () => {
+      if (!auth.hasSession()) { setRestoringSession(false); return }
+      try {
+        setSession(toSession(await auth.getCurrentUser()))
+      } catch {
+        auth.logout()
+      } finally {
+        setRestoringSession(false)
+      }
+    }
+    restore()
+  }, [])
+  useEffect(() => {
+    if (!restoringSession && !session) auth.logout()
+  }, [restoringSession, session])
+  if (restoringSession) return null
+  if (!session) return <Auth onAuthenticated={account => { setSession(toSession(account)); setPage('dashboard') }} />
 
   const visible = allPages.filter(([id]) => allowedFor(session.role).includes(id))
   const current = allPages.find(([id]) => id === page)?.[1] || 'Dashboard'
@@ -45,9 +69,9 @@ export default function App() {
     <main><header><button className="hamb" onClick={() => setOpen(true)}>☰</button><div><p>Food Freshness Monitoring Platform / {current}</p><h2>{current}</h2></div><div className="person"><span>{session.identity[0]}</span><b>{session.identity}<small>{session.role}</small></b></div></header>
       <div className="content">
         {page === 'dashboard' && <Dashboard role={session.role} />}
-        {page === 'inventory' && <Inventory />}
-        {page === 'analysis' && <AnalysisPage />}
-        {page === 'shelfLife' && <ShelfLife />}
+        {page === 'inventory' && <Inventory role={session.role} onUnauthorized={() => setSession(null)} />}
+        {page === 'analysis' && <AnalysisPage role={session.role} onUnauthorized={() => setSession(null)} />}
+        {page === 'shelfLife' && <ShelfLife role={session.role} onUnauthorized={() => setSession(null)} />}
         {page === 'storage' && <StorageMonitoring />}
         {page === 'recommendations' && <Recommendations />}
         {page === 'alerts' && <AlertsNotifications />}
@@ -80,13 +104,8 @@ function Dashboard({ role }) {
 const FOOD_CATEGORIES = ['Fruits', 'Vegetables', 'Dairy', 'Meat & Poultry', 'Seafood', 'Bakery', 'Packaged Foods', 'Beverages']
 const UNITS = ['kg', 'g', 'L', 'mL', 'Units', 'Packs', 'Boxes']
 const dateOffset = days => { const date = new Date(); date.setDate(date.getDate() + days); return date.toISOString().slice(0, 10) }
-const inventorySeed = () => [
-  { id: 1, name: 'Strawberries', category: 'Fruits', batchId: 'FR-2408', quantity: '48', unit: 'kg', location: 'Cold Room A', addedDate: dateOffset(-2), expiryDate: dateOffset(4) },
-  { id: 2, name: 'Whole Milk', category: 'Dairy', batchId: 'DY-1182', quantity: '120', unit: 'L', location: 'Cold Room B', addedDate: dateOffset(-3), expiryDate: dateOffset(2) },
-  { id: 3, name: 'Atlantic Salmon', category: 'Seafood', batchId: 'SF-9014', quantity: '36', unit: 'kg', location: 'Cold Room A', addedDate: dateOffset(-1), expiryDate: dateOffset(-1) },
-  { id: 4, name: 'Wholegrain Bread', category: 'Bakery', batchId: 'BK-3610', quantity: '24', unit: 'Packs', location: 'Dry Store', addedDate: dateOffset(0), expiryDate: dateOffset(5) },
-]
 const itemStatus = expiryDate => {
+  if (!expiryDate) return 'Fresh'
   const today = new Date(); today.setHours(0, 0, 0, 0)
   const expiry = new Date(`${expiryDate}T00:00:00`)
   const days = Math.ceil((expiry - today) / 86400000)
@@ -94,86 +113,201 @@ const itemStatus = expiryDate => {
 }
 const emptyInventoryItem = () => ({ name: '', category: 'Fruits', batchId: '', quantity: '', unit: 'kg', location: '', addedDate: dateOffset(0), expiryDate: dateOffset(7) })
 
-function Inventory() {
-  const [inventory, setInventory] = useState(inventorySeed)
+const canModifyInventory = role => ['Retail Manager', 'Warehouse Operator', 'Administrator'].includes(role)
+const friendlyInventoryError = error => {
+  if (!(error instanceof ApiError)) return 'Unable to complete the inventory request.'
+  if (error.status === 403) return 'Access denied. Your account cannot modify inventory.'
+  if (error.status === 404) return 'The requested inventory record was not found.'
+  if (error.status === 409) return 'A batch with this number already exists for this food item.'
+  if (error.status === 422) return error.message || 'Please correct the highlighted inventory details.'
+  return error.message
+}
+const batchToRow = batch => ({ id: `batch-${batch.id}`, batchRecordId: batch.id, itemId: batch.food_item_id, name: batch.food_item.name, category: batch.food_item.category, batchId: batch.batch_number, quantity: String(batch.quantity), unit: batch.unit, location: batch.storage_location, addedDate: batch.purchase_date || '', expiryDate: batch.expiry_date || '', status: batch.expiry_status })
+const itemWithoutBatchToRow = item => ({ id: `item-${item.id}`, batchRecordId: null, itemId: item.id, name: item.name, category: item.category, batchId: '', quantity: '', unit: '', location: '', addedDate: '', expiryDate: '', status: 'Fresh' })
+
+function Inventory({ role, onUnauthorized }) {
+  const [inventory, setInventory] = useState([])
   const [query, setQuery] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('All categories')
   const [statusFilter, setStatusFilter] = useState('All statuses')
   const [editing, setEditing] = useState(null)
   const [formOpen, setFormOpen] = useState(false)
   const [form, setForm] = useState(emptyInventoryItem)
-  const openAdd = () => { setEditing(null); setForm(emptyInventoryItem()); setFormOpen(true) }
-  const openEdit = item => { setEditing(item.id); setForm({ ...item }); setFormOpen(true) }
+  const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
+  const [message, setMessage] = useState('')
+  const [error, setError] = useState('')
+  const editable = canModifyInventory(role)
+  const loadInventory = async () => {
+    setLoading(true); setError('')
+    try {
+      const [items, batches] = await Promise.all([inventoryApi.getItems(), inventoryApi.getBatches()])
+      const itemIdsWithBatches = new Set(batches.map(batch => batch.food_item_id))
+      setInventory([...batches.map(batchToRow), ...items.filter(item => !itemIdsWithBatches.has(item.id)).map(itemWithoutBatchToRow)])
+    } catch (requestError) {
+      if (requestError instanceof ApiError && requestError.status === 401) { auth.logout(); onUnauthorized(); return }
+      setError(friendlyInventoryError(requestError))
+    } finally { setLoading(false) }
+  }
+  useEffect(() => { loadInventory() }, [])
+  const openAdd = () => { setEditing(null); setForm(emptyInventoryItem()); setError(''); setFormOpen(true) }
+  const openEdit = item => { setEditing(item); setForm({ ...item }); setError(''); setFormOpen(true) }
   const closeForm = () => { setEditing(null); setForm(emptyInventoryItem()); setFormOpen(false) }
-  const saveItem = event => {
+  const saveItem = async event => {
     event.preventDefault()
-    if (editing) setInventory(current => current.map(item => item.id === editing ? { ...form, id: editing } : item))
-    else setInventory(current => [...current, { ...form, id: Date.now() }])
-    closeForm()
+    setSubmitting(true); setError(''); setMessage('')
+    const itemPayload = { name: form.name.trim(), category: form.category }
+    const batchPayload = { batch_number: form.batchId.trim(), quantity: Number(form.quantity), unit: form.unit, storage_location: form.location.trim(), purchase_date: form.addedDate, expiry_date: form.expiryDate }
+    try {
+      if (editing) {
+        await inventoryApi.updateItem(editing.itemId, itemPayload)
+        if (editing.batchRecordId) await inventoryApi.updateBatch(editing.batchRecordId, batchPayload)
+        else await inventoryApi.createBatch(editing.itemId, batchPayload)
+        setMessage('Food item updated successfully.')
+      } else {
+        const created = await inventoryApi.createItem(itemPayload)
+        await inventoryApi.createBatch(created.id, batchPayload)
+        setMessage('Food item and batch added successfully.')
+      }
+      await loadInventory(); closeForm()
+    } catch (requestError) {
+      if (requestError instanceof ApiError && requestError.status === 401) { auth.logout(); onUnauthorized() }
+      else setError(friendlyInventoryError(requestError))
+    } finally { setSubmitting(false) }
+  }
+  const removeItem = async item => {
+    if (!window.confirm(`Delete ${item.name} and its batches?`)) return
+    setError(''); setMessage('')
+    try { await inventoryApi.deleteItem(item.itemId); await loadInventory(); setMessage('Food item deleted successfully.') }
+    catch (requestError) { if (requestError instanceof ApiError && requestError.status === 401) { auth.logout(); onUnauthorized() } else setError(friendlyInventoryError(requestError)) }
   }
   const filtered = inventory.filter(item => {
     const matchesQuery = [item.name, item.batchId, item.location].some(value => value.toLowerCase().includes(query.toLowerCase()))
     return matchesQuery && (categoryFilter === 'All categories' || item.category === categoryFilter) && (statusFilter === 'All statuses' || itemStatus(item.expiryDate) === statusFilter)
   })
   return <>
-    <div className="heading inventory-heading"><div><small>INVENTORY MANAGEMENT</small><h1>Inventory Management</h1><p>Manage food items, batches, quantities, storage locations and expiry information.</p></div><button className="button primary" onClick={openAdd}>+ Add Food Item</button></div>
+    <div className="heading inventory-heading"><div><small>INVENTORY MANAGEMENT</small><h1>Inventory Management</h1><p>Manage food items, batches, quantities, storage locations and expiry information.</p></div>{editable && <button className="button primary" onClick={openAdd}>+ Add Food Item</button>}</div>
     <div className="tools inventory-tools"><input aria-label="Search inventory" placeholder="Search items, batch ID or location..." value={query} onChange={event => setQuery(event.target.value)} /><select aria-label="Filter by category" value={categoryFilter} onChange={event => setCategoryFilter(event.target.value)}><option>All categories</option>{FOOD_CATEGORIES.map(category => <option key={category}>{category}</option>)}</select><select aria-label="Filter by status" value={statusFilter} onChange={event => setStatusFilter(event.target.value)}><option>All statuses</option><option>Fresh</option><option>Near Expiry</option><option>Expired</option></select></div>
-    <Panel title="Food inventory" text={`${filtered.length} item${filtered.length === 1 ? '' : 's'} shown`}><div className="table inventory-table"><table><thead><tr><th>Item Name</th><th>Category</th><th>Batch ID</th><th>Quantity</th><th>Unit</th><th>Storage Location</th><th>Added Date</th><th>Expiry Date</th><th>Status</th><th>Actions</th></tr></thead><tbody>{filtered.length ? filtered.map(item => { const status = itemStatus(item.expiryDate); return <tr key={item.id}><td><b>{item.name}</b></td><td>{item.category}</td><td>{item.batchId}</td><td>{item.quantity}</td><td>{item.unit}</td><td>{item.location}</td><td>{item.addedDate}</td><td>{item.expiryDate}</td><td><em className={'badge ' + (status === 'Fresh' ? 'success' : status === 'Near Expiry' ? 'warning' : 'danger')}>{status}</em></td><td className="inventory-actions"><button className="link" onClick={() => openEdit(item)}>Edit</button><button className="link delete" onClick={() => setInventory(current => current.filter(entry => entry.id !== item.id))}>Delete</button></td></tr> }) : <tr><td className="empty-inventory" colSpan="10">No inventory items match your search or filters.</td></tr>}</tbody></table></div></Panel>
-    {formOpen && <div className="modal-backdrop" onMouseDown={closeForm}><section className="inventory-modal" role="dialog" aria-modal="true" aria-labelledby="item-form-title" onMouseDown={event => event.stopPropagation()}><div className="modal-title"><div><small>INVENTORY ITEM</small><h2 id="item-form-title">{editing ? 'Edit Food Item' : 'Add Food Item'}</h2></div><button className="modal-close" type="button" onClick={closeForm} aria-label="Close form">×</button></div><form className="inventory-form" onSubmit={saveItem}><FormField label="Item Name"><input required value={form.name} onChange={event => setForm(current => ({ ...current, name: event.target.value }))} /></FormField><FormField label="Category"><select value={form.category} onChange={event => setForm(current => ({ ...current, category: event.target.value }))}>{FOOD_CATEGORIES.map(category => <option key={category}>{category}</option>)}</select></FormField><FormField label="Batch ID"><input required value={form.batchId} onChange={event => setForm(current => ({ ...current, batchId: event.target.value }))} /></FormField><FormField label="Quantity"><input required min="0" step="any" type="number" value={form.quantity} onChange={event => setForm(current => ({ ...current, quantity: event.target.value }))} /></FormField><FormField label="Unit"><select value={form.unit} onChange={event => setForm(current => ({ ...current, unit: event.target.value }))}>{UNITS.map(unit => <option key={unit}>{unit}</option>)}</select></FormField><FormField label="Storage Location"><input required value={form.location} onChange={event => setForm(current => ({ ...current, location: event.target.value }))} /></FormField><FormField label="Added Date"><input required type="date" value={form.addedDate} onChange={event => setForm(current => ({ ...current, addedDate: event.target.value }))} /></FormField><FormField label="Expiry Date"><input required type="date" value={form.expiryDate} onChange={event => setForm(current => ({ ...current, expiryDate: event.target.value }))} /></FormField><div className="form-actions"><button type="button" className="button secondary" onClick={closeForm}>Cancel</button><button className="button primary">{editing ? 'Save Changes' : 'Add Item'}</button></div></form></section></div>}
+    {message && <p className="inventory-note" role="status">{message}</p>}{error && <p className="error inventory-note" role="alert">{error}</p>}
+    <Panel title="Food inventory" text={loading ? 'Loading inventory...' : `${filtered.length} item${filtered.length === 1 ? '' : 's'} shown`}><div className="table inventory-table"><table><thead><tr><th>Item Name</th><th>Category</th><th>Batch ID</th><th>Quantity</th><th>Unit</th><th>Storage Location</th><th>Added Date</th><th>Expiry Date</th><th>Status</th><th>Actions</th></tr></thead><tbody>{loading ? <tr><td className="empty-inventory" colSpan="10">Loading inventory...</td></tr> : filtered.length ? filtered.map(item => { const status = item.status || itemStatus(item.expiryDate); return <tr key={item.id}><td><b>{item.name}</b></td><td>{item.category}</td><td>{item.batchId}</td><td>{item.quantity}</td><td>{item.unit}</td><td>{item.location}</td><td>{item.addedDate}</td><td>{item.expiryDate}</td><td><em className={'badge ' + (status === 'Fresh' ? 'success' : status === 'Near Expiry' ? 'warning' : 'danger')}>{status}</em></td><td className="inventory-actions">{editable && <><button className="link" onClick={() => openEdit(item)}>Edit</button><button className="link delete" onClick={() => removeItem(item)}>Delete</button></>}</td></tr> }) : <tr><td className="empty-inventory" colSpan="10">No inventory items match your search or filters.</td></tr>}</tbody></table></div></Panel>
+    {formOpen && <div className="modal-backdrop" onMouseDown={closeForm}><section className="inventory-modal" role="dialog" aria-modal="true" aria-labelledby="item-form-title" onMouseDown={event => event.stopPropagation()}><div className="modal-title"><div><small>INVENTORY ITEM</small><h2 id="item-form-title">{editing ? 'Edit Food Item' : 'Add Food Item'}</h2></div><button className="modal-close" type="button" onClick={closeForm} aria-label="Close form">×</button></div><form className="inventory-form" onSubmit={saveItem}><FormField label="Item Name"><input required value={form.name} onChange={event => setForm(current => ({ ...current, name: event.target.value }))} /></FormField><FormField label="Category"><select value={form.category} onChange={event => setForm(current => ({ ...current, category: event.target.value }))}>{FOOD_CATEGORIES.map(category => <option key={category}>{category}</option>)}</select></FormField><FormField label="Batch ID"><input required value={form.batchId} onChange={event => setForm(current => ({ ...current, batchId: event.target.value }))} /></FormField><FormField label="Quantity"><input required min="0.001" step="any" type="number" value={form.quantity} onChange={event => setForm(current => ({ ...current, quantity: event.target.value }))} /></FormField><FormField label="Unit"><select value={form.unit} onChange={event => setForm(current => ({ ...current, unit: event.target.value }))}>{UNITS.map(unit => <option key={unit}>{unit}</option>)}</select></FormField><FormField label="Storage Location"><input required value={form.location} onChange={event => setForm(current => ({ ...current, location: event.target.value }))} /></FormField><FormField label="Added Date"><input required type="date" value={form.addedDate} onChange={event => setForm(current => ({ ...current, addedDate: event.target.value }))} /></FormField><FormField label="Expiry Date"><input required type="date" value={form.expiryDate} onChange={event => setForm(current => ({ ...current, expiryDate: event.target.value }))} /></FormField><div className="form-actions"><button type="button" className="button secondary" onClick={closeForm} disabled={submitting}>Cancel</button><button className="button primary" disabled={submitting}>{submitting ? 'Saving...' : editing ? 'Save Changes' : 'Add Item'}</button></div></form></section></div>}
   </>
 }
 function FormField({ label, children }) { return <label className="inventory-field"><span>{label}</span>{children}</label> }
-const initialAnalysisHistory = [
-  { id: 1, name: 'Strawberries', category: 'Fruits', score: '91%', classification: 'Fresh', time: 'Earlier today' },
-  { id: 2, name: 'Whole Milk', category: 'Dairy', score: '72%', classification: 'Good', time: 'Yesterday' },
-  { id: 3, name: 'Atlantic Salmon', category: 'Seafood', score: '43%', classification: 'Near Spoilage', time: '2 days ago' },
-]
-const analysisTone = classification => classification === 'Fresh' || classification === 'Good' ? 'success' : classification === 'Acceptable' || classification === 'Near Spoilage' ? 'warning' : 'danger'
+const canManageFreshness = role => ['Retail Manager', 'Warehouse Operator', 'Food Quality Inspector', 'Administrator'].includes(role)
+const freshnessError = error => {
+  if (!(error instanceof ApiError)) return 'Unable to complete the freshness request.'
+  if (error.status === 403) return 'Access denied. Your account cannot modify freshness analyses.'
+  if (error.status === 404) return 'The selected food batch or analysis was not found.'
+  if (error.status === 400) return error.message || 'Please upload a valid JPG, PNG, or WEBP image.'
+  if (error.status === 413) return 'The image is larger than the allowed upload size.'
+  return error.message || 'Unable to complete the freshness request.'
+}
+const analysisStatus = analysis => analysis.analysis_result?.status || (analysis.freshness_category ? 'complete' : 'pending_model_integration')
+const analysisDate = value => new Date(value).toLocaleString()
 
-function AnalysisPage() {
+function AnalysisPage({ role, onUnauthorized }) {
   const [image, setImage] = useState(null)
+  const [imageFile, setImageFile] = useState(null)
   const [productName, setProductName] = useState('')
   const [foodCategory, setFoodCategory] = useState('Fruits')
+  const [batches, setBatches] = useState([])
+  const [foodBatchId, setFoodBatchId] = useState('')
   const [result, setResult] = useState(null)
-  const [history, setHistory] = useState(initialAnalysisHistory)
+  const [history, setHistory] = useState([])
   const [uploadError, setUploadError] = useState('')
   const [validationMessage, setValidationMessage] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const editable = canManageFreshness(role)
+  const handleError = error => {
+    if (error instanceof ApiError && error.status === 401) { auth.logout(); onUnauthorized(); return }
+    setValidationMessage(freshnessError(error))
+  }
+  const loadHistory = async batchId => {
+    if (!batchId) { setHistory([]); return }
+    try { setHistoryLoading(true); setHistory(await freshnessApi.getBatchAnalyses(batchId)) }
+    catch (error) { handleError(error) }
+    finally { setHistoryLoading(false) }
+  }
+  useEffect(() => { inventoryApi.getBatches().then(setBatches).catch(handleError) }, [])
   const selectImage = file => {
     if (!file) return
-    if (!file.type.startsWith('image/')) { setUploadError('Please select a supported image file.'); return }
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) { setUploadError('Please select a JPG, PNG, or WEBP image.'); return }
     const reader = new FileReader()
-    reader.onload = event => { setImage({ name: file.name, preview: event.target.result }); setResult(null); setUploadError(''); setValidationMessage('') }
+    reader.onload = event => { setImage({ name: file.name, preview: event.target.result }); setImageFile(file); setResult(null); setUploadError(''); setValidationMessage('') }
     reader.readAsDataURL(file)
   }
-  const analyze = () => {
-    if (!productName.trim()) { setValidationMessage('Please enter the food or product name.'); return }
-    if (!image) { setValidationMessage('Please select a food image.'); return }
-    const mockResult = { score: '87%', classification: 'Fresh', probability: '8%', quality: 'Good' }
-    setValidationMessage('')
-    setResult(mockResult)
-    setHistory(current => [{ id: Date.now(), name: productName.trim() || image.name.replace(/\.[^/.]+$/, ''), category: foodCategory, score: mockResult.score, classification: mockResult.classification, time: 'Just now' }, ...current])
+  const selectBatch = event => {
+    const batchId = event.target.value
+    setFoodBatchId(batchId); setResult(null); setValidationMessage('')
+    const batch = batches.find(entry => String(entry.id) === batchId)
+    if (batch) { setProductName(batch.food_item.name); setFoodCategory(batch.food_item.category) }
+    loadHistory(batchId)
   }
-  const reset = () => { setImage(null); setProductName(''); setFoodCategory('Fruits'); setResult(null); setUploadError(''); setValidationMessage('') }
+  const analyze = async () => {
+    if (!foodBatchId) { setValidationMessage('Please select a food batch.'); return }
+    if (!imageFile) { setValidationMessage('Please select a food image.'); return }
+    try { setLoading(true); setValidationMessage(''); const analysis = await freshnessApi.analyze({ image: imageFile, foodBatchId }); setResult(analysis); await loadHistory(foodBatchId) }
+    catch (error) { handleError(error) }
+    finally { setLoading(false) }
+  }
+  const removeAnalysis = async analysisId => {
+    try { setLoading(true); await freshnessApi.deleteAnalysis(analysisId); if (result?.id === analysisId) setResult(null); await loadHistory(foodBatchId) }
+    catch (error) { handleError(error) }
+    finally { setLoading(false) }
+  }
+  const reset = () => { setImage(null); setImageFile(null); setResult(null); setUploadError(''); setValidationMessage('') }
   return <>
     <Title title="Freshness Analysis" text="Analyze food images to assess freshness, quality, and potential spoilage." />
     <div className="analysis-note">Upload a clear, well-lit food image to support a complete freshness assessment.</div>
     <div className="analysis-workspace">
       <Panel title="Food image" text="Upload a clear image for a visual freshness assessment."><div className={'upload-zone ' + (image ? 'has-image' : '')} onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); selectImage(event.dataTransfer.files[0]) }}>{image ? <div className="image-preview"><img src={image.preview} alt="Selected food preview" /><div><b>{image.name}</b><small>Image selected and ready for assessment.</small><div><label className="link change-image" htmlFor="food-image">Change image</label><button className="link delete" onClick={() => { setImage(null); setResult(null); setValidationMessage('') }}>Remove image</button></div></div></div> : <><i>↑</i><b>Drag and drop a food image here</b><small>Supported formats: JPG, PNG and WEBP</small><label className="button secondary" htmlFor="food-image">Choose Image</label></>}<input id="food-image" type="file" accept="image/jpeg,image/png,image/webp" onClick={event => { event.currentTarget.value = '' }} onChange={event => selectImage(event.target.files[0])} /></div>{uploadError && <p className="upload-error">{uploadError}</p>}</Panel>
-      <Panel title="Food information" text="Add details to identify this analysis."><div className="analysis-fields"><FormField label="Food/Product Name"><input placeholder="e.g. Strawberries" value={productName} onChange={event => { setProductName(event.target.value); setValidationMessage('') }} /></FormField><FormField label="Category"><select value={foodCategory} onChange={event => setFoodCategory(event.target.value)}>{FOOD_CATEGORIES.map(category => <option key={category}>{category}</option>)}</select></FormField></div><button className="button primary analyze-button" disabled={!image || !productName.trim()} onClick={analyze}>Analyze Freshness</button>{validationMessage ? <p className="upload-error">{validationMessage}</p> : (!image || !productName.trim()) && <small className="button-hint">Enter a product name and select an image to begin.</small>}</Panel>
+      <Panel title="Food information" text="Select the real inventory batch for this analysis."><div className="analysis-fields"><FormField label="Food batch"><select value={foodBatchId} onChange={selectBatch}><option value="">Select an inventory batch</option>{batches.map(batch => <option key={batch.id} value={batch.id}>{batch.food_item.name} · {batch.batch_number}</option>)}</select></FormField><FormField label="Food/Product Name"><input value={productName} readOnly placeholder="Selected from the batch" /></FormField><FormField label="Category"><input value={foodCategory} readOnly /></FormField></div><button className="button primary analyze-button" disabled={!editable || loading || !image || !foodBatchId} onClick={analyze}>{loading ? 'Uploading…' : 'Analyze Freshness'}</button>{!editable && <small className="button-hint">Your role can view analysis history but cannot create or delete analyses.</small>}{validationMessage ? <p className="upload-error">{validationMessage}</p> : (!image || !foodBatchId) && <small className="button-hint">Select an inventory batch and image to begin.</small>}</Panel>
     </div>
-    {result && <section className="analysis-results"><div className="analysis-results-heading"><div><small>FRESHNESS ASSESSMENT</small><h2>Freshness Assessment</h2><p>Product: {productName.trim()}</p></div><button className="button secondary" onClick={reset}>New Analysis</button></div><div className="result-grid"><article className="result-score"><span>Freshness Score</span><b>{result.score}</b><em className={'badge ' + analysisTone(result.classification)}>{result.classification}</em></article><article className="result-stat"><span>Quality classification</span><b>{result.classification}</b><small>Quality: {result.quality}</small></article><article className="result-stat"><span>Spoilage probability</span><b>{result.probability}</b><small>Low risk</small></article></div><div className="visual-indicators"><h3>Visual analysis indicators</h3><div className="indicator-grid"><Indicator name="Colour condition" result="Vibrant and consistent" tone="success" /><Indicator name="Surface texture" result="Firm, even texture" tone="success" /><Indicator name="Mold/spoilage indicators" result="No visible indicators" tone="success" /><Indicator name="Bruising" result="No significant marks" tone="warning" /><Indicator name="Physical damage" result="No visible damage" tone="success" /></div></div><div className="analysis-summary"><b>Assessment summary</b><p>The visual profile indicates a fresh item with consistent colour and surface texture.</p></div></section>}
-    <Panel title="Analysis history" text="Recent food image assessments."><div className="analysis-history">{history.slice(0, 4).map(entry => <div className="history-row" key={entry.id}><div><b>{entry.name}</b><small>{entry.category} · {entry.time}</small></div><strong>{entry.score}</strong><em className={'badge ' + analysisTone(entry.classification)}>{entry.classification}</em></div>)}</div></Panel>
+    {result && <section className="analysis-results"><div className="analysis-results-heading"><div><small>FRESHNESS ASSESSMENT</small><h2>Freshness Assessment</h2><p>Product: {productName}</p></div><button className="button secondary" onClick={reset}>New Analysis</button></div>{analysisStatus(result) === 'pending_model_integration' ? <div className="analysis-summary"><b>Analysis pending model integration</b><p>{result.analysis_result?.message || 'The image was stored and the analysis record was created. A trained freshness model is not configured yet.'}</p></div> : <div className="result-grid"><article className="result-score"><span>Freshness Score</span><b>{result.freshness_score ?? 'Not available'}</b></article><article className="result-stat"><span>Quality classification</span><b>{result.freshness_category ?? 'Not available'}</b></article><article className="result-stat"><span>Spoilage probability</span><b>{result.spoilage_probability ?? 'Not available'}</b></article></div>}</section>}
+    <Panel title="Analysis history" text={foodBatchId ? 'Persisted analyses for the selected inventory batch.' : 'Select an inventory batch to view persisted analyses.'}><div className="analysis-history">{historyLoading ? <p className="button-hint">Loading analysis history…</p> : history.length ? history.map(entry => <div className="history-row" key={entry.id}><div><b>Analysis #{entry.id}</b><small>{analysisDate(entry.analyzed_at)}</small></div><strong>{analysisStatus(entry) === 'pending_model_integration' ? 'Pending' : entry.freshness_score ?? 'N/A'}</strong><em className="badge warning">{analysisStatus(entry) === 'pending_model_integration' ? 'Model pending' : entry.freshness_category ?? 'No category'}</em>{editable && <button className="link delete" disabled={loading} onClick={() => removeAnalysis(entry.id)}>Delete</button>}</div>) : <p className="button-hint">No persisted analyses for this batch.</p>}</div></Panel>
   </>
 }
 function Indicator({ name, result, tone }) { return <article className="indicator"><i className={tone}>●</i><span><b>{name}</b><small>{result}</small></span></article> }
-const initialShelfLifeHistory = [
-  { id: 1, name: 'Strawberries', batch: 'FR-2408', remaining: '4 days', risk: 'Medium Risk', time: 'Today' },
-  { id: 2, name: 'Whole Milk', batch: 'DY-1182', remaining: '6 days', risk: 'Low Risk', time: 'Yesterday' },
-  { id: 3, name: 'Atlantic Salmon', batch: 'SF-9014', remaining: '2 days', risk: 'High Risk', time: '2 days ago' },
-]
-const emptyShelfLifeForm = () => ({ name: '', category: '', batch: '', duration: '', temperature: '', humidity: '', packaging: '', freshnessScore: '', freshnessClassification: '', spoilageProbability: '' })
-const riskTone = risk => risk === 'Low Risk' ? 'success' : risk === 'Medium Risk' ? 'warning' : 'danger'
-const forecastDate = days => { const date = new Date(); date.setDate(date.getDate() + days); return new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).format(date) }
+const emptyShelfLifeForm = () => ({ foodBatchId: '', duration: '', temperature: '', humidity: '', packaging: '' })
+const SHELF_LIFE_PACKAGING = ['Open', 'Plastic', 'Paper', 'Vacuum Sealed', 'Airtight Container']
+const canManageShelfLife = role => ['Retail Manager', 'Warehouse Operator', 'Food Quality Inspector', 'Administrator'].includes(role)
+const predictionStatus = entry => entry.prediction_result?.status || (entry.remaining_days != null || entry.predicted_expiry_date ? 'complete' : 'pending_model_integration')
+const isPendingPrediction = entry => predictionStatus(entry) === 'pending_model_integration'
+const shelfLifeError = error => {
+  if (!(error instanceof ApiError)) return 'Unable to complete the shelf-life request.'
+  if (error.status === 403) return 'Access denied. Your account cannot modify shelf-life predictions.'
+  if (error.status === 404) return 'The selected food batch or prediction was not found.'
+  if (error.status === 422) return error.message || 'Please correct the prediction details.'
+  return error.message || 'Unable to complete the shelf-life request.'
+}
+const remainingDisplay = entry => {
+  if (isPendingPrediction(entry) || entry.remaining_days == null) return 'Not available'
+  return `${entry.remaining_days} day${Number(entry.remaining_days) === 1 ? '' : 's'}`
+}
+const expiryDisplay = entry => {
+  if (isPendingPrediction(entry) || !entry.predicted_expiry_date) return 'Not available'
+  const parsed = new Date(entry.predicted_expiry_date)
+  return Number.isNaN(parsed.getTime()) ? 'Not available' : parsed.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
+}
+const confidenceDisplay = entry => (isPendingPrediction(entry) || entry.confidence_score == null || entry.confidence_score === '' ? 'Not available' : String(entry.confidence_score))
+const conditionReading = (value, suffix) => (value == null || value === '' ? 'Not available' : `${value}${suffix}`)
+const validateShelfLifeForm = form => {
+  if (!form.foodBatchId) return 'Please select a food batch.'
+  if (form.duration === '' || Number.isNaN(Number(form.duration))) return 'Please enter the storage duration in days.'
+  const duration = Number(form.duration)
+  if (!Number.isInteger(duration) || duration < 0 || duration > 36500) return 'Storage duration must be a whole number between 0 and 36500 days.'
+  if (form.temperature === '' || Number.isNaN(Number(form.temperature))) return 'Please enter the storage temperature.'
+  const temperature = Number(form.temperature)
+  if (temperature < -50 || temperature > 100) return 'Temperature must be between -50°C and 100°C.'
+  if (form.humidity === '' || Number.isNaN(Number(form.humidity))) return 'Please enter the storage humidity.'
+  const humidity = Number(form.humidity)
+  if (humidity < 0 || humidity > 100) return 'Humidity must be between 0% and 100%.'
+  if (!form.packaging.trim()) return 'Please select packaging.'
+  if (form.packaging.trim().length > 100) return 'Packaging must be 100 characters or fewer.'
+  return ''
+}
 const storageCondition = ({ temperature, humidity, air, light }) => {
   const temperatureAlert = Number(temperature) > 5 || Number(temperature) < 2
   const humidityAlert = Number(humidity) > 70 || Number(humidity) < 50
@@ -262,33 +396,153 @@ function StorageMonitoring() {
   </>
 }
 
-function ShelfLife() {
+function ShelfLife({ role, onUnauthorized }) {
   const [form, setForm] = useState(emptyShelfLifeForm)
+  const [batches, setBatches] = useState([])
+  const [batchesLoading, setBatchesLoading] = useState(true)
   const [prediction, setPrediction] = useState(null)
-  const [history, setHistory] = useState(initialShelfLifeHistory)
+  const [history, setHistory] = useState([])
   const [validationMessage, setValidationMessage] = useState('')
-  const update = key => event => { setForm(current => ({ ...current, [key]: event.target.value })); setValidationMessage('') }
-  const complete = form.name.trim() && form.category && form.duration !== '' && form.temperature !== '' && form.humidity !== '' && form.packaging
-  const predict = () => {
-    if (!form.name.trim()) return setValidationMessage('Please enter the food or product name.')
-    if (!complete) return setValidationMessage('Please complete all required product and storage information.')
-    const temperature = Number(form.temperature); const humidity = Number(form.humidity)
-    const risk = temperature > 5 || humidity > 75 ? 'High Risk' : temperature > 3 || humidity > 65 ? 'Medium Risk' : 'Low Risk'
-    const days = risk === 'High Risk' ? 2 : risk === 'Medium Risk' ? 4 : 6
-    const result = { remaining: `${days} days`, expiry: forecastDate(days), risk, impact: risk === 'Low Risk' ? 'Current temperature and humidity support a stable storage environment.' : risk === 'Medium Risk' ? 'Current temperature and humidity may reduce expected shelf life.' : 'Current storage conditions may substantially reduce expected shelf life.' }
-    setPrediction(result); setValidationMessage('')
-    setHistory(current => [{ id: Date.now(), name: form.name.trim(), batch: form.batch || 'No batch ID', remaining: result.remaining, risk: result.risk, time: 'Just now' }, ...current])
+  const [message, setMessage] = useState('')
+  const [creating, setCreating] = useState(false)
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const editable = canManageShelfLife(role)
+  const busy = creating || deleting
+  const selectedBatch = batches.find(entry => String(entry.id) === String(form.foodBatchId))
+  const productName = selectedBatch?.food_item?.name || ''
+  const foodCategory = selectedBatch?.food_item?.category || ''
+  const batchNumber = selectedBatch?.batch_number || ''
+  const complete = Boolean(form.foodBatchId && form.duration !== '' && form.temperature !== '' && form.humidity !== '' && form.packaging)
+  const pending = prediction && isPendingPrediction(prediction)
+  const handleError = error => {
+    if (error instanceof ApiError && error.status === 401) { auth.logout(); onUnauthorized(); return }
+    setValidationMessage(shelfLifeError(error))
   }
-  const reset = () => { setForm(emptyShelfLifeForm()); setPrediction(null); setValidationMessage('') }
+  const loadHistory = async batchId => {
+    if (!batchId) { setHistory([]); return }
+    try { setHistoryLoading(true); setHistory(await shelfLifeApi.getBatchPredictions(batchId)) }
+    catch (error) { handleError(error) }
+    finally { setHistoryLoading(false) }
+  }
+  useEffect(() => {
+    setBatchesLoading(true)
+    inventoryApi.getBatches().then(setBatches).catch(handleError).finally(() => setBatchesLoading(false))
+  }, [])
+  const update = key => event => { setForm(current => ({ ...current, [key]: event.target.value })); setValidationMessage(''); setMessage('') }
+  const selectBatch = event => {
+    const batchId = event.target.value
+    setForm(current => ({ ...current, foodBatchId: batchId }))
+    setPrediction(null); setValidationMessage(''); setMessage('')
+    loadHistory(batchId)
+  }
+  const predict = async () => {
+    const invalid = validateShelfLifeForm(form)
+    if (invalid) { setValidationMessage(invalid); return }
+    try {
+      setCreating(true); setValidationMessage(''); setMessage('')
+      const created = await shelfLifeApi.predict({
+        food_batch_id: Number(form.foodBatchId),
+        storage_duration: Number(form.duration),
+        temperature: Number(form.temperature),
+        humidity: Number(form.humidity),
+        packaging: form.packaging.trim(),
+      })
+      setPrediction(created)
+      await loadHistory(form.foodBatchId)
+    } catch (error) { handleError(error) }
+    finally { setCreating(false) }
+  }
+  const removePrediction = async predictionId => {
+    try {
+      setDeleting(true); setValidationMessage(''); setMessage('')
+      await shelfLifeApi.deletePrediction(predictionId)
+      if (prediction?.id === predictionId) setPrediction(null)
+      await loadHistory(form.foodBatchId)
+      setMessage('Prediction deleted.')
+    } catch (error) { handleError(error) }
+    finally { setDeleting(false) }
+  }
+  const reset = () => { setPrediction(null); setValidationMessage(''); setMessage('') }
   return <>
     <Title title="Shelf-Life Prediction" text="Estimate remaining shelf life and expiry risk using product and storage information." />
-    <div className="shelf-life-layout"><Panel title="Product information" text="Fields marked required are needed to calculate a prediction."><div className="shelf-life-fields"><FormField label="Food/Product Name"><input required value={form.name} onChange={update('name')} placeholder="e.g. Strawberries" /></FormField><FormField label="Product Category"><select required value={form.category} onChange={update('category')}><option value="">Select category</option>{FOOD_CATEGORIES.map(category => <option key={category}>{category}</option>)}</select></FormField><FormField label="Batch ID (optional)"><input value={form.batch} onChange={update('batch')} placeholder="e.g. FR-2408" /></FormField><FormField label="Storage Duration (days)"><input required type="number" min="0" value={form.duration} onChange={update('duration')} placeholder="e.g. 2" /></FormField></div></Panel><Panel title="Storage conditions" text="Enter the current conditions for this product."><div className="shelf-life-fields"><FormField label="Temperature (°C)"><input required type="number" step="0.1" value={form.temperature} onChange={update('temperature')} placeholder="e.g. 4" /></FormField><FormField label="Humidity (%)"><input required type="number" min="0" max="100" value={form.humidity} onChange={update('humidity')} placeholder="e.g. 68" /></FormField><FormField label="Packaging"><select required value={form.packaging} onChange={update('packaging')}><option value="">Select packaging</option><option>Open</option><option>Plastic</option><option>Paper</option><option>Vacuum Sealed</option><option>Airtight Container</option></select></FormField></div></Panel></div>
-    <Panel title="Freshness information" text="Optional assessment details that can support shelf-life planning."><div className="freshness-fields"><FormField label="Freshness Score"><input value={form.freshnessScore} onChange={update('freshnessScore')} placeholder="e.g. 87%" /></FormField><FormField label="Freshness Classification"><select value={form.freshnessClassification} onChange={update('freshnessClassification')}><option value="">Select classification</option><option>Fresh</option><option>Good</option><option>Acceptable</option><option>Near Spoilage</option><option>Spoiled</option></select></FormField><FormField label="Spoilage Probability"><input value={form.spoilageProbability} onChange={update('spoilageProbability')} placeholder="e.g. 8%" /></FormField></div></Panel>
-    <div className="predict-actions"><button className="button primary" disabled={!complete} onClick={predict}>Predict Shelf Life</button>{validationMessage ? <p className="upload-error">{validationMessage}</p> : !complete && <small className="button-hint">Complete all required product and storage fields to continue.</small>}</div>
-    {prediction && <section className="prediction-results"><div className="prediction-heading"><div><small>SHELF-LIFE PREDICTION</small><h2>{form.name}</h2><p>{form.category}{form.batch ? ` · Batch ${form.batch}` : ''}</p></div><button className="button secondary" onClick={reset}>New Prediction</button></div><div className="prediction-grid"><article className="prediction-highlight"><span>Remaining Shelf Life</span><b>{prediction.remaining}</b><small>Estimated from current product and storage information</small></article><article className="prediction-stat"><span>Expiry Forecast</span><b>{prediction.expiry}</b><small>Expected expiry date</small></article><article className="prediction-stat"><span>Risk Level</span><em className={'badge ' + riskTone(prediction.risk)}>{prediction.risk}</em><small>Storage condition risk</small></article></div><div className="storage-impact"><div><small>STORAGE IMPACT</small><h3>Current conditions</h3><p>{prediction.impact}</p></div><div className="storage-readings"><span>Temperature<b>{form.temperature}°C</b></span><span>Humidity<b>{form.humidity}%</b></span><span>Packaging<b>{form.packaging}</b></span></div></div><div className="shelf-trend"><div><h3>Shelf-life trend</h3><p>Projected product condition through the remaining shelf-life period.</p></div><div className="trend-chart"><span className="trend-start">Today</span><i style={{ height: '88%' }}></i><i style={{ height: '71%' }}></i><i style={{ height: '54%' }}></i><i style={{ height: '36%' }}></i><span className="trend-end">Expiry</span></div></div></section>}
-    <Panel title="Prediction history" text="Recent shelf-life predictions."><div className="shelf-history">{history.slice(0, 4).map(entry => <div className="history-row" key={entry.id}><div><b>{entry.name}</b><small>{entry.batch} · {entry.time}</small></div><strong>{entry.remaining}</strong><em className={'badge ' + riskTone(entry.risk)}>{entry.risk}</em></div>)}</div></Panel>
+    {message && <p className="shelf-life-message" role="status">{message}</p>}
+    <div className="shelf-life-layout">
+      <Panel title="Product information" text="Select a real inventory batch and enter the storage duration.">
+        <div className="shelf-life-fields">
+          <FormField label="Food batch">
+            <select required value={form.foodBatchId} onChange={selectBatch} disabled={batchesLoading}>
+              <option value="">{batchesLoading ? 'Loading inventory batches…' : batches.length ? 'Select an inventory batch' : 'No inventory batches available'}</option>
+              {batches.map(batch => <option key={batch.id} value={batch.id}>{batch.food_item.name} · {batch.batch_number}</option>)}
+            </select>
+          </FormField>
+          <FormField label="Food/Product Name"><input value={productName} readOnly placeholder="Selected from the batch" /></FormField>
+          <FormField label="Product Category"><input value={foodCategory} readOnly placeholder="Selected from the batch" /></FormField>
+          <FormField label="Storage Duration (days)"><input required type="number" min="0" max="36500" step="1" value={form.duration} onChange={update('duration')} placeholder="e.g. 2" /></FormField>
+        </div>
+      </Panel>
+      <Panel title="Storage conditions" text="Enter the current conditions for this product.">
+        <div className="shelf-life-fields">
+          <FormField label="Temperature (°C)"><input required type="number" step="0.1" min="-50" max="100" value={form.temperature} onChange={update('temperature')} placeholder="e.g. 4" /></FormField>
+          <FormField label="Humidity (%)"><input required type="number" step="0.1" min="0" max="100" value={form.humidity} onChange={update('humidity')} placeholder="e.g. 68" /></FormField>
+          <FormField label="Packaging">
+            <select required value={form.packaging} onChange={update('packaging')}>
+              <option value="">Select packaging</option>
+              {SHELF_LIFE_PACKAGING.map(option => <option key={option}>{option}</option>)}
+            </select>
+          </FormField>
+        </div>
+      </Panel>
+    </div>
+    <div className="predict-actions">
+      <button className="button primary" disabled={!editable || busy || !complete || batchesLoading} onClick={predict}>{creating ? 'Saving…' : 'Predict Shelf Life'}</button>
+      {!editable && <small className="button-hint">Your role can view prediction history but cannot create or delete predictions.</small>}
+      {validationMessage ? <p className="upload-error">{validationMessage}</p> : editable && !complete && <small className="button-hint">Select an inventory batch and complete the required storage fields to continue.</small>}
+    </div>
+    {prediction && <section className="prediction-results">
+      <div className="prediction-heading">
+        <div>
+          <small>SHELF-LIFE PREDICTION</small>
+          <h2>{productName || 'Selected batch'}</h2>
+          <p>{[foodCategory, batchNumber ? `Batch ${batchNumber}` : ''].filter(Boolean).join(' · ')}</p>
+        </div>
+        <button className="button secondary" onClick={reset}>New Prediction</button>
+      </div>
+      {pending && <div className="prediction-summary"><b>Prediction pending model integration</b><p>{prediction.prediction_result?.message || 'The prediction record was created. A trained shelf-life model is not configured yet.'}</p></div>}
+      <div className="prediction-grid">
+        <article className="prediction-highlight"><span>Remaining Shelf Life</span><b>{remainingDisplay(prediction)}</b><small>{pending ? 'Unavailable until a trained model is configured' : 'Estimated remaining shelf life'}</small></article>
+        <article className="prediction-stat"><span>Expiry Forecast</span><b>{expiryDisplay(prediction)}</b><small>Expected expiry date</small></article>
+        <article className="prediction-stat"><span>Confidence Score</span><b>{confidenceDisplay(prediction)}</b><small>Model confidence</small></article>
+      </div>
+      <div className="storage-impact">
+        <div>
+          <small>STORAGE IMPACT</small>
+          <h3>Current conditions</h3>
+          <p>{pending ? 'Storage impact is not available until a trained shelf-life model is configured.' : (prediction.prediction_result?.message || 'Not available')}</p>
+        </div>
+        <div className="storage-readings">
+          <span>Temperature<b>{conditionReading(prediction.temperature, '°C')}</b></span>
+          <span>Humidity<b>{conditionReading(prediction.humidity, '%')}</b></span>
+          <span>Packaging<b>{prediction.packaging || 'Not available'}</b></span>
+        </div>
+      </div>
+    </section>}
+    <Panel title="Prediction history" text={form.foodBatchId ? 'Persisted predictions for the selected inventory batch.' : 'Select an inventory batch to view persisted predictions.'}>
+      <div className="shelf-history">
+        {historyLoading ? <p className="button-hint">Loading prediction history…</p> : history.length ? history.map(entry => {
+          const pendingEntry = isPendingPrediction(entry)
+          return <div className="history-row" key={entry.id}>
+            <div><b>Prediction #{entry.id}</b><small>{analysisDate(entry.predicted_at)}</small></div>
+            <strong>{pendingEntry ? 'Pending' : remainingDisplay(entry)}</strong>
+            <em className={'badge ' + (pendingEntry ? 'warning' : 'success')}>{pendingEntry ? 'Model pending' : 'Recorded'}</em>
+            {editable && <button className="link delete" disabled={busy} onClick={() => removePrediction(entry.id)}>Delete</button>}
+          </div>
+        }) : <p className="button-hint">{form.foodBatchId ? 'No persisted predictions for this batch.' : 'Select an inventory batch to view persisted predictions.'}</p>}
+      </div>
+    </Panel>
   </>
 }
+
 function Analysis() { return <><Title title="Freshness analysis" text="Image-based assessment workflow." /><div className="grid"><Panel title="Image freshness analysis" text="Upload and AI integration will be connected later."><div className="signal"><span>Visual condition</span><b>40% weight</b></div><div className="signal"><span>Storage conditions</span><b>25% weight</b></div><div className="signal"><span>Shelf-life prediction</span><b>20% weight</b></div><div className="signal"><span>Product age</span><b>15% weight</b></div></Panel><Panel title="Freshness assessment" text="Analysis service integration is pending."><div className="signal"><span>Freshness category</span><b>Fresh</b></div><div className="signal"><span>Spoilage probability</span><b>8%</b></div><div className="signal"><span>Visual indicators</span><b>Color · Texture · Mold · Bruising</b></div></Panel></div></> }
 function Storage() { return <><Title title="Storage monitoring" text="Storage condition readings; sensor integration is pending." /><div className="cards">{['Cold room A', 'Cold room B', 'Produce bay'].map(name => <Panel key={name} title={name} text="Current sensor reading"><div className="reading"><span>Temperature<b>3.8°C</b></span><span>Humidity<b>68%</b></span></div><div className="signal"><span>Compliance</span><b>Normal</b></div></Panel>)}</div></> }
 function Alerts() { return <><Title title="Alerts" text="Freshness, shelf-life, storage and inventory notifications." /><Panel title="Open alerts" text="Current notifications">{alerts.map(alert => <div className="alert" key={alert[1]}><i>{alert[0][0]}</i><span><b>{alert[1]}</b><p>{alert[0]} notification</p></span><time>{alert[2]}</time></div>)}</Panel></> }

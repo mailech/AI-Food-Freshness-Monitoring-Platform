@@ -16,3 +16,9 @@ frontend/dist/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Runtime-uploaded freshness images
+backend/uploads/
+
+# Generated report exports
+backend/storage/reports/
