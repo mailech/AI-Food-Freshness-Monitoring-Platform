@@ -263,9 +263,9 @@
 <div class="text-sm font-semibold text-on-surface-variant">Total Inventory</div>
 <span class="material-symbols-outlined text-[20px] text-on-surface-variant/50">inventory_2</span>
 </div>
-<div class="text-display text-on-surface mb-2">1,492</div>
+<div id="dashTotalCount" class="text-display text-on-surface mb-2">--</div>
 <div class="text-xs font-semibold text-primary flex items-center gap-1">
-<span class="material-symbols-outlined text-[14px]">trending_up</span> +4.2% vs last week
+<span class="material-symbols-outlined text-[14px]">trending_up</span> Active catalog items
                     </div>
 </div>
 <div class="data-card">
@@ -273,9 +273,9 @@
 <div class="text-sm font-semibold text-on-surface-variant">Avg. Freshness Score</div>
 <span class="material-symbols-outlined text-[20px] text-on-surface-variant/50">verified</span>
 </div>
-<div class="text-display text-on-surface mb-2">94%</div>
+<div id="dashAvgScore" class="text-display text-on-surface mb-2">--%</div>
 <div class="text-xs font-semibold text-primary flex items-center gap-1">
-<span class="material-symbols-outlined text-[14px]">trending_up</span> +1.5% vs last week
+<span class="material-symbols-outlined text-[14px]">trending_up</span> System overall score
                     </div>
 </div>
 <div class="data-card border-l-4 border-l-error">
@@ -283,9 +283,9 @@
 <div class="text-sm font-semibold text-on-surface-variant">Active Alerts</div>
 <span class="material-symbols-outlined text-[20px] text-error/70">warning</span>
 </div>
-<div class="text-display text-on-surface mb-2">2</div>
+<div id="dashActiveAlerts" class="text-display text-on-surface mb-2">--</div>
 <div class="text-xs font-semibold text-error flex items-center gap-1">
-                        Action required in Zone B
+                        Requires review
                     </div>
 </div>
 <div class="data-card">
@@ -293,7 +293,7 @@
 <div class="text-sm font-semibold text-on-surface-variant">Est. Waste Saved</div>
 <span class="material-symbols-outlined text-[20px] text-on-surface-variant/50">savings</span>
 </div>
-<div class="text-display text-on-surface mb-2">$4,250</div>
+<div id="dashWasteSaved" class="text-display text-on-surface mb-2">$--</div>
 <div class="text-xs font-semibold text-on-surface-variant flex items-center gap-1">
                         Current month to date
                     </div>
@@ -370,10 +370,10 @@
 <h2 class="font-title-lg text-[#991B1B] mb-3 flex items-center gap-2">
 <span class="material-symbols-outlined text-[20px]">notification_important</span> Priority Alerts
                         </h2>
-<div class="flex flex-col gap-3">
+<div id="dashAlertsContainer" class="flex flex-col gap-3">
 <div class="p-3 bg-white rounded-lg border border-[#FECACA] shadow-sm">
-<div class="text-sm font-bold text-[#991B1B]">Avocado Batch A-42</div>
-<div class="text-xs text-on-surface-variant mt-1">Accelerated ripening detected. Review recommended.</div>
+<div class="text-sm font-bold text-[#991B1B]">No critical alerts</div>
+<div class="text-xs text-on-surface-variant mt-1">All monitored storage conditions normal.</div>
 </div>
 </div>
 </div>
@@ -382,15 +382,15 @@
 <div class="flex flex-col gap-3 text-sm">
 <div class="flex justify-between items-center">
 <span class="text-on-surface-variant">Temperature</span>
-<span class="font-semibold text-on-surface">4.1°C</span>
+<span id="dashStorageTemp" class="font-semibold text-on-surface">4.0°C</span>
 </div>
 <div class="flex justify-between items-center">
 <span class="text-on-surface-variant">Humidity</span>
-<span class="font-semibold text-on-surface">86%</span>
+<span id="dashStorageHum" class="font-semibold text-on-surface">85%</span>
 </div>
 <div class="flex justify-between items-center">
 <span class="text-on-surface-variant">Compliance</span>
-<span class="status-badge status-fresh">
+<span id="dashStorageCompliance" class="status-badge status-fresh">
 <span class="material-symbols-outlined text-[14px]">verified</span> Within Range
 </span>
 </div>
@@ -417,75 +417,8 @@
 <th class="pb-3 font-semibold text-right pr-2">Est. Time to Expiry</th>
 </tr>
 </thead>
-<tbody class="text-sm divide-y divide-outline-variant/20">
-<!-- Row 1 -->
-<tr onclick="window.location.href='item-details.html'" class="hover:bg-surface-container/50 transition-colors cursor-pointer">
-<td class="py-3 pl-2">
-<div class="flex items-center gap-3">
-<img alt="Berries" class="w-10 h-10 rounded-md object-cover border border-outline-variant/20" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAXyXlgkEJvhcUDOzt8a3ufJ9M0RlrlDvwRujxYdwR8fW4NJx6Lmp09ROZ6w-wxnngBKm06jps2UmOjXhKt0ywnBgwXh-gO_yfWkzNuZYBAvEx0N9XtL_Hn8nQVGQy256cOsxZ3iTcYe4cwmZ88Vlf6_aknF2VWfJ9Y4pQolbNA3t4X7b9b9ckrlOCfjrtj06FyssNGDPExOLXxRb8T-v8ZGjbbdkK6crGevjsCSOjCmicjJ_My18wZ"/>
-<span class="font-semibold text-on-surface">Organic Berries</span>
-</div>
-</td>
-<td class="py-3 text-on-surface-variant font-mono text-xs">BER-092-A</td>
-<td class="py-3">
-<span class="status-badge status-fresh">
-<span class="material-symbols-outlined text-[14px]">verified</span> Fresh
-                                        </span>
-</td>
-<td class="py-3 font-semibold text-on-surface">98%</td>
-<td class="py-3 text-right text-on-surface-variant pr-2">5 Days</td>
-</tr>
-<!-- Row 2 -->
-<tr onclick="window.location.href='item-details.html'" class="hover:bg-surface-container/50 transition-colors cursor-pointer">
-<td class="py-3 pl-2">
-<div class="flex items-center gap-3">
-<img alt="Lettuce" class="w-10 h-10 rounded-md object-cover border border-outline-variant/20" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAU8cSfezHN7g-3-IcDXn-w20q_K5-_z57W-Q8biNyxsv7t0cExyF26pgd5irPcKTSwsMAEZ1QwD0UbpM7HmG5B-9DKmUE-4dJpx8NyNoZypnpjO7t4TAj2EqD_YfiYRCcPGfqrkuwOEwafXvj1nWaKPrPTN5abk-zaFQMKUXcckUugeh-C6ZrXVkIh1IlD5zHpxblISzfCCVOBD53PsgAg5hLecz6zACLamXr2Er73bTVCtZu1YanA"/>
-<span class="font-semibold text-on-surface">Romaine Lettuce</span>
-</div>
-</td>
-<td class="py-3 text-on-surface-variant font-mono text-xs">LET-114-C</td>
-<td class="py-3">
-<span class="status-badge status-fresh">
-<span class="material-symbols-outlined text-[14px]">verified</span> Fresh
-                                        </span>
-</td>
-<td class="py-3 font-semibold text-on-surface">95%</td>
-<td class="py-3 text-right text-on-surface-variant pr-2">7 Days</td>
-</tr>
-<!-- Row 3 -->
-<tr onclick="window.location.href='item-details.html'" class="hover:bg-surface-container/50 transition-colors cursor-pointer">
-<td class="py-3 pl-2">
-<div class="flex items-center gap-3">
-<img alt="Carrots" class="w-10 h-10 rounded-md object-cover border border-outline-variant/20" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAgX6u47ADuABArcS9ER793m5O6SFOtM9rRDiloBWaPLuPlF_XKGj5Aa0WCyKLKyX0oWBTjugrR-LJyUz90-WfiEOhx3CzcgRNFeYKhWpO8T6Vwndi_SXLtN2US4joWrJaCFPe1tOmjylq3iq-ktS7-8qMQaIXdbzTazPKD-v2EbrRvMzoT8v3XJl5Y2nMRb9DzR0vW0ocUCiHtgimHL0aMNXhYIi6u7FkaQUH6hjvMV_azTQ1RNT4D"/>
-<span class="font-semibold text-on-surface">Baby Carrots</span>
-</div>
-</td>
-<td class="py-3 text-on-surface-variant font-mono text-xs">CAR-088-B</td>
-<td class="py-3">
-<span class="status-badge status-good">
-<span class="material-symbols-outlined text-[14px]">check_circle</span> Good
-                                        </span>
-</td>
-<td class="py-3 font-semibold text-on-surface">88%</td>
-<td class="py-3 text-right text-on-surface-variant pr-2">14 Days</td>
-</tr>
-<!-- Row 4 -->
-<tr onclick="window.location.href='item-details.html'" class="hover:bg-surface-container/50 transition-colors cursor-pointer">
-<td class="py-3 pl-2">
-<div class="flex items-center gap-3">
-<img alt="Tomatoes" class="w-10 h-10 rounded-md object-cover border border-outline-variant/20" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA31e6xPDvM2OjNs9r3pRPSVSby_8yd4MMQWUrESKRrJdw_IoRvhDvckkiP_vTvPE6p1s03fvnYTXiXB64az8qTc6955ZtBkebEYbStFsoy4jq8BARXltlSI0Advs5GGHIEfX2RMTYmDUsmQak-4fMlrabtphcK0XD0XnCUUkzZozwZqy5gvrkGy9x6eOF8B8haPur-pTAg1fZz5ZTlEzHzH90K8vk2envuxzPoofL43VCFKn2wtHx8"/>
-<span class="font-semibold text-on-surface">Vine Tomatoes</span>
-</div>
-</td>
-<td class="py-3 text-on-surface-variant font-mono text-xs">TOM-201-A</td>
-<td class="py-3">
-<span class="status-badge status-alert">
-<span class="material-symbols-outlined text-[14px]">warning</span> Near Spoil
-                                        </span>
-</td>
-<td class="py-3 font-semibold text-on-surface">65%</td>
-<td class="py-3 text-right text-error font-semibold pr-2">&lt; 24 Hours</td>
-</tr>
+<tbody id="dashTableBody" class="text-sm divide-y divide-outline-variant/20">
+<tr><td colspan="5" class="py-4 text-center text-on-surface-variant">Loading inventory...</td></tr>
 </tbody>
 </table>
 </div>
@@ -496,6 +429,96 @@
 </div>
 <script src="auth.js"></script>
 <script>
-    requireAuth();
+    async function loadDashboardData() {
+        const token = getAuthToken();
+        try {
+            const res = await fetch(`${API_BASE_URL}/dashboard/summary`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!res.ok) {
+                console.error('Failed to fetch dashboard summary');
+                return;
+            }
+
+            const data = await res.json();
+
+            // Update Metrics Cards
+            document.getElementById('dashTotalCount').textContent = data.total_inventory_count.toLocaleString();
+            document.getElementById('dashAvgScore').textContent = `${data.avg_freshness_score}%`;
+            document.getElementById('dashActiveAlerts').textContent = data.active_alerts_count;
+            document.getElementById('dashWasteSaved').textContent = `$${data.estimated_waste_saved_usd.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}`;
+
+            // Update Storage Conditions
+            document.getElementById('dashStorageTemp').textContent = `${data.storage_conditions.avg_temperature}°C`;
+            document.getElementById('dashStorageHum').textContent = `${data.storage_conditions.avg_humidity}%`;
+            
+            const compBadge = document.getElementById('dashStorageCompliance');
+            compBadge.textContent = data.storage_conditions.compliance_status;
+            if (data.storage_conditions.compliance_status === "Within Range") {
+                compBadge.className = "status-badge status-fresh";
+            } else if (data.storage_conditions.compliance_status === "Warning") {
+                compBadge.className = "status-badge status-good";
+            } else {
+                compBadge.className = "status-badge status-alert";
+            }
+
+            // Update Priority Alerts
+            const alertsContainer = document.getElementById('dashAlertsContainer');
+            if (data.priority_alerts && data.priority_alerts.length > 0) {
+                alertsContainer.innerHTML = data.priority_alerts.map(a => `
+                    <div onclick="window.location.href='item-details.html?id=${a.id}'" class="p-3 bg-white rounded-lg border border-[#FECACA] shadow-sm cursor-pointer hover:bg-red-50 transition-colors">
+                        <div class="text-sm font-bold text-[#991B1B]">${a.name} (${a.batch_id})</div>
+                        <div class="text-xs text-on-surface-variant mt-1">${a.message}</div>
+                    </div>
+                `).join('');
+            } else {
+                alertsContainer.innerHTML = `
+                    <div class="p-3 bg-white rounded-lg border border-[#bbf7d0] shadow-sm">
+                        <div class="text-sm font-bold text-[#166534]">No active alerts</div>
+                        <div class="text-xs text-on-surface-variant mt-1">All storage parameters within optimal ranges.</div>
+                    </div>
+                `;
+            }
+
+            // Update Table Body
+            const tableBody = document.getElementById('dashTableBody');
+            if (data.recent_items && data.recent_items.length > 0) {
+                tableBody.innerHTML = data.recent_items.map(item => {
+                    const statusClass = (item.freshness_status || '').toLowerCase() === 'fresh' ? 'status-fresh' :
+                                       ((item.freshness_status || '').toLowerCase() === 'good' ? 'status-good' : 'status-alert');
+                    return `
+                        <tr onclick="window.location.href='item-details.html?id=${item.id}'" class="hover:bg-surface-container/50 transition-colors cursor-pointer">
+                            <td class="py-3 pl-2">
+                                <div class="flex items-center gap-3">
+                                    <img alt="${item.name}" class="w-10 h-10 rounded-md object-cover border border-outline-variant/20" src="${item.image_url || 'https://via.placeholder.com/100'}"/>
+                                    <span class="font-semibold text-on-surface">${item.name}</span>
+                                </div>
+                            </td>
+                            <td class="py-3 text-on-surface-variant font-mono text-xs">${item.batch_id}</td>
+                            <td class="py-3">
+                                <span class="status-badge ${statusClass}">
+                                    <span class="material-symbols-outlined text-[14px]">verified</span> ${item.freshness_status}
+                                </span>
+                            </td>
+                            <td class="py-3 font-semibold text-on-surface">${Math.round(item.freshness_score || 90)}%</td>
+                            <td class="py-3 text-right text-on-surface-variant pr-2">${item.estimated_expiry_days ? item.estimated_expiry_days + ' Days' : 'N/A'}</td>
+                        </tr>
+                    `;
+                }).join('');
+            } else {
+                tableBody.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-on-surface-variant">No items found in inventory.</td></tr>`;
+            }
+
+        } catch (err) {
+            console.error('Failed to load dashboard data:', err);
+        }
+    }
+
+    requireAuth().then(() => {
+        loadDashboardData();
+    });
 </script>
 </body></html>

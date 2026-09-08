@@ -6,6 +6,9 @@ from app.database import Base, SessionLocal, engine
 from app.models.food_item import FoodItem
 from app.routers.auth import router as auth_router
 from app.routers.inventory import router as inventory_router
+from app.routers.dashboard import router as dashboard_router
+from app.routers.reports import router as reports_router
+
 
 
 def seed_initial_inventory():
@@ -123,6 +126,9 @@ app.add_middleware(
 # Include routers
 app.include_router(auth_router)
 app.include_router(inventory_router)
+app.include_router(dashboard_router)
+app.include_router(reports_router)
+
 
 
 @app.get("/")
