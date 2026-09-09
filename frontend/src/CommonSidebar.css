@@ -1,0 +1,260 @@
+.dashboard-sidebar,
+.inventory-sidebar,
+.analyze-sidebar,
+.shelf-life-sidebar,
+.alerts-sidebar,
+.recommendations-sidebar,
+.analytics-sidebar,
+.profile-sidebar {
+  width: 245px !important;
+  min-width: 245px !important;
+  background: #ffffff !important;
+  border-right: 1px solid #e5e7eb !important;
+  box-sizing: border-box !important;
+}
+
+.dashboard-logo-section,
+.inventory-logo-section,
+.analyze-logo-section,
+.shelf-life-logo-section,
+.alerts-logo-section,
+.recommendations-logo-section,
+.analytics-logo-section,
+.profile-logo-section {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding: 25px 22px !important;
+  min-height: 92px !important;
+  box-sizing: border-box !important;
+}
+
+.dashboard-logo,
+.inventory-logo,
+.analyze-logo,
+.shelf-life-logo,
+.alerts-logo,
+.recommendations-logo,
+.analytics-logo,
+.profile-logo {
+  width: 42px !important;
+  height: 42px !important;
+  min-width: 42px !important;
+  border-radius: 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 23px !important;
+  box-sizing: border-box !important;
+}
+
+.dashboard-logo-section h2,
+.inventory-logo-section h2,
+.analyze-logo-section h2,
+.shelf-life-logo-section h2,
+.alerts-logo-section h2,
+.recommendations-logo-section h2,
+.analytics-logo-section h2,
+.profile-logo-section h2 {
+  margin: 0 !important;
+  font-size: 17px !important;
+  line-height: 1.2 !important;
+  font-weight: 700 !important;
+  color: #17211c !important;
+  white-space: nowrap !important;
+}
+
+.dashboard-logo-section p,
+.inventory-logo-section p,
+.analyze-logo-section p,
+.shelf-life-logo-section p,
+.alerts-logo-section p,
+.recommendations-logo-section p,
+.analytics-logo-section p,
+.profile-logo-section p {
+  margin: 4px 0 0 !important;
+  font-size: 11px !important;
+  line-height: 1.2 !important;
+  color: #8a938e !important;
+  white-space: nowrap !important;
+}
+
+.dashboard-nav,
+.inventory-nav,
+.analyze-nav,
+.shelf-life-nav,
+.alerts-nav,
+.recommendations-nav,
+.analytics-nav,
+.profile-nav {
+  padding: 22px 12px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 5px !important;
+  box-sizing: border-box !important;
+}
+
+.dashboard-nav button,
+.inventory-nav button,
+.analyze-nav button,
+.shelf-life-nav button,
+.alerts-nav button,
+.recommendations-nav button,
+.analytics-nav button,
+.profile-nav button {
+  width: 100% !important;
+  min-height: 42px !important;
+  border: none !important;
+  background: transparent !important;
+  padding: 11px 14px !important;
+  margin: 0 !important;
+  border-radius: 9px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  font-family: Arial, sans-serif !important;
+  font-size: 13px !important;
+  line-height: 1.2 !important;
+  font-weight: 400 !important;
+  color: #66706a !important;
+  cursor: pointer !important;
+  text-align: left !important;
+  box-sizing: border-box !important;
+}
+
+.dashboard-nav button span,
+.inventory-nav button span,
+.analyze-nav button span,
+.shelf-life-nav button span,
+.alerts-nav button span,
+.recommendations-nav button span,
+.analytics-nav button span,
+.profile-nav button span {
+  width: 20px !important;
+  min-width: 20px !important;
+  text-align: center !important;
+  font-size: 16px !important;
+  line-height: 1 !important;
+}
+
+.dashboard-nav button:hover,
+.inventory-nav button:hover,
+.analyze-nav button:hover,
+.shelf-life-nav button:hover,
+.alerts-nav button:hover,
+.recommendations-nav button:hover,
+.analytics-nav button:hover,
+.profile-nav button:hover {
+  background: #f1f7f3 !important;
+  color: #21864b !important;
+}
+
+.dashboard-nav button.active,
+.inventory-nav button.active,
+.analyze-nav button.active,
+.shelf-life-nav button.active,
+.alerts-nav button.active,
+.recommendations-nav button.active,
+.analytics-nav button.active,
+.profile-nav button.active {
+  background: #e8f5ed !important;
+  color: #21864b !important;
+  font-weight: 600 !important;
+}
+
+.dashboard-sidebar-bottom,
+.inventory-sidebar-bottom,
+.analyze-sidebar-bottom,
+.shelf-life-sidebar-bottom,
+.alerts-sidebar-bottom,
+.recommendations-sidebar-bottom,
+.analytics-sidebar-bottom,
+.profile-sidebar-bottom {
+  padding: 18px 12px !important;
+  box-sizing: border-box !important;
+}
+
+.dashboard-sidebar-bottom button,
+.inventory-sidebar-bottom button,
+.analyze-sidebar-bottom button,
+.shelf-life-sidebar-bottom button,
+.alerts-sidebar-bottom button,
+.recommendations-sidebar-bottom button,
+.analytics-sidebar-bottom button,
+.profile-sidebar-bottom button {
+  width: 100% !important;
+  min-height: 40px !important;
+  border: none !important;
+  background: transparent !important;
+  padding: 11px 12px !important;
+  border-radius: 9px !important;
+  font-family: Arial, sans-serif !important;
+  font-size: 13px !important;
+  line-height: 1.2 !important;
+  color: #68716c !important;
+  cursor: pointer !important;
+  text-align: left !important;
+}
+
+.dashboard-sidebar-bottom button:hover,
+.inventory-sidebar-bottom button:hover,
+.analyze-sidebar-bottom button:hover,
+.shelf-life-sidebar-bottom button:hover,
+.alerts-sidebar-bottom button:hover,
+.recommendations-sidebar-bottom button:hover,
+.analytics-sidebar-bottom button:hover,
+.profile-sidebar-bottom button:hover {
+  background: #f3f6f4 !important;
+  color: #21864b !important;
+}
+
+@media (max-width: 1100px) {
+  .dashboard-sidebar,
+  .inventory-sidebar,
+  .analyze-sidebar,
+  .shelf-life-sidebar,
+  .alerts-sidebar,
+  .recommendations-sidebar,
+  .analytics-sidebar,
+  .profile-sidebar {
+    width: 210px !important;
+    min-width: 210px !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .dashboard-sidebar,
+  .inventory-sidebar,
+  .analyze-sidebar,
+  .shelf-life-sidebar,
+  .alerts-sidebar,
+  .recommendations-sidebar,
+  .analytics-sidebar,
+  .profile-sidebar {
+    width: 70px !important;
+    min-width: 70px !important;
+  }
+
+  .dashboard-logo-section,
+  .inventory-logo-section,
+  .analyze-logo-section,
+  .shelf-life-logo-section,
+  .alerts-logo-section,
+  .recommendations-logo-section,
+  .analytics-logo-section,
+  .profile-logo-section {
+    justify-content: center !important;
+    padding: 18px 8px !important;
+  }
+
+  .dashboard-logo-section > div:last-child,
+  .inventory-logo-section > div:last-child,
+  .analyze-logo-section > div:last-child,
+  .shelf-life-logo-section > div:last-child,
+  .alerts-logo-section > div:last-child,
+  .recommendations-logo-section > div:last-child,
+  .analytics-logo-section > div:last-child,
+  .profile-logo-section > div:last-child {
+    display: none !important;
+  }
+}
