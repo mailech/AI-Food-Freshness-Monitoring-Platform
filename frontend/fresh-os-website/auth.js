@@ -85,22 +85,30 @@ function formatRoleName(role) {
 function updateUserUI(user) {
     if (!user) return;
     
-    // Update header name display
-    const nameDisplays = document.querySelectorAll('.header-user-name, [data-user-name]');
-    nameDisplays.forEach(el => {
-        el.textContent = user.full_name;
-    });
+    const apply = () => {
+        // Update header name display
+        const nameDisplays = document.querySelectorAll('.header-user-name, [data-user-name]');
+        nameDisplays.forEach(el => {
+            el.textContent = user.full_name;
+        });
 
-    // Update header role display
-    const roleDisplays = document.querySelectorAll('.header-user-role, [data-user-role]');
-    roleDisplays.forEach(el => {
-        el.textContent = formatRoleName(user.role);
-    });
+        // Update header role display
+        const roleDisplays = document.querySelectorAll('.header-user-role, [data-user-role]');
+        roleDisplays.forEach(el => {
+            el.textContent = formatRoleName(user.role);
+        });
 
-    // Update greeting heading if present
-    const greetingDisplays = document.querySelectorAll('.user-greeting');
-    greetingDisplays.forEach(el => {
-        const firstName = user.full_name.split(' ')[0];
-        el.textContent = `Good morning, ${firstName}`;
-    });
+        // Update greeting heading if present
+        const greetingDisplays = document.querySelectorAll('.user-greeting');
+        greetingDisplays.forEach(el => {
+            const firstName = user.full_name.split(' ')[0];
+            el.textContent = `Good morning, ${firstName}`;
+        });
+    };
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', apply);
+    } else {
+        apply();
+    }
 }
