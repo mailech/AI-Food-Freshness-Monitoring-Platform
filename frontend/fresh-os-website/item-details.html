@@ -5,6 +5,7 @@
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>Fresh.OS - Organic Kale Details</title>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="auth.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&amp;family=Manrope:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
 <script id="tailwind-config">
@@ -136,6 +137,7 @@
 </div>
 <button onclick="window.location.href='upload-scan.html'" class="hidden md:block px-4 py-2 rounded-full border-1.5 border-primary text-primary font-bold hover:bg-surface-container transition-colors">New Scan</button>
 <button onclick="window.location.href='settings.html'" class="hidden md:block px-4 py-2 rounded-full bg-primary-container text-on-primary font-bold hover:bg-primary/90 transition-colors">Settings</button>
+<button onclick="logout()" class="hidden md:block px-4 py-2 rounded-full border border-red-300 text-red-700 font-bold hover:bg-red-50 transition-colors">Logout</button>
 <div onclick="window.location.href='settings.html'" class="h-8 w-8 rounded-full bg-surface-variant overflow-hidden ml-2 cursor-pointer border border-outline-variant">
 <img alt="User profile" class="w-full h-full object-cover" data-alt="A small, circular avatar portrait of a professional user. The lighting is bright and modern, fitting a high-end SaaS application. The subject is well-lit against a neutral background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDvOWpn2UYh0klUFpv_BYpugLapLJPkU318qgB8AQRbMaC-nAOK89hPKwXhqwiA6P3aAlcZXpp_ln5jhAY_uzSWPlPfvWO_etq1LDZZNes00GsFeAQCa_rK-uwoQ17W8K8ukatw8cLdpgMCe08CFcxcgEtc7AQZtXE3PT3zoHUd-ENEJ7SICeUlnc-bpXTsChHXhCqKwPUIPj4Ms4qo2yV1d7Wo97oc-RJdShK-qdHakmT4C3J-sOsS"/>
 </div>
@@ -287,7 +289,6 @@
 </div>
 </div>
 </footer>
-<script src="auth.js"></script>
 <script>
     async function loadItemDetails() {
         const urlParams = new URLSearchParams(window.location.search);

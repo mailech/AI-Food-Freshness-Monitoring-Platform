@@ -12,6 +12,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&amp;family=Sora:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
 <!-- Tailwind CSS -->
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Auth Gating Script -->
+<script src="auth.js"></script>
 <!-- Tailwind Config -->
 <script id="tailwind-config">
   tailwind.config = {
@@ -333,7 +335,6 @@
 </div>
 </main>
 </div>
-<script src="auth.js"></script>
 <script>
     requireAuth().then(user => {
         if (user) {
