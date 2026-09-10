@@ -6,6 +6,10 @@ import * as inventoryApi from './services/inventory'
 import * as freshnessApi from './services/freshness'
 import * as freshnessScoringApi from './services/freshnessScoring'
 import * as shelfLifeApi from './services/shelfLife'
+import * as storageApi from './services/storage'
+import * as recommendationsApi from './services/recommendations'
+import * as alertsApi from './services/alerts'
+import * as reportsApi from './services/reports'
 import './App.css'
 import './Analysis.css'
 import './ShelfLife.css'
@@ -23,12 +27,11 @@ const items = [
   ['Whole milk', 'Dairy', 'ML-1182', '120 L', 77, 'Cold room B', '🥛'],
   ['Atlantic salmon', 'Seafood', 'SF-9014', '36 kg', 61, 'Cold room A', '🐟'],
 ]
-const alerts = [['Critical', 'Shelf-life warning: chicken batch', '12 min ago'], ['Warning', 'Cold room A needs review', '34 min ago'], ['Normal', 'Fresh batch ready for dispatch', '1 hour ago']]
 const category = score => score >= 85 ? ['Fresh', 'success'] : score >= 70 ? ['Good', 'success'] : score >= 50 ? ['Acceptable', 'warning'] : score >= 35 ? ['Near Spoilage', 'warning'] : ['Spoiled', 'danger']
 const toSession = user => ({ ...user, identity: user.name })
 const allowedFor = role => {
-  if (role === 'Consumer') return ['dashboard', 'inventory', 'analysis', 'scoring', 'shelfLife', 'alerts', 'recommendations', 'profile']
-  if (role === 'Food Quality Inspector') return ['dashboard', 'inventory', 'analysis', 'scoring', 'shelfLife', 'alerts', 'recommendations', 'reports', 'profile']
+  if (role === 'Consumer') return ['dashboard', 'inventory', 'analysis', 'scoring', 'shelfLife', 'storage', 'alerts', 'recommendations', 'reports', 'profile']
+  if (role === 'Food Quality Inspector') return ['dashboard', 'inventory', 'analysis', 'scoring', 'shelfLife', 'storage', 'alerts', 'recommendations', 'reports', 'profile']
   return allPages.map(([id]) => id)
 }
 
@@ -74,10 +77,10 @@ export default function App() {
         {page === 'analysis' && <AnalysisPage role={session.role} onUnauthorized={() => setSession(null)} />}
         {page === 'scoring' && <FreshnessScoring role={session.role} onUnauthorized={() => setSession(null)} />}
         {page === 'shelfLife' && <ShelfLife role={session.role} onUnauthorized={() => setSession(null)} />}
-        {page === 'storage' && <StorageMonitoring />}
-        {page === 'recommendations' && <Recommendations />}
-        {page === 'alerts' && <AlertsNotifications />}
-        {page === 'reports' && <Reports />}
+        {page === 'storage' && <StorageMonitoring role={session.role} onUnauthorized={() => setSession(null)} />}
+        {page === 'recommendations' && <Recommendations role={session.role} onUnauthorized={() => setSession(null)} />}
+        {page === 'alerts' && <AlertsNotifications role={session.role} onUnauthorized={() => setSession(null)} />}
+        {page === 'reports' && <Reports role={session.role} onUnauthorized={() => setSession(null)} />}
         {page === 'profile' && <Profile identity={session.identity} role={session.role} />}
       </div>
     </main>
@@ -196,7 +199,8 @@ function Inventory({ role, onUnauthorized }) {
   </>
 }
 function FormField({ label, children }) { return <label className="inventory-field"><span>{label}</span>{children}</label> }
-const canManageFreshness = role => ['Retail Manager', 'Warehouse Operator', 'Food Quality Inspector', 'Administrator'].includes(role)
+const canCreateFreshness = role => ['Consumer', 'Retail Manager', 'Warehouse Operator', 'Food Quality Inspector', 'Administrator'].includes(role)
+const canDeleteFreshness = role => ['Retail Manager', 'Warehouse Operator', 'Food Quality Inspector', 'Administrator'].includes(role)
 const freshnessError = error => {
   if (!(error instanceof ApiError)) return 'Unable to complete the freshness request.'
   if (error.status === 403) return 'Access denied. Your account cannot modify freshness analyses.'
@@ -206,13 +210,15 @@ const freshnessError = error => {
   return error.message || 'Unable to complete the freshness request.'
 }
 const analysisStatus = analysis => analysis.analysis_result?.status || (analysis.freshness_category ? 'complete' : 'pending_model_integration')
+const analysisDate = value => new Date(value).toLocaleString()
 const SCORING_WEIGHT_LABELS = [
   ['Visual freshness', '40%'],
   ['Storage conditions', '25%'],
   ['Shelf-life', '20%'],
   ['Product age', '15%'],
 ]
-const canManageFreshnessScoring = role => ['Retail Manager', 'Warehouse Operator', 'Food Quality Inspector', 'Administrator'].includes(role)
+const canCreateFreshnessScore = role => ['Consumer', 'Retail Manager', 'Warehouse Operator', 'Food Quality Inspector', 'Administrator'].includes(role)
+const canDeleteFreshnessScore = role => ['Retail Manager', 'Warehouse Operator', 'Food Quality Inspector', 'Administrator'].includes(role)
 const scoringError = error => {
   if (!(error instanceof ApiError)) return 'Unable to complete the freshness scoring request.'
   if (error.status === 403) return 'Access denied. Your account cannot modify freshness scores.'
@@ -228,7 +234,6 @@ const scoringWeight = value => {
   const percent = Number(value) * 100
   return Number.isNaN(percent) ? String(value) : `${Number.isInteger(percent) ? percent : percent.toFixed(0)}%`
 }
-const analysisDate = value => new Date(value).toLocaleString()
 
 function AnalysisPage({ role, onUnauthorized }) {
   const [image, setImage] = useState(null)
@@ -243,7 +248,8 @@ function AnalysisPage({ role, onUnauthorized }) {
   const [validationMessage, setValidationMessage] = useState('')
   const [loading, setLoading] = useState(false)
   const [historyLoading, setHistoryLoading] = useState(false)
-  const editable = canManageFreshness(role)
+  const canCreate = canCreateFreshness(role)
+  const canDelete = canDeleteFreshness(role)
   const handleError = error => {
     if (error instanceof ApiError && error.status === 401) { auth.logout(); onUnauthorized(); return }
     setValidationMessage(freshnessError(error))
@@ -287,136 +293,10 @@ function AnalysisPage({ role, onUnauthorized }) {
     <div className="analysis-note">Upload a clear, well-lit food image to support a complete freshness assessment.</div>
     <div className="analysis-workspace">
       <Panel title="Food image" text="Upload a clear image for a visual freshness assessment."><div className={'upload-zone ' + (image ? 'has-image' : '')} onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); selectImage(event.dataTransfer.files[0]) }}>{image ? <div className="image-preview"><img src={image.preview} alt="Selected food preview" /><div><b>{image.name}</b><small>Image selected and ready for assessment.</small><div><label className="link change-image" htmlFor="food-image">Change image</label><button className="link delete" onClick={() => { setImage(null); setResult(null); setValidationMessage('') }}>Remove image</button></div></div></div> : <><i>↑</i><b>Drag and drop a food image here</b><small>Supported formats: JPG, PNG and WEBP</small><label className="button secondary" htmlFor="food-image">Choose Image</label></>}<input id="food-image" type="file" accept="image/jpeg,image/png,image/webp" onClick={event => { event.currentTarget.value = '' }} onChange={event => selectImage(event.target.files[0])} /></div>{uploadError && <p className="upload-error">{uploadError}</p>}</Panel>
-      <Panel title="Food information" text="Select the real inventory batch for this analysis."><div className="analysis-fields"><FormField label="Food batch"><select value={foodBatchId} onChange={selectBatch}><option value="">Select an inventory batch</option>{batches.map(batch => <option key={batch.id} value={batch.id}>{batch.food_item.name} · {batch.batch_number}</option>)}</select></FormField><FormField label="Food/Product Name"><input value={productName} readOnly placeholder="Selected from the batch" /></FormField><FormField label="Category"><input value={foodCategory} readOnly /></FormField></div><button className="button primary analyze-button" disabled={!editable || loading || !image || !foodBatchId} onClick={analyze}>{loading ? 'Uploading…' : 'Analyze Freshness'}</button>{!editable && <small className="button-hint">Your role can view analysis history but cannot create or delete analyses.</small>}{validationMessage ? <p className="upload-error">{validationMessage}</p> : (!image || !foodBatchId) && <small className="button-hint">Select an inventory batch and image to begin.</small>}</Panel>
+      <Panel title="Food information" text="Select the real inventory batch for this analysis."><div className="analysis-fields"><FormField label="Food batch"><select value={foodBatchId} onChange={selectBatch}><option value="">Select an inventory batch</option>{batches.map(batch => <option key={batch.id} value={batch.id}>{batch.food_item.name} · {batch.batch_number}</option>)}</select></FormField><FormField label="Food/Product Name"><input value={productName} readOnly placeholder="Selected from the batch" /></FormField><FormField label="Category"><input value={foodCategory} readOnly /></FormField></div><button className="button primary analyze-button" disabled={!canCreate || loading || !image || !foodBatchId} onClick={analyze}>{loading ? 'Uploading…' : 'Analyze Freshness'}</button>{validationMessage ? <p className="upload-error">{validationMessage}</p> : (!image || !foodBatchId) && <small className="button-hint">Select an inventory batch and image to begin.</small>}</Panel>
     </div>
     {result && <section className="analysis-results"><div className="analysis-results-heading"><div><small>FRESHNESS ASSESSMENT</small><h2>Freshness Assessment</h2><p>Product: {productName}</p></div><button className="button secondary" onClick={reset}>New Analysis</button></div>{analysisStatus(result) === 'pending_model_integration' ? <div className="analysis-summary"><b>Analysis pending model integration</b><p>{result.analysis_result?.message || 'The image was stored and the analysis record was created. A trained freshness model is not configured yet.'}</p></div> : <div className="result-grid"><article className="result-score"><span>Freshness Score</span><b>{result.freshness_score ?? 'Not available'}</b></article><article className="result-stat"><span>Quality classification</span><b>{result.freshness_category ?? 'Not available'}</b></article><article className="result-stat"><span>Spoilage probability</span><b>{result.spoilage_probability ?? 'Not available'}</b></article></div>}</section>}
-    <Panel title="Analysis history" text={foodBatchId ? 'Persisted analyses for the selected inventory batch.' : 'Select an inventory batch to view persisted analyses.'}><div className="analysis-history">{historyLoading ? <p className="button-hint">Loading analysis history…</p> : history.length ? history.map(entry => <div className="history-row" key={entry.id}><div><b>Analysis #{entry.id}</b><small>{analysisDate(entry.analyzed_at)}</small></div><strong>{analysisStatus(entry) === 'pending_model_integration' ? 'Pending' : entry.freshness_score ?? 'N/A'}</strong><em className="badge warning">{analysisStatus(entry) === 'pending_model_integration' ? 'Model pending' : entry.freshness_category ?? 'No category'}</em>{editable && <button className="link delete" disabled={loading} onClick={() => removeAnalysis(entry.id)}>Delete</button>}</div>) : <p className="button-hint">No persisted analyses for this batch.</p>}</div></Panel>
-  </>
-}
-function Indicator({ name, result, tone }) { return <article className="indicator"><i className={tone}>●</i><span><b>{name}</b><small>{result}</small></span></article> }
-const emptyShelfLifeForm = () => ({ foodBatchId: '', duration: '', temperature: '', humidity: '', packaging: '' })
-const SHELF_LIFE_PACKAGING = ['Open', 'Plastic', 'Paper', 'Vacuum Sealed', 'Airtight Container']
-const canManageShelfLife = role => ['Retail Manager', 'Warehouse Operator', 'Food Quality Inspector', 'Administrator'].includes(role)
-const predictionStatus = entry => entry.prediction_result?.status || (entry.remaining_days != null || entry.predicted_expiry_date ? 'complete' : 'pending_model_integration')
-const isPendingPrediction = entry => predictionStatus(entry) === 'pending_model_integration'
-const shelfLifeError = error => {
-  if (!(error instanceof ApiError)) return 'Unable to complete the shelf-life request.'
-  if (error.status === 403) return 'Access denied. Your account cannot modify shelf-life predictions.'
-  if (error.status === 404) return 'The selected food batch or prediction was not found.'
-  if (error.status === 422) return error.message || 'Please correct the prediction details.'
-  return error.message || 'Unable to complete the shelf-life request.'
-}
-const remainingDisplay = entry => {
-  if (isPendingPrediction(entry) || entry.remaining_days == null) return 'Not available'
-  return `${entry.remaining_days} day${Number(entry.remaining_days) === 1 ? '' : 's'}`
-}
-const expiryDisplay = entry => {
-  if (isPendingPrediction(entry) || !entry.predicted_expiry_date) return 'Not available'
-  const parsed = new Date(entry.predicted_expiry_date)
-  return Number.isNaN(parsed.getTime()) ? 'Not available' : parsed.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
-}
-const confidenceDisplay = entry => (isPendingPrediction(entry) || entry.confidence_score == null || entry.confidence_score === '' ? 'Not available' : String(entry.confidence_score))
-const conditionReading = (value, suffix) => (value == null || value === '' ? 'Not available' : `${value}${suffix}`)
-const validateShelfLifeForm = form => {
-  if (!form.foodBatchId) return 'Please select a food batch.'
-  if (form.duration === '' || Number.isNaN(Number(form.duration))) return 'Please enter the storage duration in days.'
-  const duration = Number(form.duration)
-  if (!Number.isInteger(duration) || duration < 0 || duration > 36500) return 'Storage duration must be a whole number between 0 and 36500 days.'
-  if (form.temperature === '' || Number.isNaN(Number(form.temperature))) return 'Please enter the storage temperature.'
-  const temperature = Number(form.temperature)
-  if (temperature < -50 || temperature > 100) return 'Temperature must be between -50°C and 100°C.'
-  if (form.humidity === '' || Number.isNaN(Number(form.humidity))) return 'Please enter the storage humidity.'
-  const humidity = Number(form.humidity)
-  if (humidity < 0 || humidity > 100) return 'Humidity must be between 0% and 100%.'
-  if (!form.packaging.trim()) return 'Please select packaging.'
-  if (form.packaging.trim().length > 100) return 'Packaging must be 100 characters or fewer.'
-  return ''
-}
-const storageCondition = ({ temperature, humidity, air, light }) => {
-  const temperatureAlert = Number(temperature) > 5 || Number(temperature) < 2
-  const humidityAlert = Number(humidity) > 70 || Number(humidity) < 50
-  const airAlert = air === 'Limited' || air === 'Poor'
-  const lightAlert = light === 'Moderate' || light === 'High'
-  const issues = [temperatureAlert, humidityAlert, airAlert, lightAlert].filter(Boolean).length
-  const status = issues >= 3 ? 'Critical' : issues >= 2 ? 'Warning' : issues === 1 ? 'Acceptable' : 'Optimal'
-  return { temperature: temperatureAlert ? 'Review required' : 'Within range', humidity: humidityAlert ? 'Review required' : 'Within range', air: airAlert ? 'Review required' : 'Good', light: lightAlert ? 'Review required' : 'Low', status, issues }
-}
-const initialStorageForm = () => ({ temperature: '4', humidity: '65', air: 'Good', light: 'Low', duration: '3' })
-const storageTone = status => status === 'Optimal' || status === 'Within range' || status === 'Good' || status === 'Low' ? 'success' : status === 'Acceptable' || status === 'Warning' ? 'warning' : 'danger'
-const initialRecommendations = [
-  { id: 1, area: 'Storage', title: 'Review storage conditions for Atlantic Salmon', text: 'Review environmental conditions that may affect freshness and shelf life.', priority: 'High', status: 'New', context: 'Storage' },
-  { id: 2, area: 'Consumption', title: 'Prioritize whole milk for consumption', text: 'Consume products with shorter remaining shelf life first.', priority: 'High', status: 'In Progress', context: 'Expiry' },
-  { id: 3, area: 'Inventory Rotation', title: 'Rotate the dairy inventory', text: 'Move older batches ahead of newer inventory during the next stock review.', priority: 'Medium', status: 'New', context: 'Inventory' },
-  { id: 4, area: 'Waste Reduction', title: 'Review items approaching spoilage', text: 'Identify items requiring timely action to reduce avoidable food waste.', priority: 'Medium', status: 'New', context: 'Freshness' },
-  { id: 5, area: 'Quality Improvement', title: 'Maintain regular freshness checks', text: 'Monitor freshness regularly and review visible spoilage indicators.', priority: 'Low', status: 'Completed', context: 'Freshness' },
-]
-const priorityTone = priority => priority === 'High' ? 'danger' : priority === 'Medium' ? 'warning' : 'success'
-const initialAlerts = [
-  { id: 1, category: 'Freshness', title: 'Freshness review required', description: 'Review the latest freshness assessment for the affected product.', related: 'Strawberries · Batch FR-2408', priority: 'High', time: 'Today, 10:24 AM', read: false, dismissed: false, action: 'Review freshness' },
-  { id: 2, category: 'Shelf Life', title: 'Shelf life approaching', description: 'Review the remaining shelf life and prioritize the affected item.', related: 'Whole Milk · Batch DY-1182', priority: 'High', time: 'Today, 9:12 AM', read: false, dismissed: false, action: 'Review shelf life' },
-  { id: 3, category: 'Spoilage', title: 'Possible spoilage risk', description: 'Inspect the affected food item for spoilage indicators.', related: 'Atlantic Salmon · Batch SF-9014', priority: 'Medium', time: 'Yesterday, 4:35 PM', read: false, dismissed: false, action: 'Inspect product' },
-  { id: 4, category: 'Storage', title: 'Storage condition requires attention', description: 'Review the current storage conditions for the affected area.', related: 'Cold Room A', priority: 'Medium', time: 'Yesterday, 2:18 PM', read: true, dismissed: false, action: 'Review storage conditions' },
-  { id: 5, category: 'Inventory', title: 'Inventory requires attention', description: 'Review items approaching expiry and plan inventory rotation.', related: 'Bakery inventory', priority: 'Low', time: '02 Sep 2026, 11:05 AM', read: true, dismissed: false, action: 'Review inventory' },
-]
-
-function AlertsNotifications() {
-  const [alerts, setAlerts] = useState(initialAlerts)
-  const [search, setSearch] = useState('')
-  const [categoryFilter, setCategoryFilter] = useState('All')
-  const [priorityFilter, setPriorityFilter] = useState('All')
-  const [readFilter, setReadFilter] = useState('All')
-  const [showDismissed, setShowDismissed] = useState(false)
-  const [selected, setSelected] = useState(null)
-  const activeAlerts = alerts.filter(alert => !alert.dismissed)
-  const summary = { total: activeAlerts.length, high: activeAlerts.filter(alert => alert.priority === 'High').length, medium: activeAlerts.filter(alert => alert.priority === 'Medium').length, low: activeAlerts.filter(alert => alert.priority === 'Low').length, unread: activeAlerts.filter(alert => !alert.read).length }
-  const filtered = alerts.filter(alert => {
-    const matchesSearch = [alert.title, alert.description, alert.related, alert.category].some(value => value.toLowerCase().includes(search.toLowerCase()))
-    return alert.dismissed === showDismissed && matchesSearch && (categoryFilter === 'All' || alert.category === categoryFilter) && (priorityFilter === 'All' || alert.priority === priorityFilter) && (readFilter === 'All' || (readFilter === 'Read' ? alert.read : !alert.read))
-  })
-  const updateAlert = (id, changes) => setAlerts(current => current.map(alert => alert.id === id ? { ...alert, ...changes } : alert))
-  const markAllRead = () => setAlerts(current => current.map(alert => alert.dismissed ? alert : { ...alert, read: true }))
-  const clearFilters = () => { setSearch(''); setCategoryFilter('All'); setPriorityFilter('All'); setReadFilter('All') }
-  return <>
-    <div className="alerts-heading"><Title title="Alerts & Notifications" text="Review freshness, shelf-life, spoilage, storage, and inventory alerts that require attention." /><button className="button secondary" onClick={markAllRead} disabled={!summary.unread}>Mark all as read</button></div>
-    <section className="alert-summary"><AlertSummary label="Total Alerts" value={summary.total} tone="green" /><AlertSummary label="High Priority" value={summary.high} tone="red" /><AlertSummary label="Medium Priority" value={summary.medium} tone="amber" /><AlertSummary label="Low Priority" value={summary.low} tone="blue" /><AlertSummary label="Unread Alerts" value={summary.unread} tone="purple" /></section>
-    <section className="alert-controls"><input aria-label="Search alerts" placeholder="Search alerts, products or batches..." value={search} onChange={event => setSearch(event.target.value)} /><select aria-label="Filter by category" value={categoryFilter} onChange={event => setCategoryFilter(event.target.value)}><option>All</option>{['Freshness', 'Shelf Life', 'Spoilage', 'Storage', 'Inventory'].map(category => <option key={category}>{category}</option>)}</select><select aria-label="Filter by priority" value={priorityFilter} onChange={event => setPriorityFilter(event.target.value)}><option>All</option><option>High</option><option>Medium</option><option>Low</option></select><select aria-label="Filter by read state" value={readFilter} onChange={event => setReadFilter(event.target.value)}><option>All</option><option>Unread</option><option>Read</option></select><button className="button secondary" onClick={clearFilters}>Reset filters</button><button className="link dismissed-toggle" onClick={() => { setShowDismissed(current => !current); setSelected(null) }}>{showDismissed ? 'View active alerts' : 'View dismissed alerts'}</button></section>
-    <section className="alerts-list">{filtered.length ? filtered.map(alert => <article key={alert.id} className={'alert-card ' + (!alert.read ? 'unread' : '') + (selected === alert.id ? ' selected' : '')} onClick={() => { setSelected(current => current === alert.id ? null : alert.id); if (!alert.read) updateAlert(alert.id, { read: true }) }}><div className="alert-card-top"><div className="alert-category"><span>{alert.category}</span>{!alert.read && <i>Unread</i>}</div><div className="alert-badges"><em className={'badge ' + priorityTone(alert.priority)}>{alert.priority}</em><time>{alert.time}</time></div></div><h3>{alert.title}</h3><p>{alert.description}</p><div className="alert-card-footer"><span>{alert.related}</span><div><button className="link" onClick={event => { event.stopPropagation(); updateAlert(alert.id, { read: !alert.read }) }}>{alert.read ? 'Mark unread' : 'Mark read'}</button><button className="link delete" onClick={event => { event.stopPropagation(); updateAlert(alert.id, { dismissed: !alert.dismissed }); setSelected(null) }}>{alert.dismissed ? 'Restore' : 'Dismiss'}</button></div></div>{selected === alert.id && <div className="alert-detail"><div><span>Alert category</span><b>{alert.category}</b></div><div><span>Priority</span><b>{alert.priority}</b></div><div><span>Related item</span><b>{alert.related}</b></div><div><span>Date and time</span><b>{alert.time}</b></div><div className="detail-action"><span>Recommended action</span><button className="button primary" onClick={event => event.stopPropagation()}>{alert.action}</button></div></div>}</article>) : <div className="no-alerts">No alerts match your current filters.</div>}</section>
-  </>
-}
-function AlertSummary({ label, value, tone }) { return <article className={'alert-summary-card ' + tone}><small>{label}</small><b>{value}</b></article> }
-
-function Recommendations() {
-  const [recommendations, setRecommendations] = useState(initialRecommendations)
-  const [filter, setFilter] = useState('All')
-  const filtered = recommendations.filter(item => filter === 'All' || item.priority === filter)
-  const activeCount = recommendations.filter(item => item.status !== 'Completed').length
-  const toggleComplete = id => setRecommendations(current => current.map(item => item.id === id ? { ...item, status: item.status === 'Completed' ? 'New' : 'Completed' } : item))
-  const overview = [['Storage', 'Maintain suitable storage conditions.', 'Storage'], ['Consumption', 'Prioritize products requiring earlier consumption.', 'Expiry'], ['Inventory Rotation', 'Rotate older inventory before newer batches.', 'Inventory'], ['Waste Reduction', 'Identify items requiring timely action.', 'Freshness'], ['Quality Improvement', 'Monitor freshness and handling practices.', 'Quality']]
-  return <>
-    <Title title="Recommendations" text="Get actionable recommendations to help maintain food quality, improve storage, reduce waste, and manage inventory effectively." />
-    <section className="recommendation-overview"><div className="overview-heading"><div><small>CURRENT PRIORITIES</small><h2>{activeCount} active recommendation{activeCount === 1 ? '' : 's'}</h2></div><span>Review priority actions across food quality operations.</span></div><div className="overview-grid">{overview.map(item => <article key={item[0]}><small>{item[0]}</small><b>{item[1]}</b><em>{item[2]}</em></article>)}</div></section>
-    <div className="recommendation-toolbar"><div className="priority-filters">{['All', 'High', 'Medium', 'Low'].map(level => <button key={level} className={filter === level ? 'active' : ''} onClick={() => setFilter(level)}>{level === 'All' ? 'All' : `${level} Priority`}</button>)}</div>{filter !== 'All' && <button className="link clear-filter" onClick={() => setFilter('All')}>Clear filters</button>}</div>
-    <section className="recommendation-list">{filtered.length ? filtered.map(item => <article className={'recommendation-card ' + (item.status === 'Completed' ? 'completed' : '')} key={item.id}><div className="recommendation-top"><div><small>{item.area}</small><h3>{item.title}</h3></div><em className={'badge ' + priorityTone(item.priority)}>{item.priority}</em></div><p>{item.text}</p><div className="recommendation-footer"><div><span className="context-label">{item.context}</span><span className={'recommendation-status ' + (item.status === 'Completed' ? 'complete' : '')}>{item.status}</span></div><button className={'button ' + (item.status === 'Completed' ? 'secondary' : 'primary')} onClick={() => toggleComplete(item.id)}>{item.status === 'Completed' ? 'Restore' : 'Mark Completed'}</button></div></article>) : <div className="no-recommendations">No recommendations match the selected priority.</div>}</section>
-  </>
-}
-
-function StorageMonitoring() {
-  const [form, setForm] = useState(initialStorageForm)
-  const [display, setDisplay] = useState(initialStorageForm)
-  const [message, setMessage] = useState('')
-  const update = key => event => { setForm(current => ({ ...current, [key]: event.target.value })); setMessage('') }
-  const complete = form.temperature !== '' && form.humidity !== '' && form.air && form.light && form.duration !== ''
-  const condition = storageCondition(display)
-  const alerts = [condition.temperature === 'Review required' && 'Temperature requires review', condition.humidity === 'Review required' && 'Humidity requires review', condition.air === 'Review required' && 'Air circulation requires review', condition.light === 'Review required' && 'Light exposure requires review'].filter(Boolean)
-  const updateConditions = () => { if (!complete) return setMessage('Please complete all storage condition fields.'); setDisplay({ ...form }); setMessage('') }
-  const details = [['Temperature Status', `${display.temperature}°C`, condition.temperature], ['Humidity Status', `${display.humidity}%`, condition.humidity], ['Air Circulation Status', display.air, condition.air], ['Light Exposure Status', display.light, condition.light]]
-  return <>
-    <Title title="Storage Monitoring" text="Monitor storage conditions and identify environmental risks that may affect food freshness." />
-    <section className="storage-overview"><article className={'storage-status ' + storageTone(condition.status)}><small>OVERALL STORAGE CONDITION</small><b>{condition.status}</b><span>{condition.status === 'Optimal' ? 'Conditions are stable.' : condition.status === 'Acceptable' ? 'Conditions should be monitored.' : 'Conditions require attention.'}</span></article><div className="storage-metrics">{[['Temperature', `${display.temperature}°C`, 'Temperature'], ['Humidity', `${display.humidity}%`, 'Humidity'], ['Air Circulation', display.air, 'Air'], ['Light Exposure', display.light, 'Light'], ['Storage Duration', `${display.duration} days`, 'Duration']].map(metric => <article className="storage-metric" key={metric[0]}><small>{metric[0]}</small><b>{metric[1]}</b><span>{metric[2]}</span></article>)}</div></section>
-    <div className="storage-main-grid"><Panel title="Storage condition details" text="Current condition review."><div className="storage-details">{details.map(detail => <div className="storage-detail" key={detail[0]}><div><b>{detail[0]}</b><small>{detail[1]}</small></div><em className={'badge ' + storageTone(detail[2])}>{detail[2]}</em></div>)}</div></Panel><Panel title="Storage compliance" text="Environmental condition summary."><div className="compliance-list"><div><span>Temperature</span><b>{condition.temperature}</b></div><div><span>Humidity</span><b>{condition.humidity}</b></div><div><span>Air Circulation</span><b>{condition.air}</b></div><div><span>Light Exposure</span><b>{condition.light}</b></div></div><div className={'compliance-status ' + storageTone(condition.status)}><span>Storage Compliance</span><b>{condition.status}</b></div></Panel></div>
-    <Panel title="Update storage conditions" text="Enter the latest environmental conditions."><div className="storage-form"><FormField label="Temperature (°C)"><input required type="number" step="0.1" value={form.temperature} onChange={update('temperature')} /></FormField><FormField label="Humidity (%)"><input required type="number" min="0" max="100" value={form.humidity} onChange={update('humidity')} /></FormField><FormField label="Air Circulation"><select value={form.air} onChange={update('air')}><option>Good</option><option>Limited</option><option>Poor</option></select></FormField><FormField label="Light Exposure"><select value={form.light} onChange={update('light')}><option>Low</option><option>Moderate</option><option>High</option></select></FormField><FormField label="Storage Duration (days)"><input required type="number" min="0" value={form.duration} onChange={update('duration')} /></FormField><div className="storage-update"><button className="button primary" disabled={!complete} onClick={updateConditions}>Update Conditions</button>{message && <p className="upload-error">{message}</p>}</div></div></Panel>
-    <div className="storage-main-grid"><Panel title="Storage impact" text="How the current environment may affect food freshness."><div className="storage-impact-copy"><b>{condition.status === 'Optimal' ? 'Current storage conditions are stable.' : 'Current storage conditions need closer attention.'}</b><p>{condition.status === 'Optimal' ? 'Maintaining consistent environmental conditions can help preserve freshness and shelf life.' : 'Review the highlighted conditions to help protect freshness and expected shelf life.'}</p></div></Panel><Panel title="Storage alerts" text="Current storage-related notifications."><div className="storage-alerts">{alerts.length ? alerts.map(alert => <div className="storage-alert" key={alert}><i>!</i><span>{alert}</span></div>) : <div className="storage-alert clear"><i>✓</i><span>No active storage alerts</span></div>}</div></Panel></div>
-    <Panel title="Storage trend" text="Temperature and humidity readings over recent storage checks."><div className="storage-trend"><div className="trend-legend"><span><i className="temperature-dot"></i>Temperature</span><span><i className="humidity-dot"></i>Humidity</span></div><div className="storage-chart"><div className="chart-line temperature-line"><i></i><i></i><i></i><i></i><i></i></div><div className="chart-line humidity-line"><i></i><i></i><i></i><i></i><i></i></div><div className="chart-dates"><span>Day 1</span><span>Day 2</span><span>Day 3</span><span>Day 4</span><span>Today</span></div></div></div></Panel>
+    <Panel title="Analysis history" text={foodBatchId ? 'Persisted analyses for the selected inventory batch.' : 'Select an inventory batch to view persisted analyses.'}><div className="analysis-history">{historyLoading ? <p className="button-hint">Loading analysis history…</p> : history.length ? history.map(entry => <div className="history-row" key={entry.id}><div><b>Analysis #{entry.id}</b><small>{analysisDate(entry.analyzed_at)}</small></div><strong>{analysisStatus(entry) === 'pending_model_integration' ? 'Pending' : entry.freshness_score ?? 'N/A'}</strong><em className="badge warning">{analysisStatus(entry) === 'pending_model_integration' ? 'Model pending' : entry.freshness_category ?? 'No category'}</em>{canDelete && <button className="link delete" disabled={loading} onClick={() => removeAnalysis(entry.id)}>Delete</button>}</div>) : <p className="button-hint">No persisted analyses for this batch.</p>}</div></Panel>
   </>
 }
 
@@ -431,7 +311,8 @@ function FreshnessScoring({ role, onUnauthorized }) {
   const [deleting, setDeleting] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
-  const editable = canManageFreshnessScoring(role)
+  const canCreate = canCreateFreshnessScore(role)
+  const canDelete = canDeleteFreshnessScore(role)
   const busy = loading || deleting
   const selectedBatch = batches.find(entry => String(entry.id) === String(foodBatchId))
   const pending = result && isPendingScore(result)
@@ -457,7 +338,7 @@ function FreshnessScoring({ role, onUnauthorized }) {
   }
   const createScore = async () => {
     if (!foodBatchId) { setError('Please select a food batch.'); return }
-    if (!editable) { setError('Access denied. Your account cannot modify freshness scores.'); return }
+    if (!canCreate) { setError('Access denied. Your account cannot create freshness scores.'); return }
     try {
       setLoading(true); setError(''); setMessage('')
       const created = await freshnessScoringApi.createScore(foodBatchId)
@@ -502,10 +383,10 @@ function FreshnessScoring({ role, onUnauthorized }) {
           <FormField label="Category"><input value={selectedBatch?.food_item?.category || ''} readOnly placeholder="Selected from the batch" /></FormField>
         </div>
         <div className="scoring-actions">
-          <button className="button primary" disabled={!editable || busy || !foodBatchId || batchesLoading} onClick={createScore}>{loading ? 'Saving…' : 'Generate Score'}</button>
+          <button className="button primary" disabled={!canCreate || busy || !foodBatchId || batchesLoading} onClick={createScore}>{loading ? 'Saving…' : 'Generate Score'}</button>
         </div>
-        {!editable && <small className="button-hint">Your role can view score history but cannot create or delete scores.</small>}
-        {editable && !foodBatchId && <small className="button-hint">Select an inventory batch to create a score record.</small>}
+        {!canCreate && <small className="button-hint">Your role can view score history but cannot create or delete scores.</small>}
+        {canCreate && !foodBatchId && <small className="button-hint">Select an inventory batch to create a score record.</small>}
       </Panel>
       <Panel title="Scoring model" text="Explanatory weights used by the backend scoring model.">
         {SCORING_WEIGHT_LABELS.map(item => <div className="signal" key={item[0]}><span>{item[0]}</span><b>{item[1]} weight</b></div>)}
@@ -538,9 +419,633 @@ function FreshnessScoring({ role, onUnauthorized }) {
             <div><b>Score #{entry.id}</b><small>{entry.created_at ? analysisDate(entry.created_at) : 'Timestamp not available'}</small></div>
             <strong>{pendingEntry ? 'Pending' : scoringValue(entry.freshness_score)}</strong>
             <em className={'badge ' + (pendingEntry ? 'warning' : 'success')}>{pendingEntry ? entry.status || 'Pending' : 'Recorded'}</em>
-            {editable && <button className="link delete" disabled={busy} onClick={() => removeScore(entry.id)}>Delete</button>}
+            {canDelete && <button className="link delete" disabled={busy} onClick={() => removeScore(entry.id)}>Delete</button>}
           </div>
         }) : <p className="button-hint">{foodBatchId ? 'No freshness scores have been recorded for this batch.' : 'Select an inventory batch to view persisted scores.'}</p>}
+      </div>
+    </Panel>
+  </>
+}
+function Indicator({ name, result, tone }) { return <article className="indicator"><i className={tone}>●</i><span><b>{name}</b><small>{result}</small></span></article> }
+const emptyShelfLifeForm = () => ({ foodBatchId: '', duration: '', temperature: '', humidity: '', packaging: '' })
+const SHELF_LIFE_PACKAGING = ['Open', 'Plastic', 'Paper', 'Vacuum Sealed', 'Airtight Container']
+const canCreateShelfLifePrediction = role => ['Consumer', 'Retail Manager', 'Warehouse Operator', 'Food Quality Inspector', 'Administrator'].includes(role)
+const canDeleteShelfLifePrediction = role => ['Retail Manager', 'Warehouse Operator', 'Food Quality Inspector', 'Administrator'].includes(role)
+const predictionStatus = entry => entry.prediction_result?.status || (entry.remaining_days != null || entry.predicted_expiry_date ? 'complete' : 'pending_model_integration')
+const isPendingPrediction = entry => predictionStatus(entry) === 'pending_model_integration'
+const shelfLifeError = error => {
+  if (!(error instanceof ApiError)) return 'Unable to complete the shelf-life request.'
+  if (error.status === 403) return 'Access denied. Your account cannot modify shelf-life predictions.'
+  if (error.status === 404) return 'The selected food batch or prediction was not found.'
+  if (error.status === 422) return error.message || 'Please correct the prediction details.'
+  return error.message || 'Unable to complete the shelf-life request.'
+}
+const remainingDisplay = entry => {
+  if (isPendingPrediction(entry) || entry.remaining_days == null) return 'Not available'
+  return `${entry.remaining_days} day${Number(entry.remaining_days) === 1 ? '' : 's'}`
+}
+const expiryDisplay = entry => {
+  if (isPendingPrediction(entry) || !entry.predicted_expiry_date) return 'Not available'
+  const parsed = new Date(entry.predicted_expiry_date)
+  return Number.isNaN(parsed.getTime()) ? 'Not available' : parsed.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
+}
+const confidenceDisplay = entry => (isPendingPrediction(entry) || entry.confidence_score == null || entry.confidence_score === '' ? 'Not available' : String(entry.confidence_score))
+const conditionReading = (value, suffix) => (value == null || value === '' ? 'Not available' : `${value}${suffix}`)
+const validateShelfLifeForm = form => {
+  if (!form.foodBatchId) return 'Please select a food batch.'
+  if (form.duration === '' || Number.isNaN(Number(form.duration))) return 'Please enter the storage duration in days.'
+  const duration = Number(form.duration)
+  if (!Number.isInteger(duration) || duration < 0 || duration > 36500) return 'Storage duration must be a whole number between 0 and 36500 days.'
+  if (form.temperature === '' || Number.isNaN(Number(form.temperature))) return 'Please enter the storage temperature.'
+  const temperature = Number(form.temperature)
+  if (temperature < -50 || temperature > 100) return 'Temperature must be between -50°C and 100°C.'
+  if (form.humidity === '' || Number.isNaN(Number(form.humidity))) return 'Please enter the storage humidity.'
+  const humidity = Number(form.humidity)
+  if (humidity < 0 || humidity > 100) return 'Humidity must be between 0% and 100%.'
+  if (!form.packaging.trim()) return 'Please select packaging.'
+  if (form.packaging.trim().length > 100) return 'Packaging must be 100 characters or fewer.'
+  return ''
+}
+const emptyStorageForm = () => ({ foodBatchId: '', temperature: '', humidity: '', airCirculation: '', lightLevel: '', duration: '' })
+const canManageStorage = role => ['Retail Manager', 'Warehouse Operator', 'Administrator'].includes(role)
+const storageError = error => {
+  if (!(error instanceof ApiError)) return 'Unable to complete the storage request.'
+  if (error.status === 403) return 'Access denied. Your account cannot modify storage conditions.'
+  if (error.status === 404) return error.message || 'The selected food batch or storage record was not found.'
+  if (error.status === 409) return error.message || 'This storage record conflicts with an existing record.'
+  if (error.status === 422) return error.message || 'Please correct the storage condition details.'
+  return error.message || 'Unable to complete the storage request.'
+}
+const isEmptyLatest = error => error instanceof ApiError && error.status === 404 && /no storage conditions have been recorded/i.test(error.message || '')
+const storageReading = (value, suffix) => (value == null || value === '' ? 'Not available' : `${value}${suffix}`)
+const validateStorageForm = form => {
+  if (!form.foodBatchId) return 'Please select a food batch.'
+  if (form.temperature === '' || Number.isNaN(Number(form.temperature))) return 'Please enter the storage temperature.'
+  const temperature = Number(form.temperature)
+  if (temperature < -50 || temperature > 100) return 'Temperature must be between -50°C and 100°C.'
+  if (form.humidity === '' || Number.isNaN(Number(form.humidity))) return 'Please enter the storage humidity.'
+  const humidity = Number(form.humidity)
+  if (humidity < 0 || humidity > 100) return 'Humidity must be between 0% and 100%.'
+  if (form.airCirculation === '' || Number.isNaN(Number(form.airCirculation))) return 'Please enter the air circulation value.'
+  const airCirculation = Number(form.airCirculation)
+  if (airCirculation < 0 || airCirculation > 10000) return 'Air circulation must be between 0 and 10000.'
+  if (form.lightLevel === '' || Number.isNaN(Number(form.lightLevel))) return 'Please enter the light level.'
+  const lightLevel = Number(form.lightLevel)
+  if (lightLevel < 0 || lightLevel > 1_000_000) return 'Light level must be between 0 and 1000000.'
+  if (form.duration === '' || Number.isNaN(Number(form.duration))) return 'Please enter the storage duration in days.'
+  const duration = Number(form.duration)
+  if (!Number.isInteger(duration) || duration < 0 || duration > 36500) return 'Storage duration must be a whole number between 0 and 36500 days.'
+  return ''
+}
+const priorityTone = priority => priority === 'High' ? 'danger' : priority === 'Medium' ? 'warning' : 'success'
+const RECOMMENDATION_TYPES = ['Storage', 'Consumption', 'Inventory Rotation', 'Waste Reduction', 'Quality Improvement']
+const RECOMMENDATION_PRIORITIES = ['High', 'Medium', 'Low']
+const RECOMMENDATION_STATUSES = ['New', 'In Progress', 'Completed']
+const emptyRecommendationForm = () => ({ foodBatchId: '', recommendationType: 'Storage', priority: 'Medium', message: '', status: 'New' })
+const canManageRecommendations = role => ['Retail Manager', 'Warehouse Operator', 'Food Quality Inspector', 'Administrator'].includes(role)
+const recommendationError = error => {
+  if (!(error instanceof ApiError)) return 'Unable to complete the recommendation request.'
+  if (error.status === 403) return 'Access denied. Your account cannot modify recommendations.'
+  if (error.status === 404) return error.message || 'The selected food batch or recommendation was not found.'
+  if (error.status === 409) return error.message || 'This recommendation conflicts with an existing record.'
+  if (error.status === 422) return error.message || 'Please correct the recommendation details.'
+  return error.message || 'Unable to complete the recommendation request.'
+}
+const batchLabel = (batches, foodBatchId) => {
+  const batch = batches.find(entry => Number(entry.id) === Number(foodBatchId))
+  return batch ? `${batch.food_item.name} · ${batch.batch_number}` : `Batch #${foodBatchId}`
+}
+const ALERT_CATEGORIES = ['Freshness', 'Shelf Life', 'Spoilage', 'Storage', 'Inventory']
+const ALERT_PRIORITIES = ['High', 'Medium', 'Low']
+const emptyAlertForm = () => ({ foodBatchId: '', category: 'Freshness', priority: 'Medium', title: '', message: '' })
+const canCreateAlerts = role => ['Retail Manager', 'Warehouse Operator', 'Food Quality Inspector', 'Administrator'].includes(role)
+const alertError = error => {
+  if (!(error instanceof ApiError)) return 'Unable to complete the alert request.'
+  if (error.status === 403) return 'Access denied. Your account cannot create alerts.'
+  if (error.status === 404) return error.message || 'The selected food batch or alert was not found.'
+  if (error.status === 409) return error.message || 'This alert conflicts with an existing record.'
+  if (error.status === 422) return error.message || 'Please correct the alert details.'
+  return error.message || 'Unable to complete the alert request.'
+}
+
+function AlertsNotifications({ role, onUnauthorized }) {
+  const [alerts, setAlerts] = useState([])
+  const [batches, setBatches] = useState([])
+  const [batchesLoading, setBatchesLoading] = useState(true)
+  const [loading, setLoading] = useState(true)
+  const [updatingId, setUpdatingId] = useState(null)
+  const [submitting, setSubmitting] = useState(false)
+  const [search, setSearch] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState('All')
+  const [priorityFilter, setPriorityFilter] = useState('All')
+  const [readFilter, setReadFilter] = useState('All')
+  const [batchFilter, setBatchFilter] = useState('')
+  const [showDismissed, setShowDismissed] = useState(false)
+  const [selected, setSelected] = useState(null)
+  const [form, setForm] = useState(emptyAlertForm)
+  const [message, setMessage] = useState('')
+  const [error, setError] = useState('')
+  const canCreate = canCreateAlerts(role)
+  const busy = submitting || Boolean(updatingId)
+  const handleError = caught => {
+    if (caught instanceof ApiError && caught.status === 401) { auth.logout(); onUnauthorized(); return }
+    setError(alertError(caught))
+  }
+  const loadAlerts = async (silent = false) => {
+    if (!silent) setLoading(true)
+    setError('')
+    try {
+      setAlerts(await alertsApi.getAlerts({
+        category: categoryFilter === 'All' ? undefined : categoryFilter,
+        priority: priorityFilter === 'All' ? undefined : priorityFilter,
+        is_read: readFilter === 'All' ? undefined : readFilter === 'Read',
+        is_dismissed: showDismissed,
+        food_batch_id: batchFilter || undefined,
+      }))
+    } catch (requestError) { setAlerts([]); handleError(requestError) }
+    finally { if (!silent) setLoading(false) }
+  }
+  useEffect(() => {
+    setBatchesLoading(true)
+    inventoryApi.getBatches().then(setBatches).catch(handleError).finally(() => setBatchesLoading(false))
+  }, [])
+  useEffect(() => { loadAlerts() }, [categoryFilter, priorityFilter, readFilter, batchFilter, showDismissed])
+  const updateForm = key => event => { setForm(current => ({ ...current, [key]: event.target.value })); setError(''); setMessage('') }
+  const relatedBatch = alert => batchLabel(batches, alert.food_batch_id)
+  const displayed = alerts.filter(alert => {
+    const related = relatedBatch(alert)
+    const haystack = [alert.title, alert.message, alert.category, related].join(' ').toLowerCase()
+    return !search.trim() || haystack.includes(search.trim().toLowerCase())
+  })
+  const summary = {
+    total: alerts.length,
+    high: alerts.filter(alert => alert.priority === 'High').length,
+    medium: alerts.filter(alert => alert.priority === 'Medium').length,
+    low: alerts.filter(alert => alert.priority === 'Low').length,
+    unread: alerts.filter(alert => !alert.is_read).length,
+  }
+  const selectAlert = async alert => {
+    setSelected(current => current === alert.id ? null : alert.id)
+    if (alert.is_read || updatingId) return
+    try {
+      setUpdatingId(alert.id); setError('')
+      await alertsApi.markAlertRead(alert.id)
+      await loadAlerts(true)
+    } catch (requestError) { handleError(requestError) }
+    finally { setUpdatingId(null) }
+  }
+  const markRead = async (event, alertId) => {
+    event.stopPropagation()
+    try {
+      setUpdatingId(alertId); setError(''); setMessage('')
+      await alertsApi.markAlertRead(alertId)
+      setMessage('Alert marked as read.')
+      await loadAlerts(true)
+    } catch (requestError) { handleError(requestError) }
+    finally { setUpdatingId(null) }
+  }
+  const dismiss = async (event, alertId) => {
+    event.stopPropagation()
+    try {
+      setUpdatingId(alertId); setError(''); setMessage('')
+      await alertsApi.dismissAlert(alertId)
+      setSelected(current => current === alertId ? null : current)
+      setMessage('Alert dismissed.')
+      await loadAlerts(true)
+    } catch (requestError) { handleError(requestError) }
+    finally { setUpdatingId(null) }
+  }
+  const markAllRead = async () => {
+    try {
+      setUpdatingId('all'); setError(''); setMessage('')
+      await alertsApi.markAllAlertsRead()
+      setMessage('All alerts marked as read.')
+      await loadAlerts(true)
+    } catch (requestError) { handleError(requestError) }
+    finally { setUpdatingId(null) }
+  }
+  const createAlert = async event => {
+    event.preventDefault()
+    if (!canCreate) { setError('Access denied. Your account cannot create alerts.'); return }
+    if (!form.foodBatchId) { setError('Please select a food batch.'); return }
+    if (!form.title.trim() || !form.message.trim()) { setError('Please enter an alert title and message.'); return }
+    try {
+      setSubmitting(true); setError(''); setMessage('')
+      await alertsApi.createAlert({
+        food_batch_id: Number(form.foodBatchId),
+        category: form.category,
+        priority: form.priority,
+        title: form.title.trim(),
+        message: form.message.trim(),
+      })
+      setForm(emptyAlertForm())
+      setMessage('Alert recorded.')
+      await loadAlerts(true)
+    } catch (requestError) { handleError(requestError) }
+    finally { setSubmitting(false) }
+  }
+  const clearFilters = () => { setSearch(''); setCategoryFilter('All'); setPriorityFilter('All'); setReadFilter('All'); setBatchFilter('') }
+  return <>
+    <div className="alerts-heading">
+      <Title title="Alerts & Notifications" text="Review persisted freshness, shelf-life, spoilage, storage, and inventory alerts for your account." />
+      <button className="button secondary" onClick={markAllRead} disabled={busy || loading || !summary.unread}>Mark all as read</button>
+    </div>
+    {message && <p className="inventory-note" role="status">{message}</p>}
+    {error && <p className="error inventory-note" role="alert">{error}</p>}
+    <section className="alert-summary">
+      <AlertSummary label="Total Alerts" value={loading ? '…' : summary.total} tone="green" />
+      <AlertSummary label="High Priority" value={loading ? '…' : summary.high} tone="red" />
+      <AlertSummary label="Medium Priority" value={loading ? '…' : summary.medium} tone="amber" />
+      <AlertSummary label="Low Priority" value={loading ? '…' : summary.low} tone="blue" />
+      <AlertSummary label="Unread Alerts" value={loading ? '…' : summary.unread} tone="purple" />
+    </section>
+    <section className="alert-controls">
+      <input aria-label="Search alerts" placeholder="Search alerts, products or batches..." value={search} onChange={event => setSearch(event.target.value)} />
+      <select aria-label="Filter by category" value={categoryFilter} onChange={event => setCategoryFilter(event.target.value)}><option>All</option>{ALERT_CATEGORIES.map(category => <option key={category}>{category}</option>)}</select>
+      <select aria-label="Filter by priority" value={priorityFilter} onChange={event => setPriorityFilter(event.target.value)}><option>All</option>{ALERT_PRIORITIES.map(priority => <option key={priority}>{priority}</option>)}</select>
+      <select aria-label="Filter by read state" value={readFilter} onChange={event => setReadFilter(event.target.value)}><option>All</option><option>Unread</option><option>Read</option></select>
+      <select aria-label="Filter by batch" value={batchFilter} onChange={event => setBatchFilter(event.target.value)} disabled={batchesLoading}>
+        <option value="">{batchesLoading ? 'Loading batches…' : 'All batches'}</option>
+        {batches.map(batch => <option key={batch.id} value={batch.id}>{batch.food_item.name} · {batch.batch_number}</option>)}
+      </select>
+      <button className="button secondary" onClick={clearFilters}>Reset filters</button>
+      <button className="link dismissed-toggle" onClick={() => { setShowDismissed(current => !current); setSelected(null) }}>{showDismissed ? 'View active alerts' : 'View dismissed alerts'}</button>
+    </section>
+    {canCreate && <Panel title="Add alert" text="Create a persisted alert for a real inventory batch. Alerts belong to your account.">
+      <form className="storage-form" onSubmit={createAlert}>
+        <FormField label="Food batch">
+          <select required value={form.foodBatchId} onChange={updateForm('foodBatchId')} disabled={batchesLoading || busy}>
+            <option value="">{batchesLoading ? 'Loading inventory batches…' : batches.length ? 'Select an inventory batch' : 'No inventory batches available'}</option>
+            {batches.map(batch => <option key={batch.id} value={batch.id}>{batch.food_item.name} · {batch.batch_number}</option>)}
+          </select>
+        </FormField>
+        <FormField label="Category"><select value={form.category} onChange={updateForm('category')} disabled={busy}>{ALERT_CATEGORIES.map(category => <option key={category}>{category}</option>)}</select></FormField>
+        <FormField label="Priority"><select value={form.priority} onChange={updateForm('priority')} disabled={busy}>{ALERT_PRIORITIES.map(priority => <option key={priority}>{priority}</option>)}</select></FormField>
+        <FormField label="Title"><input required value={form.title} onChange={updateForm('title')} disabled={busy} maxLength="255" /></FormField>
+        <label className="inventory-field recommendation-message-field"><span>Message</span><textarea required value={form.message} onChange={updateForm('message')} disabled={busy} rows="3" /></label>
+        <div className="storage-update"><button className="button primary" disabled={busy || batchesLoading || !form.foodBatchId || !form.title.trim() || !form.message.trim()}>{submitting ? 'Saving…' : 'Add Alert'}</button></div>
+      </form>
+    </Panel>}
+    <section className="alerts-list">
+      {loading ? <div className="no-alerts">Loading alerts…</div> : displayed.length ? displayed.map(alert => <article key={alert.id} className={'alert-card ' + (!alert.is_read ? 'unread' : '') + (selected === alert.id ? ' selected' : '')} onClick={() => selectAlert(alert)}>
+        <div className="alert-card-top">
+          <div className="alert-category"><span>{alert.category}</span>{!alert.is_read && <i>Unread</i>}</div>
+          <div className="alert-badges"><em className={'badge ' + priorityTone(alert.priority)}>{alert.priority}</em><time>{alert.created_at ? analysisDate(alert.created_at) : 'Not available'}</time></div>
+        </div>
+        <h3>{alert.title}</h3>
+        <p>{alert.message}</p>
+        <div className="alert-card-footer">
+          <span>{relatedBatch(alert)}</span>
+          <div>
+            {!alert.is_read && <button className="link" disabled={busy} onClick={event => markRead(event, alert.id)}>{updatingId === alert.id ? 'Saving…' : 'Mark read'}</button>}
+            {!alert.is_dismissed && <button className="link delete" disabled={busy} onClick={event => dismiss(event, alert.id)}>{updatingId === alert.id ? 'Saving…' : 'Dismiss'}</button>}
+          </div>
+        </div>
+        {selected === alert.id && <div className="alert-detail">
+          <div><span>Alert category</span><b>{alert.category}</b></div>
+          <div><span>Priority</span><b>{alert.priority}</b></div>
+          <div><span>Related batch</span><b>{relatedBatch(alert)}</b></div>
+          <div><span>Date and time</span><b>{alert.created_at ? analysisDate(alert.created_at) : 'Not available'}</b></div>
+          <div><span>Read</span><b>{alert.is_read ? 'Yes' : 'No'}</b></div>
+          <div><span>Dismissed</span><b>{alert.is_dismissed ? 'Yes' : 'No'}</b></div>
+        </div>}
+      </article>) : <div className="no-alerts">{search || categoryFilter !== 'All' || priorityFilter !== 'All' || readFilter !== 'All' || batchFilter ? 'No alerts match your current filters.' : (showDismissed ? 'No dismissed alerts have been recorded.' : 'No alerts have been recorded.')}</div>}
+    </section>
+  </>
+}
+function AlertSummary({ label, value, tone }) { return <article className={'alert-summary-card ' + tone}><small>{label}</small><b>{value}</b></article> }
+
+function Recommendations({ role, onUnauthorized }) {
+  const [recommendations, setRecommendations] = useState([])
+  const [batches, setBatches] = useState([])
+  const [batchesLoading, setBatchesLoading] = useState(true)
+  const [loading, setLoading] = useState(true)
+  const [updatingId, setUpdatingId] = useState(null)
+  const [submitting, setSubmitting] = useState(false)
+  const [priorityFilter, setPriorityFilter] = useState('All')
+  const [typeFilter, setTypeFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
+  const [batchFilter, setBatchFilter] = useState('')
+  const [form, setForm] = useState(emptyRecommendationForm)
+  const [message, setMessage] = useState('')
+  const [error, setError] = useState('')
+  const editable = canManageRecommendations(role)
+  const busy = submitting || Boolean(updatingId)
+  const handleError = caught => {
+    if (caught instanceof ApiError && caught.status === 401) { auth.logout(); onUnauthorized(); return }
+    setError(recommendationError(caught))
+  }
+  const loadRecommendations = async (silent = false) => {
+    if (!silent) setLoading(true)
+    setError('')
+    try {
+      setRecommendations(await recommendationsApi.getRecommendations({
+        food_batch_id: batchFilter || undefined,
+        recommendation_type: typeFilter || undefined,
+        priority: priorityFilter === 'All' ? undefined : priorityFilter,
+        status: statusFilter || undefined,
+      }))
+    } catch (requestError) { setRecommendations([]); handleError(requestError) }
+    finally { if (!silent) setLoading(false) }
+  }
+  useEffect(() => {
+    setBatchesLoading(true)
+    inventoryApi.getBatches().then(setBatches).catch(handleError).finally(() => setBatchesLoading(false))
+  }, [])
+  useEffect(() => { loadRecommendations() }, [priorityFilter, typeFilter, statusFilter, batchFilter])
+  const updateForm = key => event => { setForm(current => ({ ...current, [key]: event.target.value })); setError(''); setMessage('') }
+  const setStatus = async (recommendationId, status) => {
+    if (!editable) { setError('Access denied. Your account cannot modify recommendations.'); return }
+    try {
+      setUpdatingId(recommendationId); setError(''); setMessage('')
+      const updated = await recommendationsApi.updateRecommendationStatus(recommendationId, status)
+      setMessage(`Recommendation #${recommendationId} status updated to ${updated.status}.`)
+      await loadRecommendations(true)
+    } catch (requestError) { handleError(requestError) }
+    finally { setUpdatingId(null) }
+  }
+  const removeRecommendation = async recommendationId => {
+    if (!editable) { setError('Access denied. Your account cannot modify recommendations.'); return }
+    try {
+      setUpdatingId(recommendationId); setError(''); setMessage('')
+      await recommendationsApi.deleteRecommendation(recommendationId)
+      setRecommendations(current => current.filter(item => item.id !== recommendationId))
+      setMessage('Recommendation deleted.')
+    } catch (requestError) { handleError(requestError) }
+    finally { setUpdatingId(null) }
+  }
+  const createRecommendation = async event => {
+    event.preventDefault()
+    if (!editable) { setError('Access denied. Your account cannot modify recommendations.'); return }
+    if (!form.foodBatchId) { setError('Please select a food batch.'); return }
+    if (!form.message.trim()) { setError('Please enter a recommendation message.'); return }
+    try {
+      setSubmitting(true); setError(''); setMessage('')
+      await recommendationsApi.createRecommendation({
+        food_batch_id: Number(form.foodBatchId),
+        recommendation_type: form.recommendationType,
+        priority: form.priority,
+        message: form.message.trim(),
+        status: form.status,
+      })
+      setForm(emptyRecommendationForm())
+      setMessage('Recommendation recorded.')
+      await loadRecommendations(true)
+    } catch (requestError) { handleError(requestError) }
+    finally { setSubmitting(false) }
+  }
+  const clearFilters = () => { setPriorityFilter('All'); setTypeFilter(''); setStatusFilter(''); setBatchFilter('') }
+  const typeCounts = Object.fromEntries(RECOMMENDATION_TYPES.map(type => [type, recommendations.filter(item => item.recommendation_type === type).length]))
+  const activeCount = recommendations.filter(item => item.status !== 'Completed').length
+  const hasFilters = priorityFilter !== 'All' || typeFilter || statusFilter || batchFilter
+  return <>
+    <Title title="Recommendations" text="Review persisted recommendations for inventory batches. Status changes are saved through the recommendations API." />
+    {message && <p className="inventory-note" role="status">{message}</p>}
+    {error && <p className="error inventory-note" role="alert">{error}</p>}
+    <section className="recommendation-overview">
+      <div className="overview-heading">
+        <div><small>CURRENT PRIORITIES</small><h2>{loading ? 'Loading recommendations…' : `${activeCount} active recommendation${activeCount === 1 ? '' : 's'}`}</h2></div>
+        <span>{loading ? 'Loading recorded recommendations.' : hasFilters ? 'Counts reflect the current API filters.' : 'Recorded recommendation types from the API.'}</span>
+      </div>
+      <div className="overview-grid">{RECOMMENDATION_TYPES.map(type => <article key={type}><small>{type}</small><b>{loading ? 'Loading…' : `${typeCounts[type]} recorded`}</b><em>Recommendation type</em></article>)}</div>
+    </section>
+    <div className="recommendation-toolbar">
+      <div className="priority-filters">{['All', ...RECOMMENDATION_PRIORITIES].map(level => <button key={level} className={priorityFilter === level ? 'active' : ''} onClick={() => setPriorityFilter(level)}>{level === 'All' ? 'All' : `${level} Priority`}</button>)}</div>
+      <div className="recommendation-filter-fields">
+        <select aria-label="Filter by type" value={typeFilter} onChange={event => setTypeFilter(event.target.value)}>
+          <option value="">All types</option>
+          {RECOMMENDATION_TYPES.map(type => <option key={type}>{type}</option>)}
+        </select>
+        <select aria-label="Filter by status" value={statusFilter} onChange={event => setStatusFilter(event.target.value)}>
+          <option value="">All statuses</option>
+          {RECOMMENDATION_STATUSES.map(status => <option key={status}>{status}</option>)}
+        </select>
+        <select aria-label="Filter by batch" value={batchFilter} onChange={event => setBatchFilter(event.target.value)} disabled={batchesLoading}>
+          <option value="">{batchesLoading ? 'Loading batches…' : 'All batches'}</option>
+          {batches.map(batch => <option key={batch.id} value={batch.id}>{batch.food_item.name} · {batch.batch_number}</option>)}
+        </select>
+        {hasFilters && <button className="link clear-filter" onClick={clearFilters}>Clear filters</button>}
+      </div>
+    </div>
+    {editable && <Panel title="Add recommendation" text="Create a persisted recommendation for a real inventory batch.">
+      <form className="storage-form" onSubmit={createRecommendation}>
+        <FormField label="Food batch">
+          <select required value={form.foodBatchId} onChange={updateForm('foodBatchId')} disabled={batchesLoading || busy}>
+            <option value="">{batchesLoading ? 'Loading inventory batches…' : batches.length ? 'Select an inventory batch' : 'No inventory batches available'}</option>
+            {batches.map(batch => <option key={batch.id} value={batch.id}>{batch.food_item.name} · {batch.batch_number}</option>)}
+          </select>
+        </FormField>
+        <FormField label="Recommendation type">
+          <select value={form.recommendationType} onChange={updateForm('recommendationType')} disabled={busy}>{RECOMMENDATION_TYPES.map(type => <option key={type}>{type}</option>)}</select>
+        </FormField>
+        <FormField label="Priority">
+          <select value={form.priority} onChange={updateForm('priority')} disabled={busy}>{RECOMMENDATION_PRIORITIES.map(priority => <option key={priority}>{priority}</option>)}</select>
+        </FormField>
+        <FormField label="Status">
+          <select value={form.status} onChange={updateForm('status')} disabled={busy}>{RECOMMENDATION_STATUSES.map(status => <option key={status}>{status}</option>)}</select>
+        </FormField>
+        <label className="inventory-field recommendation-message-field"><span>Message</span><textarea required value={form.message} onChange={updateForm('message')} disabled={busy} rows="3" placeholder="Enter the recommendation to persist." /></label>
+        <div className="storage-update"><button className="button primary" disabled={busy || batchesLoading || !form.foodBatchId || !form.message.trim()}>{submitting ? 'Saving…' : 'Add Recommendation'}</button></div>
+      </form>
+    </Panel>}
+    {!editable && <small className="button-hint">Your role can view recommendations but cannot create, update, or delete them.</small>}
+    <section className="recommendation-list">
+      {loading ? <div className="no-recommendations">Loading recommendations…</div> : recommendations.length ? recommendations.map(item => {
+        const completed = item.status === 'Completed'
+        return <article className={'recommendation-card ' + (completed ? 'completed' : '')} key={item.id}>
+          <div className="recommendation-top">
+            <div>
+              <small>{item.recommendation_type}</small>
+              <h3>{batchLabel(batches, item.food_batch_id)}</h3>
+            </div>
+            <em className={'badge ' + priorityTone(item.priority)}>{item.priority}</em>
+          </div>
+          <p>{item.message}</p>
+          <div className="recommendation-meta">
+            <span>Created {item.created_at ? analysisDate(item.created_at) : 'Not available'}</span>
+            <span>Updated {item.updated_at ? analysisDate(item.updated_at) : 'Not available'}</span>
+            <span>Completed {item.completed_at ? analysisDate(item.completed_at) : 'Not completed'}</span>
+          </div>
+          <div className="recommendation-footer">
+            <div>
+              <span className="context-label">{item.recommendation_type}</span>
+              <span className={'recommendation-status ' + (completed ? 'complete' : '')}>{item.status}</span>
+            </div>
+            {editable && <div className="recommendation-actions">
+              {item.status === 'New' && <button className="button secondary" disabled={busy} onClick={() => setStatus(item.id, 'In Progress')}>{updatingId === item.id ? 'Saving…' : 'Mark In Progress'}</button>}
+              <button className={'button ' + (completed ? 'secondary' : 'primary')} disabled={busy} onClick={() => setStatus(item.id, completed ? 'New' : 'Completed')}>{updatingId === item.id ? 'Saving…' : completed ? 'Restore' : 'Mark Completed'}</button>
+              <button className="link delete" disabled={busy} onClick={() => removeRecommendation(item.id)}>Delete</button>
+            </div>}
+          </div>
+        </article>
+      }) : <div className="no-recommendations">{hasFilters ? 'No recommendations match the selected filters.' : 'No recommendations have been recorded.'}</div>}
+    </section>
+  </>
+}
+
+function StorageMonitoring({ role, onUnauthorized }) {
+  const [form, setForm] = useState(emptyStorageForm)
+  const [batches, setBatches] = useState([])
+  const [batchesLoading, setBatchesLoading] = useState(true)
+  const [latest, setLatest] = useState(null)
+  const [history, setHistory] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [message, setMessage] = useState('')
+  const [error, setError] = useState('')
+  const editable = canManageStorage(role)
+  const selectedBatch = batches.find(entry => String(entry.id) === String(form.foodBatchId))
+  const complete = Boolean(form.foodBatchId && form.temperature !== '' && form.humidity !== '' && form.airCirculation !== '' && form.lightLevel !== '' && form.duration !== '')
+  const handleError = caught => {
+    if (caught instanceof ApiError && caught.status === 401) { auth.logout(); onUnauthorized(); return true }
+    setError(storageError(caught))
+    return false
+  }
+  const loadConditions = async batchId => {
+    if (!batchId) { setLatest(null); setHistory([]); return }
+    setLoading(true); setError('')
+    try {
+      const records = await storageApi.getBatchConditions(batchId)
+      setHistory(records)
+      try { setLatest(await storageApi.getLatestCondition(batchId)) }
+      catch (latestError) {
+        if (isEmptyLatest(latestError)) setLatest(null)
+        else throw latestError
+      }
+    } catch (requestError) {
+      setLatest(null); setHistory([])
+      handleError(requestError)
+    } finally { setLoading(false) }
+  }
+  useEffect(() => {
+    setBatchesLoading(true)
+    inventoryApi.getBatches().then(setBatches).catch(handleError).finally(() => setBatchesLoading(false))
+  }, [])
+  const update = key => event => { setForm(current => ({ ...current, [key]: event.target.value })); setError(''); setMessage('') }
+  const selectBatch = event => {
+    const batchId = event.target.value
+    setForm(current => ({ ...current, foodBatchId: batchId }))
+    setLatest(null); setHistory([]); setError(''); setMessage('')
+    loadConditions(batchId)
+  }
+  const submitConditions = async event => {
+    event.preventDefault()
+    const invalid = validateStorageForm(form)
+    if (invalid) { setError(invalid); return }
+    if (!editable) { setError('Access denied. Your account cannot modify storage conditions.'); return }
+    try {
+      setSubmitting(true); setError(''); setMessage('')
+      const created = await storageApi.createCondition({
+        food_batch_id: Number(form.foodBatchId),
+        temperature: Number(form.temperature),
+        humidity: Number(form.humidity),
+        air_circulation: Number(form.airCirculation),
+        light_level: Number(form.lightLevel),
+        storage_duration: Number(form.duration),
+      })
+      setLatest(created)
+      setMessage('Storage conditions recorded.')
+      await loadConditions(form.foodBatchId)
+    } catch (requestError) { handleError(requestError) }
+    finally { setSubmitting(false) }
+  }
+  const removeCondition = async conditionId => {
+    try {
+      setDeleting(true); setError(''); setMessage('')
+      await storageApi.deleteCondition(conditionId)
+      if (latest?.id === conditionId) setLatest(null)
+      await loadConditions(form.foodBatchId)
+      setMessage('Storage record deleted.')
+    } catch (requestError) { handleError(requestError) }
+    finally { setDeleting(false) }
+  }
+  const details = latest ? [
+    ['Temperature', storageReading(latest.temperature, '°C')],
+    ['Humidity', storageReading(latest.humidity, '%')],
+    ['Air circulation', storageReading(latest.air_circulation, '')],
+    ['Light level', storageReading(latest.light_level, '')],
+    ['Recorded at', latest.recorded_at ? analysisDate(latest.recorded_at) : 'Not available'],
+  ] : []
+  const metrics = [
+    ['Temperature', latest ? storageReading(latest.temperature, '°C') : 'Not available', 'From latest record'],
+    ['Humidity', latest ? storageReading(latest.humidity, '%') : 'Not available', 'From latest record'],
+    ['Air circulation', latest ? storageReading(latest.air_circulation, '') : 'Not available', 'From latest record'],
+    ['Light level', latest ? storageReading(latest.light_level, '') : 'Not available', 'From latest record'],
+    ['Recorded at', latest?.recorded_at ? analysisDate(latest.recorded_at) : 'Not available', 'Backend timestamp'],
+  ]
+  return <>
+    <Title title="Storage Monitoring" text="Monitor recorded storage conditions for a real inventory batch. Compliance and optimization remain unknown until backend rules are configured." />
+    {message && <p className="inventory-note" role="status">{message}</p>}
+    {error && <p className="error inventory-note" role="alert">{error}</p>}
+    <Panel title="Food batch" text="Select a real inventory batch to load persisted storage records.">
+      <div className="storage-form">
+        <FormField label="Food batch">
+          <select required value={form.foodBatchId} onChange={selectBatch} disabled={batchesLoading}>
+            <option value="">{batchesLoading ? 'Loading inventory batches…' : batches.length ? 'Select an inventory batch' : 'No inventory batches available'}</option>
+            {batches.map(batch => <option key={batch.id} value={batch.id}>{batch.food_item.name} · {batch.batch_number}</option>)}
+          </select>
+        </FormField>
+        <FormField label="Food/Product Name"><input value={selectedBatch?.food_item?.name || ''} readOnly placeholder="Selected from the batch" /></FormField>
+        <FormField label="Storage location"><input value={selectedBatch?.storage_location || ''} readOnly placeholder="Selected from the batch" /></FormField>
+      </div>
+    </Panel>
+    <section className="storage-overview">
+      <article className="storage-status unknown">
+        <small>OVERALL STORAGE CONDITION</small>
+        <b>unknown</b>
+        <span>No configured storage thresholds exist for this batch category.</span>
+      </article>
+      <div className="storage-metrics">{metrics.map(metric => <article className="storage-metric" key={metric[0]}><small>{metric[0]}</small><b>{loading ? 'Loading…' : metric[1]}</b><span>{metric[2]}</span></article>)}</div>
+    </section>
+    <div className="storage-main-grid">
+      <Panel title="Storage condition details" text={form.foodBatchId ? (loading ? 'Loading latest storage record…' : latest ? `Latest persisted record #${latest.id}.` : 'No storage conditions have been recorded for this batch.') : 'Select an inventory batch to view recorded conditions.'}>
+        {loading ? <p className="button-hint">Loading latest storage record…</p> : latest ? <div className="storage-details">{details.map(detail => <div className="storage-detail" key={detail[0]}><div><b>{detail[0]}</b><small>{detail[1]}</small></div></div>)}</div> : <p className="button-hint">{form.foodBatchId ? 'No storage conditions have been recorded for this batch.' : 'Select an inventory batch to view recorded conditions.'}</p>}
+      </Panel>
+      <Panel title="Storage compliance" text="Compliance is returned as unknown until storage thresholds are configured.">
+        <div className="compliance-list">
+          <div><span>Temperature</span><b>unknown</b></div>
+          <div><span>Humidity</span><b>unknown</b></div>
+          <div><span>Air circulation</span><b>unknown</b></div>
+          <div><span>Light level</span><b>unknown</b></div>
+        </div>
+        <div className="compliance-status unknown"><span>Storage Compliance</span><b>unknown</b></div>
+        <p className="button-hint">No configured storage thresholds exist for this batch category.</p>
+      </Panel>
+    </div>
+    <Panel title="Update storage conditions" text="Submit a new storage-condition record. Air circulation and light level are numeric values required by the API.">
+      <form className="storage-form" onSubmit={submitConditions}>
+        <FormField label="Temperature (°C)"><input required type="number" step="0.1" min="-50" max="100" value={form.temperature} onChange={update('temperature')} disabled={!editable} placeholder="e.g. 4" /></FormField>
+        <FormField label="Humidity (%)"><input required type="number" step="0.1" min="0" max="100" value={form.humidity} onChange={update('humidity')} disabled={!editable} placeholder="e.g. 65" /></FormField>
+        <FormField label="Air circulation"><input required type="number" step="0.1" min="0" max="10000" value={form.airCirculation} onChange={update('airCirculation')} disabled={!editable} placeholder="0 to 10000" /></FormField>
+        <FormField label="Light level"><input required type="number" step="0.1" min="0" max="1000000" value={form.lightLevel} onChange={update('lightLevel')} disabled={!editable} placeholder="0 to 1000000" /></FormField>
+        <FormField label="Storage duration (days)"><input required type="number" min="0" max="36500" step="1" value={form.duration} onChange={update('duration')} disabled={!editable} placeholder="e.g. 3" /></FormField>
+        <div className="storage-update">
+          <button className="button primary" disabled={!editable || submitting || deleting || !complete || batchesLoading}>{submitting ? 'Saving…' : 'Update Conditions'}</button>
+        </div>
+      </form>
+      {!editable && <small className="button-hint">Your role can view storage records but cannot create or delete them.</small>}
+      {editable && !complete && <small className="button-hint">Select an inventory batch and complete the required storage fields to continue.</small>}
+    </Panel>
+    <div className="storage-main-grid">
+      <Panel title="Storage optimization" text="Optimization is pending until backend rules are configured.">
+        <div className="storage-impact-copy">
+          <b>pending_optimization_rules</b>
+          <p>No storage optimization rules are configured.</p>
+        </div>
+      </Panel>
+      <Panel title="Storage alerts" text="This page does not generate storage alerts locally.">
+        <div className="storage-alerts"><div className="storage-alert clear"><i>✓</i><span>No storage alerts are returned by the storage API.</span></div></div>
+      </Panel>
+    </div>
+    <Panel title="Storage history" text={form.foodBatchId ? 'Persisted storage-condition records for the selected inventory batch.' : 'Select an inventory batch to view persisted storage records.'}>
+      <div className="storage-history">
+        {loading ? <p className="button-hint">Loading storage history…</p> : history.length ? history.map(entry => <div className="history-row" key={entry.id}>
+          <div><b>Record #{entry.id}</b><small>{entry.recorded_at ? analysisDate(entry.recorded_at) : 'Timestamp not available'} · Air {storageReading(entry.air_circulation, '')} · Light {storageReading(entry.light_level, '')}</small></div>
+          <strong>{storageReading(entry.temperature, '°C')} · {storageReading(entry.humidity, '%')}</strong>
+          <em className="badge">Recorded</em>
+          {editable && <button className="link delete" disabled={submitting || deleting} onClick={() => removeCondition(entry.id)}>Delete</button>}
+        </div>) : <p className="button-hint">{form.foodBatchId ? 'No storage conditions have been recorded for this batch.' : 'Select an inventory batch to view persisted storage records.'}</p>}
       </div>
     </Panel>
   </>
@@ -557,7 +1062,8 @@ function ShelfLife({ role, onUnauthorized }) {
   const [creating, setCreating] = useState(false)
   const [historyLoading, setHistoryLoading] = useState(false)
   const [deleting, setDeleting] = useState(false)
-  const editable = canManageShelfLife(role)
+  const canCreate = canCreateShelfLifePrediction(role)
+  const canDelete = canDeleteShelfLifePrediction(role)
   const busy = creating || deleting
   const selectedBatch = batches.find(entry => String(entry.id) === String(form.foodBatchId))
   const productName = selectedBatch?.food_item?.name || ''
@@ -645,9 +1151,9 @@ function ShelfLife({ role, onUnauthorized }) {
       </Panel>
     </div>
     <div className="predict-actions">
-      <button className="button primary" disabled={!editable || busy || !complete || batchesLoading} onClick={predict}>{creating ? 'Saving…' : 'Predict Shelf Life'}</button>
-      {!editable && <small className="button-hint">Your role can view prediction history but cannot create or delete predictions.</small>}
-      {validationMessage ? <p className="upload-error">{validationMessage}</p> : editable && !complete && <small className="button-hint">Select an inventory batch and complete the required storage fields to continue.</small>}
+      <button className="button primary" disabled={!canCreate || busy || !complete || batchesLoading} onClick={predict}>{creating ? 'Saving…' : 'Predict Shelf Life'}</button>
+      {!canCreate && <small className="button-hint">Your role can view prediction history but cannot create or delete predictions.</small>}
+      {validationMessage ? <p className="upload-error">{validationMessage}</p> : canCreate && !complete && <small className="button-hint">Select an inventory batch and complete the required storage fields to continue.</small>}
     </div>
     {prediction && <section className="prediction-results">
       <div className="prediction-heading">
@@ -685,56 +1191,218 @@ function ShelfLife({ role, onUnauthorized }) {
             <div><b>Prediction #{entry.id}</b><small>{analysisDate(entry.predicted_at)}</small></div>
             <strong>{pendingEntry ? 'Pending' : remainingDisplay(entry)}</strong>
             <em className={'badge ' + (pendingEntry ? 'warning' : 'success')}>{pendingEntry ? 'Model pending' : 'Recorded'}</em>
-            {editable && <button className="link delete" disabled={busy} onClick={() => removePrediction(entry.id)}>Delete</button>}
+            {canDelete && <button className="link delete" disabled={busy} onClick={() => removePrediction(entry.id)}>Delete</button>}
           </div>
         }) : <p className="button-hint">{form.foodBatchId ? 'No persisted predictions for this batch.' : 'Select an inventory batch to view persisted predictions.'}</p>}
       </div>
     </Panel>
   </>
 }
-
 function Analysis() { return <><Title title="Freshness analysis" text="Image-based assessment workflow." /><div className="grid"><Panel title="Image freshness analysis" text="Upload and AI integration will be connected later."><div className="signal"><span>Visual condition</span><b>40% weight</b></div><div className="signal"><span>Storage conditions</span><b>25% weight</b></div><div className="signal"><span>Shelf-life prediction</span><b>20% weight</b></div><div className="signal"><span>Product age</span><b>15% weight</b></div></Panel><Panel title="Freshness assessment" text="Analysis service integration is pending."><div className="signal"><span>Freshness category</span><b>Fresh</b></div><div className="signal"><span>Spoilage probability</span><b>8%</b></div><div className="signal"><span>Visual indicators</span><b>Color · Texture · Mold · Bruising</b></div></Panel></div></> }
-function Storage() { return <><Title title="Storage monitoring" text="Storage condition readings; sensor integration is pending." /><div className="cards">{['Cold room A', 'Cold room B', 'Produce bay'].map(name => <Panel key={name} title={name} text="Current sensor reading"><div className="reading"><span>Temperature<b>3.8°C</b></span><span>Humidity<b>68%</b></span></div><div className="signal"><span>Compliance</span><b>Normal</b></div></Panel>)}</div></> }
-function Alerts() { return <><Title title="Alerts" text="Freshness, shelf-life, storage and inventory notifications." /><Panel title="Open alerts" text="Current notifications">{alerts.map(alert => <div className="alert" key={alert[1]}><i>{alert[0][0]}</i><span><b>{alert[1]}</b><p>{alert[0]} notification</p></span><time>{alert[2]}</time></div>)}</Panel></> }
-const REPORTS = {
-  Freshness: { label: 'Freshness Report', chart: 'Freshness distribution', metrics: [['Average freshness score', '84%', 'success'], ['Fresh items', '18', 'success'], ['Near-spoilage items', '4', 'warning'], ['Spoiled items', '1', 'danger']], rows: [['Strawberries', 'Fruits', 'FR-2408', 'Fresh', '92%', -1, 'Low'], ['Whole Milk', 'Dairy', 'DY-1182', 'Good', '77%', -2, 'Medium'], ['Atlantic Salmon', 'Seafood', 'SF-9014', 'Near Spoilage', '43%', -3, 'High'], ['Spinach', 'Vegetables', 'VG-5521', 'Fresh', '89%', -5, 'Low']] },
-  ShelfLife: { label: 'Shelf-Life Report', chart: 'Remaining shelf-life distribution', metrics: [['Average remaining shelf life', '5.6 days', 'success'], ['Items approaching expiry', '6', 'warning'], ['High-risk items', '2', 'danger'], ['On-track items', '15', 'success']], rows: [['Whole Milk', 'Dairy', 'DY-1182', 'Approaching Expiry', '2 days', -1, 'Medium'], ['Atlantic Salmon', 'Seafood', 'SF-9014', 'Expired', '0 days', -2, 'High'], ['Wholegrain Bread', 'Bakery', 'BK-3610', 'On Track', '5 days', -4, 'Low'], ['Strawberries', 'Fruits', 'FR-2408', 'On Track', '4 days', -6, 'Low']] },
-  Inventory: { label: 'Inventory Quality Report', chart: 'Inventory quality distribution', metrics: [['Fresh items', '18', 'success'], ['Near-expiry items', '6', 'warning'], ['Expired items', '2', 'danger'], ['Inventory health', '82%', 'success']], rows: [['Strawberries', 'Fruits', 'FR-2408', 'Fresh', '92 score', -1, 'Low'], ['Chicken Breast', 'Meat & Poultry', 'MP-4407', 'Near Expiry', '64 score', -3, 'High'], ['Whole Milk', 'Dairy', 'DY-1182', 'Near Expiry', '77 score', -4, 'Medium'], ['Atlantic Salmon', 'Seafood', 'SF-9014', 'Expired', '43 score', -6, 'High']] },
-  Waste: { label: 'Waste Reduction Report', chart: 'Waste-risk summary', metrics: [['Items requiring attention', '8', 'warning'], ['Near-expiry items', '6', 'warning'], ['Waste-risk items', '3', 'danger'], ['Potential waste reduction', '31 kg', 'success']], rows: [['Chicken Breast', 'Meat & Poultry', 'MP-4407', 'Prioritize', '12 kg', -1, 'High'], ['Atlantic Salmon', 'Seafood', 'SF-9014', 'Immediate review', '8 kg', -2, 'High'], ['Whole Milk', 'Dairy', 'DY-1182', 'Prioritize', '15 L', -4, 'Medium'], ['Spinach', 'Vegetables', 'VG-5521', 'Monitor', '6 kg', -6, 'Low']] },
-  Storage: { label: 'Storage Compliance Report', chart: 'Storage compliance summary', metrics: [['Compliant conditions', '21', 'success'], ['Conditions requiring review', '3', 'warning'], ['Compliance status', '87%', 'success'], ['Critical conditions', '1', 'danger']], rows: [['Cold Room A', 'Seafood', 'SF-9014', 'Review required', '5.8°C', -1, 'High'], ['Cold Room B', 'Dairy', 'DY-1182', 'Compliant', '3.6°C', -2, 'Low'], ['Produce Bay', 'Vegetables', 'VG-5521', 'Review required', '76% humidity', -4, 'Medium'], ['Dry Store', 'Bakery', 'BK-3610', 'Compliant', '20°C', -6, 'Low']] },
+const REPORT_TYPES = ['Freshness Report', 'Shelf-Life Report', 'Inventory Quality Report', 'Waste Reduction Report', 'Storage Compliance Report']
+const reportError = error => {
+  if (!(error instanceof ApiError)) return 'Unable to complete the report request.'
+  if (error.status === 403) return 'Access denied. Your account cannot access this report.'
+  if (error.status === 404) return error.message || 'The requested report was not found.'
+  if (error.status === 409) return error.message || 'This report is not ready for export.'
+  if (error.status === 422) return error.message || 'Please correct the report details.'
+  return error.message || 'Unable to complete the report request.'
 }
-const reportTone = text => /High|Expired|Spoilage|Immediate/.test(text) ? 'danger' : /Medium|Near|Approaching|Prioritize|Review/.test(text) ? 'warning' : 'success'
-const reportDate = offset => dateOffset(offset)
-const prettyDate = date => new Date(`${date}T00:00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
-function Reports() {
-  const [type, setType] = useState('Freshness'), [start, setStart] = useState(''), [end, setEnd] = useState(''), [categoryFilter, setCategoryFilter] = useState('All categories'), [statusFilter, setStatusFilter] = useState('All statuses'), [generated, setGenerated] = useState(new Date()), [applied, setApplied] = useState({ type: 'Freshness', start: '', end: '', category: 'All categories', status: 'All statuses' }), [generating, setGenerating] = useState(false), [message, setMessage] = useState('')
-  const report = REPORTS[applied.type], rows = report.rows.map(row => ({ product: row[0], category: row[1], batch: row[2], status: row[3], detail: row[4], date: reportDate(row[5]), risk: row[6] }))
-  const filtered = rows.filter(row => (applied.category === 'All categories' || row.category === applied.category) && (applied.status === 'All statuses' || row.status === applied.status) && (!applied.start || row.date >= applied.start) && (!applied.end || row.date <= applied.end))
-  const reset = () => { setType('Freshness'); setStart(''); setEnd(''); setCategoryFilter('All categories'); setStatusFilter('All statuses') }
-  const exportExcel = () => { const data = [['Product', 'Category', 'Batch ID', 'Status', 'Score / Detail', 'Date', 'Risk'], ...filtered.map(row => [row.product, row.category, row.batch, row.status, row.detail, row.date, row.risk])].map(row => row.join(',')).join('\n'), url = URL.createObjectURL(new Blob([data], { type: 'text/csv' })), link = document.createElement('a'); link.href = url; link.download = `${report.label.replaceAll(' ', '-').toLowerCase()}.csv`; link.click(); URL.revokeObjectURL(url) }
-  const statuses = [...new Set(rows.map(row => row.status))], range = start || end ? `${start ? prettyDate(start) : 'Beginning'} – ${end ? prettyDate(end) : 'Present'}` : 'All available dates'
-  const primaryLabel = type === 'Inventory' ? 'Total inventory items' : type === 'ShelfLife' ? 'Items monitored' : type === 'Storage' ? 'Storage checks' : type === 'Waste' ? 'Items requiring attention' : 'Items analyzed'
-  const appliedRange = applied.start || applied.end ? `${applied.start ? prettyDate(applied.start) : 'Beginning'} – ${applied.end ? prettyDate(applied.end) : 'Present'}` : 'All available dates'
-  const appliedPrimaryLabel = applied.type === 'Inventory' ? 'Total inventory items' : applied.type === 'ShelfLife' ? 'Items monitored' : applied.type === 'Storage' ? 'Storage checks' : applied.type === 'Waste' ? 'Items requiring attention' : 'Items analyzed'
-  const generate = () => { setGenerating(true); setMessage(''); window.setTimeout(() => { setApplied({ type, start, end, category: categoryFilter, status: statusFilter }); setGenerated(new Date()); setGenerating(false); setMessage('Report generated successfully.') }, 450) }
-  return <><div className="heading reports-heading"><div><small>REPORTING & EXPORT</small><h1>Reports & Export</h1><p>Generate and export food quality, freshness, shelf-life, inventory, waste, and storage reports.</p></div><div className="report-actions"><button className="button secondary" onClick={() => window.print()}>Export PDF</button><button className="button secondary" onClick={exportExcel}>Export Spreadsheet</button><button className="button primary" disabled={generating} onClick={generate}>{generating ? 'Generating...' : 'Generate Report'}</button></div></div>
-    <Panel title="Report filters" text="Select a report and refine the period or records to include."><div className="report-filters"><FormField label="Report Type"><select value={type} onChange={event => setType(event.target.value)}>{Object.entries(REPORTS).map(([key, value]) => <option key={key} value={key}>{value.label}</option>)}</select></FormField><FormField label="Start Date"><input type="date" value={start} onChange={event => setStart(event.target.value)} /></FormField><FormField label="End Date"><input type="date" value={end} onChange={event => setEnd(event.target.value)} /></FormField><FormField label="Category"><select value={categoryFilter} onChange={event => setCategoryFilter(event.target.value)}><option>All categories</option>{FOOD_CATEGORIES.map(value => <option key={value}>{value}</option>)}</select></FormField><FormField label="Status"><select value={statusFilter} onChange={event => setStatusFilter(event.target.value)}><option>All statuses</option>{statuses.map(value => <option key={value}>{value}</option>)}</select></FormField><button className="button secondary report-reset" onClick={reset}>Reset Filters</button></div></Panel>
-    {message && <div className="report-success" role="status">{message}</div>}<section className="report-information"><span><b>Selected report</b>{report.label}</span><span><b>Date range</b>{appliedRange}</span><span><b>Generated</b>{generated.toLocaleString()}</span><span><b>Records</b>{filtered.length}</span></section>
-    <div className="report-metrics"><article className="report-metric"><small>{appliedPrimaryLabel}</small><b>{filtered.length}</b><span>In selected report</span></article>{report.metrics.map(metric => <article className="report-metric" key={metric[0]}><small>{metric[0]}</small><b>{metric[1]}</b><span className={metric[2]} /></article>)}</div>
-    <div className="report-grid"><Panel title={report.chart} text="Distribution across the records included in this report."><div className="report-chart">{report.metrics.map((metric, index) => <div className="report-bar" key={metric[0]}><div><span>{metric[0]}</span><b>{metric[1]}</b></div><i><em className={metric[2]} style={{ width: `${[84, 62, 38, 24][index]}%` }} /></i></div>)}</div></Panel><Panel title="Report insight" text="Key operational focus for the current selection."><div className="report-insight"><b>{filtered.length ? `${filtered.filter(row => row.risk !== 'Low').length} record${filtered.filter(row => row.risk !== 'Low').length === 1 ? '' : 's'} need closer attention.` : 'Adjust the filters to include report records.'}</b><p>{type === 'Waste' ? 'Prioritize high-risk batches to help reduce avoidable waste.' : type === 'Storage' ? 'Review conditions marked for attention to maintain compliant storage.' : 'Use the report details to prioritize daily quality actions.'}</p></div></Panel></div>
-    <Panel title={report.label} text={`${filtered.length} record${filtered.length === 1 ? '' : 's'} matching the selected filters.`}><div className="table report-table"><table><thead><tr><th>Product</th><th>Category</th><th>Batch ID</th><th>Status</th><th>{type === 'ShelfLife' ? 'Remaining Shelf Life' : 'Score / Detail'}</th><th>Date</th><th>Risk</th></tr></thead><tbody>{filtered.length ? filtered.map(row => <tr key={`${row.batch}-${row.date}`}><td><b>{row.product}</b></td><td>{row.category}</td><td>{row.batch}</td><td><em className={'badge ' + reportTone(row.status)}>{row.status}</em></td><td>{row.detail}</td><td>{prettyDate(row.date)}</td><td><em className={'badge ' + reportTone(row.risk)}>{row.risk}</em></td></tr>) : <tr><td className="report-empty" colSpan="7">No report data matches your selected filters.</td></tr>}</tbody></table></div></Panel>
-    <PrintReport report={report} type={applied.type} range={appliedRange} generated={generated} rows={filtered} primaryLabel={appliedPrimaryLabel} />
+const reportCell = value => {
+  if (value == null || value === '') return 'Not available'
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No'
+  if (Array.isArray(value)) return value.map(item => reportCell(item)).join(', ')
+  if (typeof value === 'object') return Object.entries(value).map(([key, item]) => `${key}: ${reportCell(item)}`).join('; ')
+  return String(value)
+}
+const flattenReportRecord = (value, prefix = '') => {
+  if (value == null || typeof value !== 'object' || Array.isArray(value)) return { [prefix || 'value']: reportCell(value) }
+  return Object.entries(value).reduce((columns, [key, item]) => {
+    const column = prefix ? `${prefix}.${key}` : key
+    if (item && typeof item === 'object' && !Array.isArray(item)) Object.assign(columns, flattenReportRecord(item, column))
+    else columns[column] = reportCell(item)
+    return columns
+  }, {})
+}
+const reportRecords = report => Array.isArray(report?.report_data?.records) ? report.report_data.records.filter(item => item && typeof item === 'object') : []
+const reportSummary = report => (report?.report_data?.summary && typeof report.report_data.summary === 'object') ? report.report_data.summary : {}
+const reportFilters = report => (report?.report_data?.filters && typeof report.report_data.filters === 'object') ? report.report_data.filters : {}
+const prettyDate = date => {
+  if (!date) return 'Not specified'
+  const parsed = new Date(date.length <= 10 ? `${date}T00:00:00` : date)
+  return Number.isNaN(parsed.getTime()) ? String(date) : parsed.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
+}
+const reportRange = report => (report?.date_from || report?.date_to) ? `${prettyDate(report.date_from)} – ${prettyDate(report.date_to)}` : 'Not specified'
+const exportReady = report => report?.status === 'generated' && report?.report_data && typeof report.report_data === 'object' && !Array.isArray(report.report_data)
+
+function Reports({ onUnauthorized }) {
+  const [type, setType] = useState(REPORT_TYPES[0])
+  const [start, setStart] = useState('')
+  const [end, setEnd] = useState('')
+  const [historyType, setHistoryType] = useState('')
+  const [historyStatus, setHistoryStatus] = useState('')
+  const [current, setCurrent] = useState(null)
+  const [history, setHistory] = useState([])
+  const [generating, setGenerating] = useState(false)
+  const [historyLoading, setHistoryLoading] = useState(true)
+  const [exporting, setExporting] = useState('')
+  const [openingId, setOpeningId] = useState(null)
+  const [deletingId, setDeletingId] = useState(null)
+  const [message, setMessage] = useState('')
+  const [error, setError] = useState('')
+  const busy = generating || Boolean(exporting) || Boolean(openingId) || Boolean(deletingId)
+  const handleError = caught => {
+    if (caught instanceof ApiError && caught.status === 401) { auth.logout(); onUnauthorized(); return }
+    setError(reportError(caught))
+  }
+  const loadHistory = async (silent = false) => {
+    if (!silent) setHistoryLoading(true)
+    try {
+      setHistory(await reportsApi.getReports({
+        report_type: historyType || undefined,
+        status: historyStatus || undefined,
+      }))
+    } catch (requestError) { setHistory([]); handleError(requestError) }
+    finally { if (!silent) setHistoryLoading(false) }
+  }
+  useEffect(() => { loadHistory() }, [historyType, historyStatus])
+  const generate = async () => {
+    if (start && end && start > end) { setError('Start date cannot be after end date.'); return }
+    try {
+      setGenerating(true); setError(''); setMessage('')
+      const created = await reportsApi.createReport({
+        report_type: type,
+        date_from: start || undefined,
+        date_to: end || undefined,
+      })
+      setCurrent(created)
+      setMessage(`Report #${created.id} generated.`)
+      await loadHistory(true)
+    } catch (requestError) { handleError(requestError) }
+    finally { setGenerating(false) }
+  }
+  const exportFile = async format => {
+    if (!current?.id) { setError('Generate or select a report before exporting.'); return }
+    if (!exportReady(current)) { setError('This report is not ready for export.'); return }
+    try {
+      setExporting(format); setError(''); setMessage('')
+      if (format === 'pdf') await reportsApi.downloadPdf(current.id)
+      else await reportsApi.downloadExcel(current.id)
+      const refreshed = await reportsApi.getReport(current.id)
+      setCurrent(refreshed)
+      setHistory(currentHistory => currentHistory.map(item => item.id === refreshed.id ? refreshed : item))
+      setMessage(`${format === 'pdf' ? 'PDF' : 'Excel'} export downloaded.`)
+    } catch (requestError) { handleError(requestError) }
+    finally { setExporting('') }
+  }
+  const openReport = async reportId => {
+    try {
+      setOpeningId(reportId); setError(''); setMessage('')
+      setCurrent(await reportsApi.getReport(reportId))
+    } catch (requestError) { handleError(requestError) }
+    finally { setOpeningId(null) }
+  }
+  const removeReport = async reportId => {
+    try {
+      setDeletingId(reportId); setError(''); setMessage('')
+      await reportsApi.deleteReport(reportId)
+      if (current?.id === reportId) setCurrent(null)
+      setMessage('Report deleted.')
+      await loadHistory(true)
+    } catch (requestError) { handleError(requestError) }
+    finally { setDeletingId(null) }
+  }
+  const reset = () => { setType(REPORT_TYPES[0]); setStart(''); setEnd(''); setHistoryType(''); setHistoryStatus(''); setError(''); setMessage('') }
+  const records = reportRecords(current)
+  const flattened = records.map(record => flattenReportRecord(record))
+  const columns = [...new Set(flattened.flatMap(record => Object.keys(record)))]
+  const summary = reportSummary(current)
+  const filters = reportFilters(current)
+  const summaryEntries = Object.entries(summary)
+  return <>
+    <div className="heading reports-heading">
+      <div>
+        <small>REPORTING & EXPORT</small>
+        <h1>Reports & Export</h1>
+        <p>Generate and export food quality, freshness, shelf-life, inventory, waste, and storage reports.</p>
+      </div>
+      <div className="report-actions">
+        <button className="button secondary" disabled={busy || !exportReady(current)} onClick={() => exportFile('pdf')}>{exporting === 'pdf' ? 'Downloading…' : 'Export PDF'}</button>
+        <button className="button secondary" disabled={busy || !exportReady(current)} onClick={() => exportFile('excel')}>{exporting === 'excel' ? 'Downloading…' : 'Export Spreadsheet'}</button>
+        <button className="button primary" disabled={busy} onClick={generate}>{generating ? 'Generating...' : 'Generate Report'}</button>
+      </div>
+    </div>
+    <Panel title="Report filters" text="Choose a backend report type and optional source-data date range. History can also be filtered by type and status.">
+      <div className="report-filters">
+        <FormField label="Report Type"><select value={type} onChange={event => setType(event.target.value)}>{REPORT_TYPES.map(value => <option key={value}>{value}</option>)}</select></FormField>
+        <FormField label="Start Date"><input type="date" value={start} onChange={event => setStart(event.target.value)} /></FormField>
+        <FormField label="End Date"><input type="date" value={end} onChange={event => setEnd(event.target.value)} /></FormField>
+        <FormField label="History type"><select value={historyType} onChange={event => setHistoryType(event.target.value)}><option value="">All types</option>{REPORT_TYPES.map(value => <option key={value}>{value}</option>)}</select></FormField>
+        <FormField label="History status"><select value={historyStatus} onChange={event => setHistoryStatus(event.target.value)}><option value="">All statuses</option><option>generated</option><option>pending</option></select></FormField>
+        <button className="button secondary report-reset" onClick={reset}>Reset Filters</button>
+      </div>
+    </Panel>
+    {message && <div className="report-success" role="status">{message}</div>}
+    {error && <p className="error inventory-note" role="alert">{error}</p>}
+    <section className="report-information">
+      <span><b>Selected report</b>{current ? current.report_type : 'None generated yet'}</span>
+      <span><b>Report ID</b>{current ? `#${current.id}` : 'Not available'}</span>
+      <span><b>Report status</b>{current?.status || 'Not available'}</span>
+      <span><b>Generated</b>{current?.generated_at ? analysisDate(current.generated_at) : 'Not available'}</span>
+    </section>
+    <div className="report-metrics">
+      <article className="report-metric"><small>Record count</small><b>{current ? current.record_count : '—'}</b><span>Returned by the API</span></article>
+      <article className="report-metric"><small>Date range</small><b>{current ? reportRange(current) : '—'}</b><span>Source-data filter</span></article>
+      <article className="report-metric"><small>PDF export</small><b>{current?.pdf_file_reference ? 'Available' : (exportReady(current) ? 'Ready to create' : 'Unavailable')}</b><span>Backend file reference</span></article>
+      <article className="report-metric"><small>Excel export</small><b>{current?.excel_file_reference ? 'Available' : (exportReady(current) ? 'Ready to create' : 'Unavailable')}</b><span>Backend file reference</span></article>
+      <article className="report-metric"><small>History</small><b>{historyLoading ? '…' : history.length}</b><span>Stored snapshots</span></article>
+    </div>
+    <div className="report-grid">
+      <Panel title="Report summary" text="Values from the stored snapshot summary. No additional statistics are calculated in the browser.">
+        {current ? (summaryEntries.length ? <div className="report-chart">{summaryEntries.map(([key, value]) => <div className="report-bar" key={key}><div><span>{key.replaceAll('_', ' ')}</span><b>{reportCell(value)}</b></div></div>)}</div> : <p className="button-hint">No summary values are present in this snapshot.</p>) : <p className="button-hint">Generate or select a report to view its stored summary.</p>}
+      </Panel>
+      <Panel title="Snapshot filters" text="Date filters stored with the generated report.">
+        <div className="report-insight">
+          {current ? <>
+            <b>Status: {current.status}</b>
+            <p>date_from: {reportCell(filters.date_from)} · date_to: {reportCell(filters.date_to)}</p>
+            {!exportReady(current) && <p>Export is unavailable until the report status is generated and snapshot data is present.</p>}
+          </> : <p>No report is selected.</p>}
+        </div>
+      </Panel>
+    </div>
+    <Panel title="Report data" text={current ? `${records.length} record${records.length === 1 ? '' : 's'} in the stored snapshot.` : 'Generate or select a report to view stored records.'}>
+      <div className="table report-table">
+        <table>
+          <thead><tr>{columns.length ? columns.map(column => <th key={column}>{column}</th>) : <th>Records</th>}</tr></thead>
+          <tbody>
+            {current ? (flattened.length ? flattened.map((row, index) => <tr key={current.id + '-' + index}>{columns.map(column => <td key={column}>{row[column] || 'Not available'}</td>)}</tr>) : <tr><td className="report-empty" colSpan={Math.max(columns.length, 1)}>No records are present in this snapshot.</td></tr>) : <tr><td className="report-empty" colSpan="1">No report is selected.</td></tr>}
+          </tbody>
+        </table>
+      </div>
+    </Panel>
+    <Panel title="Report history" text="Persisted report snapshots for the signed-in account, newest first.">
+      <div className="table report-table">
+        <table>
+          <thead><tr><th>ID</th><th>Type</th><th>Status</th><th>Records</th><th>Generated</th><th>PDF</th><th>Excel</th><th>Actions</th></tr></thead>
+          <tbody>
+            {historyLoading ? <tr><td className="report-empty" colSpan="8">Loading report history…</td></tr> : history.length ? history.map(item => <tr key={item.id} className={current?.id === item.id ? 'selected-report' : ''}>
+              <td><b>#{item.id}</b></td>
+              <td>{item.report_type}</td>
+              <td><em className={'badge ' + (item.status === 'generated' ? 'success' : 'warning')}>{item.status}</em></td>
+              <td>{item.record_count}</td>
+              <td>{item.generated_at ? analysisDate(item.generated_at) : 'Not available'}</td>
+              <td>{item.pdf_file_reference ? 'Saved' : 'Not exported'}</td>
+              <td>{item.excel_file_reference ? 'Saved' : 'Not exported'}</td>
+              <td className="inventory-actions">
+                <button className="link" disabled={busy} onClick={() => openReport(item.id)}>{openingId === item.id ? 'Opening…' : 'View'}</button>
+                <button className="link delete" disabled={busy} onClick={() => removeReport(item.id)}>{deletingId === item.id ? 'Deleting…' : 'Delete'}</button>
+              </td>
+            </tr>) : <tr><td className="report-empty" colSpan="8">No reports have been generated.</td></tr>}
+          </tbody>
+        </table>
+      </div>
+    </Panel>
   </>
-}
-function PrintReport({ report, type, range, generated, rows, primaryLabel }) {
-  const attentionCount = rows.filter(row => row.risk !== 'Low').length
-  const insight = type === 'Waste' ? 'Prioritize high-risk batches to help reduce avoidable waste.' : type === 'Storage' ? 'Review conditions marked for attention to maintain compliant storage.' : 'Use the report details to prioritize daily quality actions.'
-  return <section className="print-report" aria-hidden="true">
-    <div className="print-report-header"><small>FOOD FRESHNESS MONITORING PLATFORM</small><h1>{report.label}</h1><p>Operational food quality report</p></div>
-    <section className="print-report-meta"><div><b>Report type</b><span>{type}</span></div><div><b>Date range</b><span>{range}</span></div><div><b>Generated</b><span>{generated.toLocaleString()}</span></div><div><b>Number of records</b><span>{rows.length}</span></div></section>
-    <section className="print-report-section"><h2>Summary</h2><div className="print-report-metrics"><article><small>{primaryLabel}</small><b>{rows.length}</b><span>In selected report</span></article>{report.metrics.map(metric => <article key={metric[0]}><small>{metric[0]}</small><b>{metric[1]}</b></article>)}</div></section>
-    <section className="print-report-section print-report-overview"><div><h2>{report.chart}</h2><div className="print-report-chart">{report.metrics.map((metric, index) => <div key={metric[0]}><span>{metric[0]}</span><b>{metric[1]}</b><i><em className={metric[2]} style={{ width: `${[84, 62, 38, 24][index]}%` }} /></i></div>)}</div></div><div className="print-report-insight"><h2>Report insight</h2><b>{rows.length ? `${attentionCount} record${attentionCount === 1 ? '' : 's'} need closer attention.` : 'No records match the selected filters.'}</b><p>{insight}</p></div></section>
-    <section className="print-report-section print-report-data"><h2>Complete report data</h2><table><thead><tr><th>Product</th><th>Category</th><th>Batch ID</th><th>Status</th><th>{type === 'ShelfLife' ? 'Remaining Shelf Life' : 'Score / Detail'}</th><th>Date</th><th>Risk</th></tr></thead><tbody>{rows.length ? rows.map(row => <tr key={`${row.batch}-${row.date}`}><td>{row.product}</td><td>{row.category}</td><td>{row.batch}</td><td>{row.status}</td><td>{row.detail}</td><td>{prettyDate(row.date)}</td><td>{row.risk}</td></tr>) : <tr><td colSpan="7">No report data matches the selected filters.</td></tr>}</tbody></table></section>
-  </section>
 }
 function Profile({ identity, role }) { return <><Title title="Profile" text="Workspace account." /><Panel title={identity} text={role}><div className="signal"><span>Access role</span><b>{role}</b></div></Panel></> }

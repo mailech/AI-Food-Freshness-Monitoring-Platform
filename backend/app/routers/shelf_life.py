@@ -15,6 +15,7 @@ from app.services.shelf_life import delete_prediction, get_batch, get_freshness_
 
 router = APIRouter(prefix="/shelf-life", tags=["shelf-life"])
 OperationalUser = Annotated[User, Depends(require_roles(UserRole.RETAIL_MANAGER, UserRole.WAREHOUSE_OPERATOR, UserRole.FOOD_QUALITY_INSPECTOR, UserRole.ADMINISTRATOR))]
+PredictionCreator = Annotated[User, Depends(require_roles(UserRole.CONSUMER, UserRole.RETAIL_MANAGER, UserRole.WAREHOUSE_OPERATOR, UserRole.FOOD_QUALITY_INSPECTOR, UserRole.ADMINISTRATOR))]
 AuthenticatedUser = Annotated[User, Depends(get_current_user)]
 
 
@@ -36,7 +37,7 @@ def shelf_life_health() -> dict[str, str]:
 
 
 @router.post("/predict", response_model=ShelfLifePredictionResponse, status_code=status.HTTP_201_CREATED)
-def create_prediction(payload: ShelfLifePredictionRequest, db: Annotated[Session, Depends(get_db)], _: OperationalUser) -> ShelfLifePrediction:
+def create_prediction(payload: ShelfLifePredictionRequest, db: Annotated[Session, Depends(get_db)], _: PredictionCreator) -> ShelfLifePrediction:
     _batch_or_404(db, payload.food_batch_id)
     if payload.freshness_analysis_id is not None:
         analysis = get_freshness_analysis(db, payload.freshness_analysis_id)

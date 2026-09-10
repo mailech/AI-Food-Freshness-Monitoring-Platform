@@ -32,6 +32,18 @@ OperationalUser = Annotated[
         )
     ),
 ]
+ScoreCreator = Annotated[
+    User,
+    Depends(
+        require_roles(
+            UserRole.CONSUMER,
+            UserRole.RETAIL_MANAGER,
+            UserRole.WAREHOUSE_OPERATOR,
+            UserRole.FOOD_QUALITY_INSPECTOR,
+            UserRole.ADMINISTRATOR,
+        )
+    ),
+]
 DatabaseSession = Annotated[Session, Depends(get_db)]
 
 
@@ -49,7 +61,7 @@ def _score_or_404(db: Session, score_id: int) -> FreshnessScore:
 
 @router.post("/batches/{food_batch_id}", response_model=FreshnessScoreResponse,
              status_code=status.HTTP_201_CREATED)
-def create_score(food_batch_id: int, db: DatabaseSession, _: OperationalUser) -> FreshnessScore:
+def create_score(food_batch_id: int, db: DatabaseSession, _: ScoreCreator) -> FreshnessScore:
     """Store a pending evaluation without calculating unavailable model outputs."""
     _batch_or_404(db, food_batch_id)
     return create_freshness_score(db, food_batch_id)

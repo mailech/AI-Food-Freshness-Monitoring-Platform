@@ -15,6 +15,7 @@ from app.services.freshness import analyze_freshness, delete_analysis, get_analy
 
 router = APIRouter(prefix="/freshness", tags=["freshness"])
 OperationalUser = Annotated[User, Depends(require_roles(UserRole.RETAIL_MANAGER, UserRole.WAREHOUSE_OPERATOR, UserRole.FOOD_QUALITY_INSPECTOR, UserRole.ADMINISTRATOR))]
+AnalysisCreator = Annotated[User, Depends(require_roles(UserRole.CONSUMER, UserRole.RETAIL_MANAGER, UserRole.WAREHOUSE_OPERATOR, UserRole.FOOD_QUALITY_INSPECTOR, UserRole.ADMINISTRATOR))]
 AuthenticatedUser = Annotated[User, Depends(get_current_user)]
 
 
@@ -36,7 +37,7 @@ def freshness_health() -> dict[str, str]:
 
 
 @router.post("/analyze", response_model=FreshnessAnalysisResponse, status_code=status.HTTP_201_CREATED)
-async def create_analysis(food_batch_id: Annotated[int, Form()], image: Annotated[UploadFile, File(...)], db: Annotated[Session, Depends(get_db)], _: OperationalUser) -> FreshnessAnalysis:
+async def create_analysis(food_batch_id: Annotated[int, Form()], image: Annotated[UploadFile, File(...)], db: Annotated[Session, Depends(get_db)], _: AnalysisCreator) -> FreshnessAnalysis:
     """Store a validated image and record that model-backed inference is pending."""
     _batch_or_404(db, food_batch_id)
     image_reference = await store_uploaded_image(image)
