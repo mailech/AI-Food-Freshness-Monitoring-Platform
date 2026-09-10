@@ -11,7 +11,9 @@ from app.models.enums import UserRole
 from app.models.shelf_life_prediction import ShelfLifePrediction
 from app.models.user import User
 from app.schemas.shelf_life import ShelfLifePredictionRequest, ShelfLifePredictionResponse
-from app.services.shelf_life import delete_prediction, get_batch, get_freshness_analysis, get_prediction, list_predictions, predict_shelf_life
+from app.services.shelf_life import (ShelfLifeInferenceError, ShelfLifeModelUnavailableError,
+                                     delete_prediction, get_batch, get_freshness_analysis,
+                                     get_prediction, list_predictions, predict_shelf_life)
 
 router = APIRouter(prefix="/shelf-life", tags=["shelf-life"])
 OperationalUser = Annotated[User, Depends(require_roles(UserRole.RETAIL_MANAGER, UserRole.WAREHOUSE_OPERATOR, UserRole.FOOD_QUALITY_INSPECTOR, UserRole.ADMINISTRATOR))]
@@ -43,7 +45,12 @@ def create_prediction(payload: ShelfLifePredictionRequest, db: Annotated[Session
         analysis = get_freshness_analysis(db, payload.freshness_analysis_id)
         if analysis is None or analysis.food_batch_id != payload.food_batch_id:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Freshness analysis not found for this food batch.")
-    return predict_shelf_life(db, payload)
+    try:
+        return predict_shelf_life(db, payload)
+    except ShelfLifeModelUnavailableError as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Shelf-life model is unavailable.") from exc
+    except ShelfLifeInferenceError as exc:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Shelf-life model inference failed.") from exc
 
 
 @router.get("/predictions/{prediction_id}", response_model=ShelfLifePredictionResponse)

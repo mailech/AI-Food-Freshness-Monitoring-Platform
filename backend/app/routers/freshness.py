@@ -11,7 +11,8 @@ from app.models.enums import UserRole
 from app.models.freshness_analysis import FreshnessAnalysis
 from app.models.user import User
 from app.schemas.freshness import FreshnessAnalysisResponse
-from app.services.freshness import analyze_freshness, delete_analysis, get_analysis, get_batch, list_analyses, store_uploaded_image
+from app.services.freshness import analyze_freshness, delete_analysis, get_analysis, get_batch, list_analyses, store_uploaded_image, upload_directory
+from ml.src.freshness_inference import InferenceError, InvalidImageError, ModelUnavailableError
 
 router = APIRouter(prefix="/freshness", tags=["freshness"])
 OperationalUser = Annotated[User, Depends(require_roles(UserRole.RETAIL_MANAGER, UserRole.WAREHOUSE_OPERATOR, UserRole.FOOD_QUALITY_INSPECTOR, UserRole.ADMINISTRATOR))]
@@ -31,6 +32,13 @@ def _analysis_or_404(db: Session, analysis_id: int) -> FreshnessAnalysis:
     return analysis
 
 
+def _discard_upload(image_reference: str) -> None:
+    """Remove only the generated upload when analysis cannot be persisted."""
+    candidate = upload_directory() / image_reference.rsplit('/', 1)[-1]
+    if candidate.is_file():
+        candidate.unlink()
+
+
 @router.get("/health")
 def freshness_health() -> dict[str, str]:
     return {"module": "freshness", "status": "ready"}
@@ -38,17 +46,23 @@ def freshness_health() -> dict[str, str]:
 
 @router.post("/analyze", response_model=FreshnessAnalysisResponse, status_code=status.HTTP_201_CREATED)
 async def create_analysis(food_batch_id: Annotated[int, Form()], image: Annotated[UploadFile, File(...)], db: Annotated[Session, Depends(get_db)], _: AnalysisCreator) -> FreshnessAnalysis:
-    """Store a validated image and record that model-backed inference is pending."""
+    """Store a validated image and run the trained freshness classifier."""
     _batch_or_404(db, food_batch_id)
     image_reference = await store_uploaded_image(image)
     try:
         return analyze_freshness(db, food_batch_id, image_reference)
+    except InvalidImageError as exc:
+        _discard_upload(image_reference)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except ModelUnavailableError as exc:
+        _discard_upload(image_reference)
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Freshness model is unavailable.") from exc
+    except InferenceError as exc:
+        _discard_upload(image_reference)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Freshness model inference failed.") from exc
     except Exception:
         # Do not leave a file behind if persistence fails.
-        from app.services.freshness import upload_directory
-        candidate = upload_directory() / image_reference.rsplit('/', 1)[-1]
-        if candidate.is_file():
-            candidate.unlink()
+        _discard_upload(image_reference)
         raise
 
 

@@ -3,24 +3,16 @@
 from datetime import date, datetime
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ShelfLifePredictionRequest(BaseModel):
     food_batch_id: int = Field(gt=0)
-    temperature: float = Field(ge=-50, le=100)
-    humidity: float = Field(ge=0, le=100)
-    packaging: str = Field(min_length=1, max_length=100)
-    storage_duration: int = Field(ge=0, le=36500)
+    dwell_hours: int = Field(ge=0, le=8760)
+    mean_temp_F: float = Field(ge=-40, le=140)
+    mean_rh_pct: float = Field(ge=0, le=100)
+    door_opens_count: int = Field(ge=0, le=10000)
     freshness_analysis_id: int | None = Field(default=None, gt=0)
-
-    @field_validator("packaging")
-    @classmethod
-    def normalize_packaging(cls, value: str) -> str:
-        value = value.strip()
-        if not value:
-            raise ValueError("Packaging is required.")
-        return value
 
 
 class ShelfLifePredictionResponse(BaseModel):
