@@ -101,9 +101,9 @@ function Dashboard({ role }) {
     'Food Quality Inspector': 'Image freshness assessment, quality classification and spoilage indicators.',
     Administrator: 'Platform analytics, reporting management and platform-level alerts.',
   }
-  return <><div className="heading"><div><small>{role.toUpperCase()}</small><h1>Food freshness overview</h1><p>{roleCopy[role]}</p></div></div>
-    <div className="metrics">{[['⌁', 'Overall freshness', '86.4%'], ['□', 'Inventory health', '248'], ['!', 'Open alerts', '18'], ['♧', 'Storage zones', '6 / 6']].map(entry => <article className="metric" key={entry[1]}><i>{entry[0]}</i><div><p>{entry[1]}</p><h3>{entry[2]}</h3><small>Current overview</small></div></article>)}</div>
-    <div className="grid"><Panel title="Freshness distribution" text="Freshness scoring: Visual 40% · Storage 25% · Shelf-life 20% · Product age 15%"><div className="fresh"><div className="ring"><b>86</b><small>out of 100</small></div><div className="signal"><span>Freshness trend</span><b>Improving</b></div></div></Panel><Panel title="Recent inventory" text="Latest batches">{items.map(item => <Line item={item} key={item[2]} />)}</Panel></div>
+  return <><div className="heading"><div><small>{role.toUpperCase()} · SAMPLE DASHBOARD</small><h1>Food freshness overview</h1><p>{roleCopy[role]} Dashboard figures below are sample data, not live analytics.</p></div></div>
+    <div className="metrics">{[['⌁', 'Sample overall freshness', '86.4%'], ['□', 'Sample inventory health', '248'], ['!', 'Sample open alerts', '18'], ['♧', 'Sample storage zones', '6 / 6']].map(entry => <article className="metric" key={entry[1]}><i>{entry[0]}</i><div><p>{entry[1]}</p><h3>{entry[2]}</h3><small>Sample data</small></div></article>)}</div>
+    <div className="grid"><Panel title="Sample freshness distribution" text="Illustrative only. Scoring weights: Visual 40% · Storage 25% · Shelf-life 20% · Product age 15%"><div className="fresh"><div className="ring"><b>86</b><small>sample only</small></div><div className="signal"><span>Sample freshness trend</span><b>Improving</b></div></div></Panel><Panel title="Sample recent inventory" text="Illustrative batches, not live records">{items.map(item => <Line item={item} key={item[2]} />)}</Panel></div>
   </>
 }
 const FOOD_CATEGORIES = ['Fruits', 'Vegetables', 'Dairy', 'Meat & Poultry', 'Seafood', 'Bakery', 'Packaged Foods', 'Beverages']
@@ -210,6 +210,14 @@ const freshnessError = error => {
   return error.message || 'Unable to complete the freshness request.'
 }
 const analysisStatus = analysis => analysis.analysis_result?.status || (analysis.freshness_category ? 'complete' : 'pending_model_integration')
+const modelPrediction = analysis => analysis.analysis_result?.predicted_class || 'Not available'
+const modelConfidence = analysis => {
+  const confidence = analysis.analysis_result?.confidence
+  return typeof confidence === 'number' ? `${(confidence * 100).toFixed(2)}%` : 'Not available'
+}
+const modelProbabilities = analysis => analysis.analysis_result?.all_class_probabilities || {}
+const classifierSupportsProduct = productName => /apple|banana|orange/i.test(productName || '')
+const classifierScopeMessage = 'This image model supports apples, bananas, and oranges only. For other products, including strawberries, its raw class output must not be interpreted as the selected product’s freshness assessment.'
 const analysisDate = value => new Date(value).toLocaleString()
 const SCORING_WEIGHT_LABELS = [
   ['Visual freshness', '40%'],
@@ -290,13 +298,13 @@ function AnalysisPage({ role, onUnauthorized }) {
   const reset = () => { setImage(null); setImageFile(null); setResult(null); setUploadError(''); setValidationMessage('') }
   return <>
     <Title title="Freshness Analysis" text="Analyze food images to assess freshness, quality, and potential spoilage." />
-    <div className="analysis-note">Upload a clear, well-lit food image to support a complete freshness assessment.</div>
+    <div className="analysis-note">Upload a clear, well-lit food image to support a complete freshness assessment. The trained image model supports apples, bananas, and oranges only.</div>
     <div className="analysis-workspace">
       <Panel title="Food image" text="Upload a clear image for a visual freshness assessment."><div className={'upload-zone ' + (image ? 'has-image' : '')} onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); selectImage(event.dataTransfer.files[0]) }}>{image ? <div className="image-preview"><img src={image.preview} alt="Selected food preview" /><div><b>{image.name}</b><small>Image selected and ready for assessment.</small><div><label className="link change-image" htmlFor="food-image">Change image</label><button className="link delete" onClick={() => { setImage(null); setResult(null); setValidationMessage('') }}>Remove image</button></div></div></div> : <><i>↑</i><b>Drag and drop a food image here</b><small>Supported formats: JPG, PNG and WEBP</small><label className="button secondary" htmlFor="food-image">Choose Image</label></>}<input id="food-image" type="file" accept="image/jpeg,image/png,image/webp" onClick={event => { event.currentTarget.value = '' }} onChange={event => selectImage(event.target.files[0])} /></div>{uploadError && <p className="upload-error">{uploadError}</p>}</Panel>
-      <Panel title="Food information" text="Select the real inventory batch for this analysis."><div className="analysis-fields"><FormField label="Food batch"><select value={foodBatchId} onChange={selectBatch}><option value="">Select an inventory batch</option>{batches.map(batch => <option key={batch.id} value={batch.id}>{batch.food_item.name} · {batch.batch_number}</option>)}</select></FormField><FormField label="Food/Product Name"><input value={productName} readOnly placeholder="Selected from the batch" /></FormField><FormField label="Category"><input value={foodCategory} readOnly /></FormField></div><button className="button primary analyze-button" disabled={!canCreate || loading || !image || !foodBatchId} onClick={analyze}>{loading ? 'Uploading…' : 'Analyze Freshness'}</button>{validationMessage ? <p className="upload-error">{validationMessage}</p> : (!image || !foodBatchId) && <small className="button-hint">Select an inventory batch and image to begin.</small>}</Panel>
+      <Panel title="Food information" text="Select the real inventory batch for this analysis."><div className="analysis-fields"><FormField label="Food batch"><select value={foodBatchId} onChange={selectBatch}><option value="">Select an inventory batch</option>{batches.map(batch => <option key={batch.id} value={batch.id}>{batch.food_item.name} · {batch.batch_number}</option>)}</select></FormField><FormField label="Food/Product Name"><input value={productName} readOnly placeholder="Selected from the batch" /></FormField><FormField label="Category"><input value={foodCategory} readOnly /></FormField></div>{foodBatchId && !classifierSupportsProduct(productName) && <p className="upload-error">{classifierScopeMessage}</p>}<button className="button primary analyze-button" disabled={!canCreate || loading || !image || !foodBatchId} onClick={analyze}>{loading ? 'Uploading…' : 'Analyze Freshness'}</button>{validationMessage ? <p className="upload-error">{validationMessage}</p> : (!image || !foodBatchId) && <small className="button-hint">Select an inventory batch and image to begin.</small>}</Panel>
     </div>
-    {result && <section className="analysis-results"><div className="analysis-results-heading"><div><small>FRESHNESS ASSESSMENT</small><h2>Freshness Assessment</h2><p>Product: {productName}</p></div><button className="button secondary" onClick={reset}>New Analysis</button></div>{analysisStatus(result) === 'pending_model_integration' ? <div className="analysis-summary"><b>Analysis pending model integration</b><p>{result.analysis_result?.message || 'The image was stored and the analysis record was created. A trained freshness model is not configured yet.'}</p></div> : <div className="result-grid"><article className="result-score"><span>Freshness Score</span><b>{result.freshness_score ?? 'Not available'}</b></article><article className="result-stat"><span>Quality classification</span><b>{result.freshness_category ?? 'Not available'}</b></article><article className="result-stat"><span>Spoilage probability</span><b>{result.spoilage_probability ?? 'Not available'}</b></article></div>}</section>}
-    <Panel title="Analysis history" text={foodBatchId ? 'Persisted analyses for the selected inventory batch.' : 'Select an inventory batch to view persisted analyses.'}><div className="analysis-history">{historyLoading ? <p className="button-hint">Loading analysis history…</p> : history.length ? history.map(entry => <div className="history-row" key={entry.id}><div><b>Analysis #{entry.id}</b><small>{analysisDate(entry.analyzed_at)}</small></div><strong>{analysisStatus(entry) === 'pending_model_integration' ? 'Pending' : entry.freshness_score ?? 'N/A'}</strong><em className="badge warning">{analysisStatus(entry) === 'pending_model_integration' ? 'Model pending' : entry.freshness_category ?? 'No category'}</em>{canDelete && <button className="link delete" disabled={loading} onClick={() => removeAnalysis(entry.id)}>Delete</button>}</div>) : <p className="button-hint">No persisted analyses for this batch.</p>}</div></Panel>
+    {result && <section className="analysis-results"><div className="analysis-results-heading"><div><small>FRESHNESS ASSESSMENT</small><h2>Freshness Assessment</h2><p>Product: {productName}</p></div><button className="button secondary" onClick={reset}>New Analysis</button></div>{!result.analysis_result?.model_scope?.supported && <div className="analysis-summary"><b>Model scope notice</b><p>{result.analysis_result?.model_scope?.message || classifierScopeMessage}</p></div>}{analysisStatus(result) === 'pending_model_integration' ? <div className="analysis-summary"><b>Analysis pending model integration</b><p>{result.analysis_result?.message || 'The image was stored and the analysis record was created. A trained freshness model is not configured yet.'}</p></div> : <><div className="result-grid"><article className="result-score"><span>Raw trained-model class</span><b>{modelPrediction(result)}</b></article><article className="result-stat"><span>Model confidence</span><b>{modelConfidence(result)}</b></article><article className="result-stat"><span>Freshness Score</span><b>{result.freshness_score ?? 'Not available'}</b></article></div><div className="analysis-summary"><b>Class probabilities</b>{Object.entries(modelProbabilities(result)).length ? <p>{Object.entries(modelProbabilities(result)).map(([label, value]) => `${label}: ${typeof value === 'number' ? `${(value * 100).toFixed(2)}%` : 'Not available'}`).join(' · ')}</p> : <p>Class probabilities are not available for this analysis.</p>}</div></>}</section>}
+    <Panel title="Analysis history" text={foodBatchId ? 'Persisted analyses for the selected inventory batch.' : 'Select an inventory batch to view persisted analyses.'}><div className="analysis-history">{historyLoading ? <p className="button-hint">Loading analysis history…</p> : history.length ? history.map(entry => <div className="history-row" key={entry.id}><div><b>Analysis #{entry.id}</b><small>{analysisDate(entry.analyzed_at)}</small></div><strong>{analysisStatus(entry) === 'pending_model_integration' ? 'Pending' : modelConfidence(entry)}</strong><em className="badge warning">{analysisStatus(entry) === 'pending_model_integration' ? 'Model pending' : modelPrediction(entry)}</em>{canDelete && <button className="link delete" disabled={loading} onClick={() => removeAnalysis(entry.id)}>Delete</button>}</div>) : <p className="button-hint">No persisted analyses for this batch.</p>}</div></Panel>
   </>
 }
 
@@ -426,9 +434,7 @@ function FreshnessScoring({ role, onUnauthorized }) {
     </Panel>
   </>
 }
-function Indicator({ name, result, tone }) { return <article className="indicator"><i className={tone}>●</i><span><b>{name}</b><small>{result}</small></span></article> }
-const emptyShelfLifeForm = () => ({ foodBatchId: '', duration: '', temperature: '', humidity: '', packaging: '' })
-const SHELF_LIFE_PACKAGING = ['Open', 'Plastic', 'Paper', 'Vacuum Sealed', 'Airtight Container']
+const emptyShelfLifeForm = () => ({ foodBatchId: '', dwellHours: '', meanTempF: '', meanRhPct: '', doorOpensCount: '' })
 const canCreateShelfLifePrediction = role => ['Consumer', 'Retail Manager', 'Warehouse Operator', 'Food Quality Inspector', 'Administrator'].includes(role)
 const canDeleteShelfLifePrediction = role => ['Retail Manager', 'Warehouse Operator', 'Food Quality Inspector', 'Administrator'].includes(role)
 const predictionStatus = entry => entry.prediction_result?.status || (entry.remaining_days != null || entry.predicted_expiry_date ? 'complete' : 'pending_model_integration')
@@ -440,30 +446,26 @@ const shelfLifeError = error => {
   if (error.status === 422) return error.message || 'Please correct the prediction details.'
   return error.message || 'Unable to complete the shelf-life request.'
 }
-const remainingDisplay = entry => {
-  if (isPendingPrediction(entry) || entry.remaining_days == null) return 'Not available'
-  return `${entry.remaining_days} day${Number(entry.remaining_days) === 1 ? '' : 's'}`
+const rawShelfLifePrediction = entry => entry?.prediction_result?.raw_prediction
+const shelfLifeOutputDisplay = entry => {
+  const value = rawShelfLifePrediction(entry)
+  return isPendingPrediction(entry) || typeof value !== 'number' ? 'Not available' : String(value)
 }
-const expiryDisplay = entry => {
-  if (isPendingPrediction(entry) || !entry.predicted_expiry_date) return 'Not available'
-  const parsed = new Date(entry.predicted_expiry_date)
-  return Number.isNaN(parsed.getTime()) ? 'Not available' : parsed.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
-}
-const confidenceDisplay = entry => (isPendingPrediction(entry) || entry.confidence_score == null || entry.confidence_score === '' ? 'Not available' : String(entry.confidence_score))
 const conditionReading = (value, suffix) => (value == null || value === '' ? 'Not available' : `${value}${suffix}`)
 const validateShelfLifeForm = form => {
   if (!form.foodBatchId) return 'Please select a food batch.'
-  if (form.duration === '' || Number.isNaN(Number(form.duration))) return 'Please enter the storage duration in days.'
-  const duration = Number(form.duration)
-  if (!Number.isInteger(duration) || duration < 0 || duration > 36500) return 'Storage duration must be a whole number between 0 and 36500 days.'
-  if (form.temperature === '' || Number.isNaN(Number(form.temperature))) return 'Please enter the storage temperature.'
-  const temperature = Number(form.temperature)
-  if (temperature < -50 || temperature > 100) return 'Temperature must be between -50°C and 100°C.'
-  if (form.humidity === '' || Number.isNaN(Number(form.humidity))) return 'Please enter the storage humidity.'
-  const humidity = Number(form.humidity)
-  if (humidity < 0 || humidity > 100) return 'Humidity must be between 0% and 100%.'
-  if (!form.packaging.trim()) return 'Please select packaging.'
-  if (form.packaging.trim().length > 100) return 'Packaging must be 100 characters or fewer.'
+  if (form.dwellHours === '' || Number.isNaN(Number(form.dwellHours))) return 'Please enter dwell hours.'
+  const dwellHours = Number(form.dwellHours)
+  if (!Number.isInteger(dwellHours) || dwellHours < 0 || dwellHours > 8760) return 'Dwell hours must be a whole number between 0 and 8760.'
+  if (form.meanTempF === '' || Number.isNaN(Number(form.meanTempF))) return 'Please enter mean temperature in °F.'
+  const meanTempF = Number(form.meanTempF)
+  if (meanTempF < -40 || meanTempF > 140) return 'Mean temperature must be between -40°F and 140°F.'
+  if (form.meanRhPct === '' || Number.isNaN(Number(form.meanRhPct))) return 'Please enter mean relative humidity.'
+  const meanRhPct = Number(form.meanRhPct)
+  if (meanRhPct < 0 || meanRhPct > 100) return 'Mean relative humidity must be between 0% and 100%.'
+  if (form.doorOpensCount === '' || Number.isNaN(Number(form.doorOpensCount))) return 'Please enter door opens count.'
+  const doorOpensCount = Number(form.doorOpensCount)
+  if (!Number.isInteger(doorOpensCount) || doorOpensCount < 0 || doorOpensCount > 10000) return 'Door opens count must be a whole number between 0 and 10000.'
   return ''
 }
 const emptyStorageForm = () => ({ foodBatchId: '', temperature: '', humidity: '', airCirculation: '', lightLevel: '', duration: '' })
@@ -1069,7 +1071,7 @@ function ShelfLife({ role, onUnauthorized }) {
   const productName = selectedBatch?.food_item?.name || ''
   const foodCategory = selectedBatch?.food_item?.category || ''
   const batchNumber = selectedBatch?.batch_number || ''
-  const complete = Boolean(form.foodBatchId && form.duration !== '' && form.temperature !== '' && form.humidity !== '' && form.packaging)
+  const complete = Boolean(form.foodBatchId && form.dwellHours !== '' && form.meanTempF !== '' && form.meanRhPct !== '' && form.doorOpensCount !== '')
   const pending = prediction && isPendingPrediction(prediction)
   const handleError = error => {
     if (error instanceof ApiError && error.status === 401) { auth.logout(); onUnauthorized(); return }
@@ -1099,10 +1101,10 @@ function ShelfLife({ role, onUnauthorized }) {
       setCreating(true); setValidationMessage(''); setMessage('')
       const created = await shelfLifeApi.predict({
         food_batch_id: Number(form.foodBatchId),
-        storage_duration: Number(form.duration),
-        temperature: Number(form.temperature),
-        humidity: Number(form.humidity),
-        packaging: form.packaging.trim(),
+        dwell_hours: Number(form.dwellHours),
+        mean_temp_F: Number(form.meanTempF),
+        mean_rh_pct: Number(form.meanRhPct),
+        door_opens_count: Number(form.doorOpensCount),
       })
       setPrediction(created)
       await loadHistory(form.foodBatchId)
@@ -1121,10 +1123,10 @@ function ShelfLife({ role, onUnauthorized }) {
   }
   const reset = () => { setPrediction(null); setValidationMessage(''); setMessage('') }
   return <>
-    <Title title="Shelf-Life Prediction" text="Estimate remaining shelf life and expiry risk using product and storage information." />
+    <Title title="Shelf-Life Prediction" text="Run the trained shelf-life model using recorded dwell time, temperature, humidity, and door openings." />
     {message && <p className="shelf-life-message" role="status">{message}</p>}
     <div className="shelf-life-layout">
-      <Panel title="Product information" text="Select a real inventory batch and enter the storage duration.">
+      <Panel title="Product information" text="Select a real inventory batch and enter the model's required dwell-time input.">
         <div className="shelf-life-fields">
           <FormField label="Food batch">
             <select required value={form.foodBatchId} onChange={selectBatch} disabled={batchesLoading}>
@@ -1134,19 +1136,14 @@ function ShelfLife({ role, onUnauthorized }) {
           </FormField>
           <FormField label="Food/Product Name"><input value={productName} readOnly placeholder="Selected from the batch" /></FormField>
           <FormField label="Product Category"><input value={foodCategory} readOnly placeholder="Selected from the batch" /></FormField>
-          <FormField label="Storage Duration (days)"><input required type="number" min="0" max="36500" step="1" value={form.duration} onChange={update('duration')} placeholder="e.g. 2" /></FormField>
+          <FormField label="Dwell Hours"><input required type="number" min="0" max="8760" step="1" value={form.dwellHours} onChange={update('dwellHours')} placeholder="e.g. 24" /></FormField>
         </div>
       </Panel>
-      <Panel title="Storage conditions" text="Enter the current conditions for this product.">
+      <Panel title="Model inputs" text="Enter the four verified inputs expected by the trained shelf-life model.">
         <div className="shelf-life-fields">
-          <FormField label="Temperature (°C)"><input required type="number" step="0.1" min="-50" max="100" value={form.temperature} onChange={update('temperature')} placeholder="e.g. 4" /></FormField>
-          <FormField label="Humidity (%)"><input required type="number" step="0.1" min="0" max="100" value={form.humidity} onChange={update('humidity')} placeholder="e.g. 68" /></FormField>
-          <FormField label="Packaging">
-            <select required value={form.packaging} onChange={update('packaging')}>
-              <option value="">Select packaging</option>
-              {SHELF_LIFE_PACKAGING.map(option => <option key={option}>{option}</option>)}
-            </select>
-          </FormField>
+          <FormField label="Mean Temperature (°F)"><input required type="number" step="0.1" min="-40" max="140" value={form.meanTempF} onChange={update('meanTempF')} placeholder="e.g. 40" /></FormField>
+          <FormField label="Mean Relative Humidity (%)"><input required type="number" step="0.1" min="0" max="100" value={form.meanRhPct} onChange={update('meanRhPct')} placeholder="e.g. 70" /></FormField>
+          <FormField label="Door Opens Count"><input required type="number" step="1" min="0" max="10000" value={form.doorOpensCount} onChange={update('doorOpensCount')} placeholder="e.g. 5" /></FormField>
         </div>
       </Panel>
     </div>
@@ -1166,20 +1163,21 @@ function ShelfLife({ role, onUnauthorized }) {
       </div>
       {pending && <div className="prediction-summary"><b>Prediction pending model integration</b><p>{prediction.prediction_result?.message || 'The prediction record was created. A trained shelf-life model is not configured yet.'}</p></div>}
       <div className="prediction-grid">
-        <article className="prediction-highlight"><span>Remaining Shelf Life</span><b>{remainingDisplay(prediction)}</b><small>{pending ? 'Unavailable until a trained model is configured' : 'Estimated remaining shelf life'}</small></article>
-        <article className="prediction-stat"><span>Expiry Forecast</span><b>{expiryDisplay(prediction)}</b><small>Expected expiry date</small></article>
-        <article className="prediction-stat"><span>Confidence Score</span><b>{confidenceDisplay(prediction)}</b><small>Model confidence</small></article>
+        <article className="prediction-highlight"><span>Raw shelf-life model output</span><b>{shelfLifeOutputDisplay(prediction)}</b><small>{pending ? 'Unavailable until a trained model is configured' : 'Returned without a fabricated unit'}</small></article>
+        <article className="prediction-stat"><span>Output unit</span><b>{prediction.prediction_result?.unit_status || 'Not available'}</b><small>The artifact does not establish a unit.</small></article>
+        <article className="prediction-stat"><span>Prediction source</span><b>{prediction.prediction_result?.prediction_source === 'trained_ml_model' ? 'Trained ML model' : 'Not available'}</b><small>{prediction.prediction_result?.model || 'Model metadata unavailable'}</small></article>
       </div>
       <div className="storage-impact">
         <div>
-          <small>STORAGE IMPACT</small>
-          <h3>Current conditions</h3>
-          <p>{pending ? 'Storage impact is not available until a trained shelf-life model is configured.' : (prediction.prediction_result?.message || 'Not available')}</p>
+          <small>MODEL INPUTS</small>
+          <h3>Recorded inference inputs</h3>
+          <p>{pending ? 'Model inputs are unavailable until a trained model is configured.' : (prediction.prediction_result?.message || 'Not available')}</p>
         </div>
         <div className="storage-readings">
-          <span>Temperature<b>{conditionReading(prediction.temperature, '°C')}</b></span>
-          <span>Humidity<b>{conditionReading(prediction.humidity, '%')}</b></span>
-          <span>Packaging<b>{prediction.packaging || 'Not available'}</b></span>
+          <span>Dwell hours<b>{prediction.prediction_result?.model_inputs?.dwell_hours ?? 'Not available'}</b></span>
+          <span>Mean temperature<b>{conditionReading(prediction.prediction_result?.model_inputs?.mean_temp_F, '°F')}</b></span>
+          <span>Mean RH<b>{conditionReading(prediction.prediction_result?.model_inputs?.mean_rh_pct, '%')}</b></span>
+          <span>Door opens<b>{prediction.prediction_result?.model_inputs?.door_opens_count ?? 'Not available'}</b></span>
         </div>
       </div>
     </section>}
@@ -1189,8 +1187,8 @@ function ShelfLife({ role, onUnauthorized }) {
           const pendingEntry = isPendingPrediction(entry)
           return <div className="history-row" key={entry.id}>
             <div><b>Prediction #{entry.id}</b><small>{analysisDate(entry.predicted_at)}</small></div>
-            <strong>{pendingEntry ? 'Pending' : remainingDisplay(entry)}</strong>
-            <em className={'badge ' + (pendingEntry ? 'warning' : 'success')}>{pendingEntry ? 'Model pending' : 'Recorded'}</em>
+            <strong>{pendingEntry ? 'Pending' : shelfLifeOutputDisplay(entry)}</strong>
+            <em className={'badge ' + (pendingEntry ? 'warning' : 'success')}>{pendingEntry ? 'Model pending' : 'Unit not established'}</em>
             {canDelete && <button className="link delete" disabled={busy} onClick={() => removePrediction(entry.id)}>Delete</button>}
           </div>
         }) : <p className="button-hint">{form.foodBatchId ? 'No persisted predictions for this batch.' : 'Select an inventory batch to view persisted predictions.'}</p>}
@@ -1198,7 +1196,6 @@ function ShelfLife({ role, onUnauthorized }) {
     </Panel>
   </>
 }
-function Analysis() { return <><Title title="Freshness analysis" text="Image-based assessment workflow." /><div className="grid"><Panel title="Image freshness analysis" text="Upload and AI integration will be connected later."><div className="signal"><span>Visual condition</span><b>40% weight</b></div><div className="signal"><span>Storage conditions</span><b>25% weight</b></div><div className="signal"><span>Shelf-life prediction</span><b>20% weight</b></div><div className="signal"><span>Product age</span><b>15% weight</b></div></Panel><Panel title="Freshness assessment" text="Analysis service integration is pending."><div className="signal"><span>Freshness category</span><b>Fresh</b></div><div className="signal"><span>Spoilage probability</span><b>8%</b></div><div className="signal"><span>Visual indicators</span><b>Color · Texture · Mold · Bruising</b></div></Panel></div></> }
 const REPORT_TYPES = ['Freshness Report', 'Shelf-Life Report', 'Inventory Quality Report', 'Waste Reduction Report', 'Storage Compliance Report']
 const reportError = error => {
   if (!(error instanceof ApiError)) return 'Unable to complete the report request.'

@@ -1,6 +1,7 @@
-"""Replaceable, non-ML freshness analysis and safe upload storage."""
+"""Freshness-analysis persistence and safe upload storage."""
 
 from pathlib import Path
+import sys
 from uuid import uuid4
 
 from fastapi import HTTPException, UploadFile, status
@@ -10,6 +11,14 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.models.freshness_analysis import FreshnessAnalysis
 from app.models.food_batch import FoodBatch
+
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from ml.src.freshness_inference import predict_freshness
+
+SUPPORTED_FRUIT_NAMES = ("apple", "banana", "orange")
 
 _FORMATS = {
     "jpeg": {"extensions": {".jpg", ".jpeg"}, "content_types": {"image/jpeg"}},
@@ -69,13 +78,29 @@ def list_analyses(db: Session, food_batch_id: int) -> list[FreshnessAnalysis]:
 
 
 def analyze_freshness(db: Session, food_batch_id: int, image_reference: str) -> FreshnessAnalysis:
-    """Persist a transparent placeholder until a model implementation is supplied."""
+    """Run the trained image classifier and persist its raw prediction."""
+    prediction = predict_freshness(upload_directory() / Path(image_reference).name)
+    batch = get_batch(db, food_batch_id)
+    product_name = batch.food_item.name if batch and batch.food_item else ""
+    is_supported_product = any(name in product_name.lower() for name in SUPPORTED_FRUIT_NAMES)
     analysis = FreshnessAnalysis(
         food_batch_id=food_batch_id,
         image_path=image_reference,
         analysis_result={
-            "status": "pending_model_integration",
-            "message": "Image stored; no trained freshness model is configured.",
+            "status": "complete",
+            "model_status": "complete",
+            "model": "final_food_freshness_model.keras",
+            "prediction_source": "trained_ml_model",
+            "model_scope": {
+                "supported": is_supported_product,
+                "supported_products": ["apples", "bananas", "oranges"],
+                "message": (
+                    "The selected inventory product is within the model's supported fruit classes."
+                    if is_supported_product
+                    else "This model supports apples, bananas, and oranges only. The raw class output must not be interpreted as a reliable freshness assessment for this selected product."
+                ),
+            },
+            **prediction,
         },
     )
     db.add(analysis)

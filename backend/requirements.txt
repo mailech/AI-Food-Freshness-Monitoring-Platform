@@ -6,6 +6,11 @@ pwdlib[argon2]
 psycopg[binary]
 PyJWT
 SQLAlchemy
+tensorflow
+Pillow
+joblib
+pandas
+scikit-learn==1.6.1
 python-multipart
 openpyxl
 reportlab

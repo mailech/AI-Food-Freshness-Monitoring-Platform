@@ -1,4 +1,8 @@
-"""Replaceable non-ML shelf-life prediction persistence."""
+"""Trained shelf-life model inference and prediction persistence."""
+
+from functools import lru_cache
+from math import isfinite
+from pathlib import Path
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -7,6 +11,45 @@ from app.models.freshness_analysis import FreshnessAnalysis
 from app.models.food_batch import FoodBatch
 from app.models.shelf_life_prediction import ShelfLifePrediction
 from app.schemas.shelf_life import ShelfLifePredictionRequest
+
+MODEL_PATH = Path(__file__).resolve().parents[3] / "ml" / "artifacts" / "shelf_life_model.joblib"
+FEATURE_NAMES = ("dwell_hours", "mean_temp_F", "mean_rh_pct", "door_opens_count")
+
+
+class ShelfLifeModelUnavailableError(RuntimeError):
+    """The persisted shelf-life model or its dependencies are unavailable."""
+
+
+class ShelfLifeInferenceError(RuntimeError):
+    """The shelf-life model did not return a usable numeric prediction."""
+
+
+@lru_cache(maxsize=1)
+def _model():
+    if not MODEL_PATH.is_file():
+        raise ShelfLifeModelUnavailableError("Shelf-life model file is missing.")
+    try:
+        import joblib
+        return joblib.load(MODEL_PATH)
+    except Exception as exc:
+        raise ShelfLifeModelUnavailableError("Shelf-life model could not be loaded.") from exc
+
+
+def _raw_prediction(payload: ShelfLifePredictionRequest) -> float:
+    try:
+        import pandas as pd
+        inputs = pd.DataFrame(
+            [[payload.dwell_hours, payload.mean_temp_F, payload.mean_rh_pct, payload.door_opens_count]],
+            columns=FEATURE_NAMES,
+        )
+        value = float(_model().predict(inputs)[0])
+    except ShelfLifeModelUnavailableError:
+        raise
+    except Exception as exc:
+        raise ShelfLifeInferenceError("Shelf-life model inference failed.") from exc
+    if not isfinite(value):
+        raise ShelfLifeInferenceError("Shelf-life model returned an invalid prediction.")
+    return value
 
 
 def get_batch(db: Session, batch_id: int) -> FoodBatch | None:
@@ -26,19 +69,30 @@ def list_predictions(db: Session, batch_id: int) -> list[ShelfLifePrediction]:
 
 
 def predict_shelf_life(db: Session, payload: ShelfLifePredictionRequest) -> ShelfLifePrediction:
-    """Persist input context only; a future model can replace this boundary."""
+    """Run the trained model and persist its raw, unit-unestablished output."""
+    raw_prediction = _raw_prediction(payload)
     result = {
-        "status": "pending_model_integration",
-        "message": "No trained shelf-life model is configured.",
+        "status": "complete",
+        "model_status": "complete",
+        "model": "shelf_life_model.joblib",
+        "prediction_source": "trained_ml_model",
+        "raw_prediction": raw_prediction,
+        "unit_status": "unit not established",
+        "message": "Raw output from the trained shelf-life model. Its unit is not established by the artifact.",
+        "model_inputs": {
+            "dwell_hours": payload.dwell_hours,
+            "mean_temp_F": payload.mean_temp_F,
+            "mean_rh_pct": payload.mean_rh_pct,
+            "door_opens_count": payload.door_opens_count,
+        },
     }
     if payload.freshness_analysis_id is not None:
         result["freshness_analysis_id"] = payload.freshness_analysis_id
     prediction = ShelfLifePrediction(
         food_batch_id=payload.food_batch_id,
-        temperature=payload.temperature,
-        humidity=payload.humidity,
-        packaging=payload.packaging,
-        storage_duration=payload.storage_duration,
+        temperature=payload.mean_temp_F,
+        humidity=payload.mean_rh_pct,
+        storage_duration=payload.dwell_hours,
         prediction_result=result,
     )
     db.add(prediction)
