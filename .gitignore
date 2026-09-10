@@ -33,3 +33,5 @@ __pycache__/
 .env
 
 ml/*.keras
+ml/train/
+ml/test/

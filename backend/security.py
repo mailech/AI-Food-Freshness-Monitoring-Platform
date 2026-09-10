@@ -64,3 +64,40 @@ def get_current_user(
     token = credentials.credentials
     user_id = verify_token(token)
     return user_id
+def require_role(required_role: str):
+    def role_checker(
+        credentials: HTTPAuthorizationCredentials = Depends(security)
+    ):
+        token = credentials.credentials
+
+        try:
+            payload = jwt.decode(
+                token,
+                SECRET_KEY,
+                algorithms=[ALGORITHM]
+            )
+
+            user_id = payload.get("sub")
+            user_role = payload.get("role")
+
+            if user_id is None:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid token"
+                )
+
+            if user_role != required_role:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Access denied"
+                )
+
+            return user_id
+
+        except JWTError:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid or expired token"
+            )
+
+    return role_checker

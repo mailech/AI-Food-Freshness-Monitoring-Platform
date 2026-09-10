@@ -1,15 +1,22 @@
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.sessions import SessionMiddleware
 from database.connection import engine, Base
 from models.user import User
+from models.food import FoodItem
 from routes.auth import router as auth_router
 from routes.prediction import router as prediction_router
-from security import get_current_user
+from routes.food import router as food_router
+from security import get_current_user, require_role
 
 
 app = FastAPI(
     title="Food Freshness Monitoring API",
     version="1.0.0"
+)
+app.add_middleware(
+    SessionMiddleware,
+    secret_key="food-freshness-session-secret"
 )
 app.add_middleware(
     CORSMiddleware,
@@ -26,6 +33,7 @@ app.add_middleware(
 Base.metadata.create_all(bind=engine)
 app.include_router(auth_router)
 app.include_router(prediction_router)
+app.include_router(food_router)
 
 
 @app.get("/")
@@ -48,4 +56,12 @@ def protected_route(
     return {
         "message": "You are authenticated!",
         "user_id": current_user
+    }
+@app.get("/admin-test")
+def admin_test(
+    user_id: str = Depends(require_role("Administrator"))
+):
+    return {
+        "message": "Admin access granted!",
+        "user_id": user_id
     }

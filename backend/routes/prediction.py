@@ -21,7 +21,7 @@ MODEL_PATH = os.path.join(
         )
     ),
     "ml",
-    "food_freshness_model.keras"
+    "food_freshness_model_v3.keras"
 )
 
 model = tf.keras.models.load_model(MODEL_PATH)

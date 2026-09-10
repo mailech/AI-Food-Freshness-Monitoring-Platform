@@ -8,25 +8,36 @@ import {
   FaCheckCircle,
   FaEdit,
   FaSave,
+  FaRedo,
 } from "react-icons/fa";
 import "../App.css";
 
 function Dashboard() {
   const [selectedImage, setSelectedImage] = useState(null);
-const [selectedFile, setSelectedFile] = useState(null);
-const [prediction, setPrediction] = useState(null);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [prediction, setPrediction] = useState(null);
+
+  const [temperature, setTemperature] = useState("");
+  const [humidity, setHumidity] = useState("");
+
+  // ================= PREDICTION HISTORY =================
+
+  const [predictionHistory, setPredictionHistory] = useState(() => {
+    try {
+      const savedHistory = localStorage.getItem("prediction_history");
+      return savedHistory ? JSON.parse(savedHistory) : [];
+    } catch (error) {
+      console.error("Failed to load prediction history:", error);
+      return [];
+    }
+  });
 
   // ================= USER PROFILE =================
 
   const [profile, setProfile] = useState(null);
-
-  // Profile popup
   const [showProfile, setShowProfile] = useState(false);
-
-  // Edit mode
   const [editMode, setEditMode] = useState(false);
 
-  // Edit fields
   const [editName, setEditName] = useState("");
   const [editEmail, setEditEmail] = useState("");
 
@@ -57,20 +68,14 @@ const [prediction, setPrediction] = useState(null);
 
       const data = await response.json();
 
-      console.log("Profile data:", data);
-
       setProfile(data);
-
-      // Set edit fields
       setEditName(data.name);
       setEditEmail(data.email);
-
     } catch (error) {
       console.error("Profile error:", error);
     }
   };
 
-  // Fetch profile when dashboard opens
   useEffect(() => {
     fetchProfile();
   }, []);
@@ -78,66 +83,249 @@ const [prediction, setPrediction] = useState(null);
   // ================= SELECT IMAGE =================
 
   const handleImageChange = (event) => {
-  const file = event.target.files[0];
+    const file = event.target.files[0];
 
-  if (file) {
-    const imageURL = URL.createObjectURL(file);
+    if (file) {
+      const imageURL = URL.createObjectURL(file);
 
-    setSelectedFile(file);
-    setSelectedImage(imageURL);
-    setPrediction(null);
-  }
-};
-  // ================= TEMPORARY PREDICTION =================
+      setSelectedFile(file);
+      setSelectedImage(imageURL);
+      setPrediction(null);
+
+      setTemperature("");
+      setHumidity("");
+    }
+  };
+
+  // ================= PREDICTION =================
 
   const handlePrediction = async () => {
-  if (!selectedFile) {
-    alert("Please select an image first.");
-    return;
-  }
-
-  try {
-    const formData = new FormData();
-
-    formData.append("file", selectedFile);
-
-    const response = await fetch(
-      "http://127.0.0.1:8000/predict/",
-      {
-        method: "POST",
-        body: formData,
-      }
-    );
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.detail || "Prediction failed");
+    if (!selectedFile) {
+      alert("Please select an image first.");
+      return;
     }
 
-    console.log("Prediction:", data);
+    if (temperature === "" || humidity === "") {
+      alert(
+        "Please enter temperature and humidity before predicting."
+      );
+      return;
+    }
 
-    setPrediction({
-      status: data.prediction.includes("fresh")
+    try {
+      const formData = new FormData();
+
+      formData.append("file", selectedFile);
+
+      const response = await fetch(
+        "http://127.0.0.1:8000/predict/",
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.detail || "Prediction failed"
+        );
+      }
+
+      // ================= FOOD TYPE =================
+
+      let foodType = "Food";
+      let foodEmoji = "🍽️";
+
+      if (data.prediction.includes("apple")) {
+        foodType = "Apple";
+        foodEmoji = "🍎";
+      } else if (data.prediction.includes("banana")) {
+        foodType = "Banana";
+        foodEmoji = "🍌";
+      } else if (data.prediction.includes("orange")) {
+        foodType = "Orange";
+        foodEmoji = "🍊";
+      }
+
+      // ================= STATUS =================
+
+      const status = data.prediction.includes("fresh")
         ? "Fresh"
-        : "Spoiled",
-      confidence: `${data.confidence}%`,
-    });
+        : "Spoiled";
 
-  } catch (error) {
-    console.error("Prediction error:", error);
-    alert("Unable to predict the image.");
-  }
-};
+      // ================= STORAGE SCORE =================
+
+      let storageScore = 100;
+
+      const temp = Number(temperature);
+      const hum = Number(humidity);
+
+      // Temperature check
+
+      if (foodType === "Apple") {
+        if (temp < 0 || temp > 10) {
+          storageScore -= 20;
+        }
+      } else if (foodType === "Banana") {
+        if (temp < 12 || temp > 18) {
+          storageScore -= 20;
+        }
+      } else if (foodType === "Orange") {
+        if (temp < 3 || temp > 10) {
+          storageScore -= 20;
+        }
+      }
+
+      // Humidity check
+
+      if (hum < 50 || hum > 95) {
+        storageScore -= 15;
+      }
+
+      storageScore = Math.max(
+        0,
+        Math.min(100, storageScore)
+      );
+
+      // ================= SAVE STORAGE SCORE =================
+
+      localStorage.setItem(
+        "storage_score",
+        storageScore.toString()
+      );
+
+      // ================= SHELF LIFE =================
+
+      let shelfLife = "Not recommended";
+
+      if (status === "Fresh") {
+        if (foodType === "Apple") {
+          shelfLife = "5–7 days";
+        } else if (foodType === "Banana") {
+          shelfLife = "2–4 days";
+        } else if (foodType === "Orange") {
+          shelfLife = "5–7 days";
+        } else {
+          shelfLife = "3–5 days";
+        }
+      }
+
+      // ================= RECOMMENDATION =================
+
+      let recommendation = "";
+
+      if (status === "Fresh") {
+        recommendation =
+          "Safe to consume. Store properly to maintain freshness.";
+      } else {
+        recommendation =
+          "Do not consume. The food appears to be spoiled.";
+      }
+
+      // ================= FRESHNESS SCORE =================
+
+      const aiScore =
+        status === "Fresh"
+          ? data.confidence
+          : 100 - data.confidence;
+
+      const freshnessScore = Math.round(
+        aiScore * 0.75 + storageScore * 0.25
+      );
+
+      // ================= SAVE RESULT =================
+
+      const predictionResult = {
+        foodType: foodType,
+        foodEmoji: foodEmoji,
+        status: status,
+        confidence: `${data.confidence}%`,
+        freshnessScore: freshnessScore,
+        shelfLife: shelfLife,
+        recommendation: recommendation,
+        date: new Date().toISOString(),
+      };
+
+      setPrediction(predictionResult);
+
+      // ================= SAVE LATEST PREDICTION =================
+
+      localStorage.setItem(
+        "latest_prediction",
+        JSON.stringify(predictionResult)
+      );
+
+      // ================= SAVE PREDICTION HISTORY =================
+
+      const updatedHistory = [
+        predictionResult,
+        ...predictionHistory,
+      ];
+
+      setPredictionHistory(updatedHistory);
+
+      localStorage.setItem(
+        "prediction_history",
+        JSON.stringify(updatedHistory)
+      );
+
+      // ================= SAVE TEMPERATURE =================
+
+      localStorage.setItem(
+        "latest_temperature",
+        temperature
+      );
+
+      // ================= SAVE HUMIDITY =================
+
+      localStorage.setItem(
+        "latest_humidity",
+        humidity
+      );
+
+    } catch (error) {
+      console.error("Prediction error:", error);
+      alert("Unable to predict the image.");
+    }
+  };
+
+  // ================= PREDICT AGAIN =================
+
+  const handlePredictAgain = () => {
+    setSelectedImage(null);
+    setSelectedFile(null);
+    setPrediction(null);
+    setTemperature("");
+    setHumidity("");
+
+    const fileInput =
+      document.getElementById("food-image");
+
+    if (fileInput) {
+      fileInput.value = "";
+    }
+  };
+
   // ================= REMOVE IMAGE =================
 
   const removeImage = () => {
-  setSelectedImage(null);
-  setSelectedFile(null);
-  setPrediction(null);
-};
+    setSelectedImage(null);
+    setSelectedFile(null);
+    setPrediction(null);
+    setTemperature("");
+    setHumidity("");
 
-  // ================= PROFILE CLICK =================
+    const fileInput =
+      document.getElementById("food-image");
+
+    if (fileInput) {
+      fileInput.value = "";
+    }
+  };
+
+  // ================= PROFILE =================
 
   const handleProfileClick = () => {
     setShowProfile(true);
@@ -149,14 +337,10 @@ const [prediction, setPrediction] = useState(null);
     }
   };
 
-  // ================= CLOSE PROFILE =================
-
   const closeProfile = () => {
     setShowProfile(false);
     setEditMode(false);
   };
-
-  // ================= START EDIT =================
 
   const handleEditProfile = () => {
     setEditMode(true);
@@ -164,8 +348,6 @@ const [prediction, setPrediction] = useState(null);
     setEditName(profile.name);
     setEditEmail(profile.email);
   };
-
-  // ================= CANCEL EDIT =================
 
   const handleCancelEdit = () => {
     setEditMode(false);
@@ -177,59 +359,108 @@ const [prediction, setPrediction] = useState(null);
   // ================= SAVE PROFILE =================
 
   const handleSaveProfile = async () => {
-  if (editName.trim() === "" || editEmail.trim() === "") {
-    alert("Name and email cannot be empty.");
-    return;
-  }
-
-  if (!editEmail.includes("@") || !editEmail.includes(".")) {
-    alert("Please enter a valid email address.");
-    return;
-  }
-
-  const token = localStorage.getItem("access_token");
-
-  if (!token) {
-    alert("Please login again.");
-    return;
-  }
-
-  try {
-    const response = await fetch(
-      "http://127.0.0.1:8000/auth/profile",
-      {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          name: editName,
-          email: editEmail,
-        }),
-      }
-    );
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      alert(data.detail || "Failed to update profile.");
+    if (
+      editName.trim() === "" ||
+      editEmail.trim() === ""
+    ) {
+      alert("Name and email cannot be empty.");
       return;
     }
 
-    alert("Profile updated successfully!");
+    if (
+      !editEmail.includes("@") ||
+      !editEmail.includes(".")
+    ) {
+      alert("Please enter a valid email address.");
+      return;
+    }
 
-    // Refresh profile from backend
-    await fetchProfile();
+    const token =
+      localStorage.getItem("access_token");
 
-    // Close edit mode
-    setEditMode(false);
+    if (!token) {
+      alert("Please login again.");
+      return;
+    }
 
-  } catch (error) {
-    console.error("Update profile error:", error);
-    alert("Unable to connect to the server.");
-  }
-};
+    try {
+      const response = await fetch(
+        "http://127.0.0.1:8000/auth/profile",
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            name: editName,
+            email: editEmail,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert(
+          data.detail ||
+            "Failed to update profile."
+        );
+        return;
+      }
+
+      alert("Profile updated successfully!");
+
+      await fetchProfile();
+
+      setEditMode(false);
+    } catch (error) {
+      console.error(
+        "Update profile error:",
+        error
+      );
+
+      alert("Unable to connect to the server.");
+    }
+  };
+
+  // ================= DYNAMIC STATISTICS =================
+
+  const totalPredictions = predictionHistory.length;
+
+  const freshCount = predictionHistory.filter(
+    (item) => item.status === "Fresh"
+  ).length;
+
+  const spoiledCount = predictionHistory.filter(
+    (item) => item.status === "Spoiled"
+  ).length;
+
+  // ================= DATE FORMAT =================
+
+  const formatPredictionDate = (date) => {
+    if (!date) {
+      return "Today";
+    }
+
+    const predictionDate = new Date(date);
+    const today = new Date();
+
+    const isToday =
+      predictionDate.toDateString() ===
+      today.toDateString();
+
+    if (isToday) {
+      return "Today";
+    }
+
+    return predictionDate.toLocaleDateString();
+  };
+
+  // Show only latest 5 predictions
+
+  const recentPredictions =
+    predictionHistory.slice(0, 5);
 
   return (
     <div className="dashboard">
@@ -239,18 +470,44 @@ const [prediction, setPrediction] = useState(null);
       <nav className="navbar">
 
         <div className="logo-section">
+
           <FaLeaf className="logo-icon" />
 
           <h2>
             Food Freshness Monitoring
           </h2>
+
+        </div>
+
+        <div className="nav-links">
+
+          <a href="/dashboard">
+            Dashboard
+          </a>
+
+          <a href="/inventory">
+            Inventory
+          </a>
+
+          <a href="/storage-monitoring">
+            Storage Monitoring
+          </a>
+
+          <a href="/alerts">
+            Alerts
+          </a>
+
+          <a href="/reports">
+            Reports
+          </a>
+
         </div>
 
         <div className="nav-right">
 
-          <FaBell className="nav-icon" />
-
-          {/* PROFILE */}
+          <a href="/alerts">
+            <FaBell className="nav-icon" />
+          </a>
 
           <div
             className="profile"
@@ -261,7 +518,9 @@ const [prediction, setPrediction] = useState(null);
             <FaUserCircle className="profile-icon" />
 
             <span>
-              {profile ? profile.name : "Loading..."}
+              {profile
+                ? profile.name
+                : "Loading..."}
             </span>
 
           </div>
@@ -278,8 +537,6 @@ const [prediction, setPrediction] = useState(null);
 
           <div className="profile-popup">
 
-            {/* CLOSE BUTTON */}
-
             <button
               className="profile-close"
               onClick={closeProfile}
@@ -287,20 +544,15 @@ const [prediction, setPrediction] = useState(null);
               <FaTimes />
             </button>
 
-            {/* PROFILE ICON */}
+            <FaUserCircle
+              className="profile-popup-icon"
+            />
 
-            <FaUserCircle className="profile-popup-icon" />
-
-            <h2>
-              My Profile
-            </h2>
+            <h2>My Profile</h2>
 
             {!editMode ? (
 
-              /* ================= VIEW PROFILE ================= */
-
               <>
-
                 <div className="profile-details">
 
                   <div className="profile-detail">
@@ -325,14 +577,11 @@ const [prediction, setPrediction] = useState(null);
 
                 </div>
 
-                {/* EDIT BUTTON */}
-
                 <button
                   className="edit-profile-btn"
                   onClick={handleEditProfile}
                 >
                   <FaEdit />
-
                   Edit Profile
                 </button>
 
@@ -340,15 +589,11 @@ const [prediction, setPrediction] = useState(null);
 
             ) : (
 
-              /* ================= EDIT PROFILE ================= */
-
               <div className="edit-profile-form">
 
                 <div className="edit-field">
 
-                  <label>
-                    Name
-                  </label>
+                  <label>Name</label>
 
                   <input
                     type="text"
@@ -363,9 +608,7 @@ const [prediction, setPrediction] = useState(null);
 
                 <div className="edit-field">
 
-                  <label>
-                    Email
-                  </label>
+                  <label>Email</label>
 
                   <input
                     type="email"
@@ -378,8 +621,6 @@ const [prediction, setPrediction] = useState(null);
 
                 </div>
 
-                {/* BUTTONS */}
-
                 <div className="edit-buttons">
 
                   <button
@@ -387,7 +628,6 @@ const [prediction, setPrediction] = useState(null);
                     onClick={handleSaveProfile}
                   >
                     <FaSave />
-
                     Save Changes
                   </button>
 
@@ -414,23 +654,22 @@ const [prediction, setPrediction] = useState(null);
 
       <main className="dashboard-content">
 
-        {/* ================= WELCOME SECTION ================= */}
+        {/* ================= WELCOME ================= */}
 
         <section className="welcome-section">
 
           <div className="welcome-text">
 
-            <h1>
-              🍃 Welcome Back!
-            </h1>
+            <h1>🍃 Welcome Back!</h1>
 
             <h2>
               AI-Powered Food Freshness Detection
             </h2>
 
             <p>
-              Upload a food image and let Artificial Intelligence
-              determine whether it is <b>Fresh</b> or
+              Upload a food image and let
+              Artificial Intelligence determine
+              whether it is <b>Fresh</b> or
               <b> Spoiled</b> in just a few seconds.
             </p>
 
@@ -440,11 +679,21 @@ const [prediction, setPrediction] = useState(null);
 
           </div>
 
-          {/* ================= UPLOAD CARD ================= */}
+          {/* ================= DETECTION CARD ================= */}
 
-          <div className="upload-card">
+          <div
+            className={`upload-card ${
+              prediction
+                ? "result-card"
+                : selectedImage
+                ? "storage-card"
+                : "upload-card-empty"
+            }`}
+          >
 
-            {!selectedImage ? (
+            {/* ================= STATE 1 : UPLOAD ================= */}
+
+            {!selectedImage && !prediction && (
 
               <>
 
@@ -479,9 +728,13 @@ const [prediction, setPrediction] = useState(null);
 
               </>
 
-            ) : (
+            )}
 
-              <>
+            {/* ================= STATE 2 : STORAGE ================= */}
+
+            {selectedImage && !prediction && (
+
+              <div className="storage-step">
 
                 <img
                   src={selectedImage}
@@ -489,57 +742,177 @@ const [prediction, setPrediction] = useState(null);
                   className="image-preview"
                 />
 
-                <p>
+                <p className="image-success">
                   Image selected successfully ✅
                 </p>
 
-                {!prediction && (
+                <div className="storage-box">
+
+                  <h3>
+                    Storage Conditions
+                  </h3>
+
+                  <div className="storage-input-row">
+
+                    <div className="storage-field">
+
+                      <label>
+                        🌡️ Temperature (°C)
+                      </label>
+
+                      <input
+                        type="number"
+                        value={temperature}
+                        onChange={(e) =>
+                          setTemperature(
+                            e.target.value
+                          )
+                        }
+                        placeholder="e.g. 5"
+                      />
+
+                    </div>
+
+                    <div className="storage-field">
+
+                      <label>
+                        💧 Humidity (%)
+                      </label>
+
+                      <input
+                        type="number"
+                        value={humidity}
+                        onChange={(e) =>
+                          setHumidity(
+                            e.target.value
+                          )
+                        }
+                        placeholder="e.g. 60"
+                      />
+
+                    </div>
+
+                  </div>
+
+                </div>
+
+                <div className="prediction-buttons">
 
                   <button
                     className="predict-btn"
                     onClick={handlePrediction}
                   >
-                    Predict Freshness
+                    🔍 Predict Freshness
                   </button>
 
-                )}
+                  <button
+                    className="remove-image-btn"
+                    onClick={removeImage}
+                  >
+                    ✕ Remove Image
+                  </button>
 
-                <button
-                  className="remove-btn"
-                  onClick={removeImage}
+                </div>
+
+              </div>
+
+            )}
+
+            {/* ================= STATE 3 : RESULT ================= */}
+
+            {prediction && (
+
+              <div className="prediction-result">
+
+                <FaCheckCircle
+                  className="result-icon"
+                />
+
+                <h3>
+                  Prediction Result
+                </h3>
+
+                <div className="food-type">
+                  {prediction.foodEmoji}{" "}
+                  {prediction.foodType}
+                </div>
+
+                <div
+                  className={`main-prediction ${
+                    prediction.status === "Fresh"
+                      ? "prediction-fresh"
+                      : "prediction-spoiled"
+                  }`}
                 >
-                  <FaTimes />
-                  Remove Image
-                </button>
+                  {prediction.status === "Fresh"
+                    ? "🟢"
+                    : "🔴"}{" "}
+                  {prediction.status.toUpperCase()}
+                </div>
 
-                {prediction && (
+                <div className="prediction-info">
 
-                  <div className="prediction-result">
+                  <div className="info-item">
 
-                    <FaCheckCircle
-                      className="result-icon"
-                    />
+                    <span>
+                      🎯 Confidence
+                    </span>
 
-                    <h3>
-                      Prediction Result
-                    </h3>
-
-                    <div className="result-status">
-                      {prediction.status}
-                    </div>
-
-                    <p>
-                      Confidence:{" "}
-                      <strong>
-                        {prediction.confidence}
-                      </strong>
-                    </p>
+                    <strong>
+                      {prediction.confidence}
+                    </strong>
 
                   </div>
 
-                )}
+                  <div className="info-item">
 
-              </>
+                    <span>
+                      🌿 Freshness Score
+                    </span>
+
+                    <strong>
+                      {prediction.freshnessScore}/100
+                    </strong>
+
+                  </div>
+
+                  <div className="info-item">
+
+                    <span>
+                      📅 Estimated Shelf Life
+                    </span>
+
+                    <strong>
+                      {prediction.shelfLife}
+                    </strong>
+
+                  </div>
+
+                  <div className="info-item recommendation-item">
+
+                    <span>
+                      💡 Recommendation
+                    </span>
+
+                    <strong>
+                      {prediction.recommendation}
+                    </strong>
+
+                  </div>
+
+                </div>
+
+                {/* PREDICT AGAIN */}
+
+                <button
+                  className="predict-again-btn"
+                  onClick={handlePredictAgain}
+                >
+                  <FaRedo />
+                  Predict Again
+                </button>
+
+              </div>
 
             )}
 
@@ -547,28 +920,56 @@ const [prediction, setPrediction] = useState(null);
 
         </section>
 
-        {/* ================= STATISTICS ================= */}
+        {/* ================= DYNAMIC STATISTICS ================= */}
 
         <section className="stats-container">
 
           <div className="stat-card">
-            <h2>125</h2>
-            <p>Images Uploaded</p>
+
+            <h2>
+              {totalPredictions}
+            </h2>
+
+            <p>
+              Images Uploaded
+            </p>
+
           </div>
 
           <div className="stat-card">
-            <h2>98</h2>
-            <p>Fresh Detected</p>
+
+            <h2>
+              {freshCount}
+            </h2>
+
+            <p>
+              Fresh Detected
+            </p>
+
           </div>
 
           <div className="stat-card">
-            <h2>27</h2>
-            <p>Spoiled Detected</p>
+
+            <h2>
+              {spoiledCount}
+            </h2>
+
+            <p>
+              Spoiled Detected
+            </p>
+
           </div>
 
           <div className="stat-card">
-            <h2>96.8%</h2>
-            <p>Model Accuracy</p>
+
+            <h2>
+              99.05%
+            </h2>
+
+            <p>
+              Model Accuracy
+            </p>
+
           </div>
 
         </section>
@@ -614,71 +1015,61 @@ const [prediction, setPrediction] = useState(null);
 
               <tbody>
 
-                <tr>
+                {recentPredictions.length === 0 ? (
 
-                  <td>
-                    🍎 Apple
-                  </td>
+                  <tr>
 
-                  <td>
-                    <span className="fresh">
-                      Fresh
-                    </span>
-                  </td>
+                    <td
+                      colSpan="4"
+                      style={{ textAlign: "center" }}
+                    >
+                      No predictions yet
+                    </td>
 
-                  <td>
-                    98%
-                  </td>
+                  </tr>
 
-                  <td>
-                    Today
-                  </td>
+                ) : (
 
-                </tr>
+                  recentPredictions.map(
+                    (item, index) => (
 
-                <tr>
+                      <tr key={index}>
 
-                  <td>
-                    🍌 Banana
-                  </td>
+                        <td>
+                          {item.foodEmoji}{" "}
+                          {item.foodType}
+                        </td>
 
-                  <td>
-                    <span className="spoiled">
-                      Spoiled
-                    </span>
-                  </td>
+                        <td>
 
-                  <td>
-                    91%
-                  </td>
+                          <span
+                            className={
+                              item.status === "Fresh"
+                                ? "fresh"
+                                : "spoiled"
+                            }
+                          >
+                            {item.status}
+                          </span>
 
-                  <td>
-                    Today
-                  </td>
+                        </td>
 
-                </tr>
+                        <td>
+                          {item.confidence}
+                        </td>
 
-                <tr>
+                        <td>
+                          {formatPredictionDate(
+                            item.date
+                          )}
+                        </td>
 
-                  <td>
-                    🍅 Tomato
-                  </td>
+                      </tr>
 
-                  <td>
-                    <span className="fresh">
-                      Fresh
-                    </span>
-                  </td>
+                    )
+                  )
 
-                  <td>
-                    97%
-                  </td>
-
-                  <td>
-                    Yesterday
-                  </td>
-
-                </tr>
+                )}
 
               </tbody>
 

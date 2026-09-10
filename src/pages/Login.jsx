@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { FaEye, FaEyeSlash, FaLeaf } from "react-icons/fa";
@@ -6,54 +7,60 @@ import "../App.css";
 function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
-const [password, setPassword] = useState("");
-const navigate = useNavigate();
+  const [password, setPassword] = useState("");
+  const navigate = useNavigate();
 
-const handleLogin = async () => {
-  if (email.trim() === "" || password.trim() === "") {
-    alert("Please fill all the details.");
-    return;
-  }
+  // Google Login
+  const handleGoogleLogin = () => {
+    window.location.href = "http://localhost:8000/auth/google/login";
+  };
 
-  if (!email.includes("@") || !email.includes(".")) {
-    alert("Please enter a valid email address.");
-    return;
-  }
-
-  if (password.length < 6) {
-    alert("Password must be at least 6 characters.");
-    return;
-  }
-
-  try {
-    const response = await fetch("http://127.0.0.1:8000/auth/login", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        email: email,
-        password: password,
-      }),
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      alert(data.detail);
+  // Normal Login
+  const handleLogin = async () => {
+    if (email.trim() === "" || password.trim() === "") {
+      alert("Please fill all the details.");
       return;
     }
 
-    localStorage.setItem("access_token", data.access_token);
+    if (!email.includes("@") || !email.includes(".")) {
+      alert("Please enter a valid email address.");
+      return;
+    }
 
-    alert(data.message);
-    navigate("/dashboard");
-  } catch (error) {
-    alert("Unable to connect to the server.");
-  }
-};
+    if (password.length < 6) {
+      alert("Password must be at least 6 characters.");
+      return;
+    }
+
+    try {
+      const response = await fetch("http://127.0.0.1:8000/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: email,
+          password: password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert(data.detail);
+        return;
+      }
+
+      localStorage.setItem("access_token", data.access_token);
+
+      alert(data.message);
+      navigate("/dashboard");
+    } catch (error) {
+      alert("Unable to connect to the server.");
+    }
+  };
+
   return (
-    
     <div className="container">
 
       {/* Left Panel */}
@@ -85,19 +92,19 @@ const handleLogin = async () => {
           <p>Welcome back! Login to continue.</p>
 
           <input
-  type="email"
-  placeholder="Email"
-  value={email}
-  onChange={(e) => setEmail(e.target.value)}
-/>
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
 
           <div className="password-box">
             <input
-  type={showPassword ? "text" : "password"}
-  placeholder="Password"
-  value={password}
-  onChange={(e) => setPassword(e.target.value)}
-/>
+              type={showPassword ? "text" : "password"}
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
 
             <span
               className="eye-icon"
@@ -108,11 +115,16 @@ const handleLogin = async () => {
           </div>
 
           <button className="green-btn" onClick={handleLogin}>
-  Login
-</button>
+            Login
+          </button>
+
+          <button className="green-btn" onClick={handleGoogleLogin}>
+            Continue with Google
+          </button>
 
           <p className="register">
-            Don't have an account? <Link to="/register">Register</Link>
+            Don't have an account?{" "}
+            <Link to="/register">Register</Link>
           </p>
 
         </div>
@@ -123,3 +135,4 @@ const handleLogin = async () => {
 }
 
 export default Login;
+
