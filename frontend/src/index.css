@@ -109,3 +109,72 @@ code {
   padding: 4px 8px;
   background: var(--code-bg);
 }
+/* =========================================
+   DASHBOARD STATISTICS
+   ========================================= */
+
+.statistics-section {
+  width: 100%;
+  padding: 45px 20px 20px;
+}
+
+.statistics-container {
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.statistics-container h2 {
+  margin-bottom: 25px;
+  font-size: 30px;
+}
+
+.statistics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+}
+
+.stat-card {
+  background: white;
+  border: 1px solid #eeeeee;
+  border-radius: 16px;
+  padding: 22px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+}
+
+.stat-icon {
+  font-size: 26px;
+  margin-bottom: 12px;
+}
+
+.stat-card span {
+  display: block;
+  font-size: 14px;
+  opacity: 0.65;
+  margin-bottom: 8px;
+}
+
+.stat-card strong {
+  display: block;
+  font-size: 32px;
+}
+
+
+/* MOBILE */
+
+@media (max-width: 700px) {
+
+  .statistics-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+}
+
+@media (max-width: 450px) {
+
+  .statistics-grid {
+    grid-template-columns: 1fr;
+  }
+
+}
