@@ -168,15 +168,23 @@ def get_food():
     return jsonify([item.to_dict() for item in items]), 200
 
 @app.route('/api/food/clear', methods=['DELETE'])
-def clear_food():
+@app.route('/api/food/<int:id>', methods=['DELETE'])
+def delete_food(id):
     try:
-        FoodItem.query.delete()
+        item = FoodItem.query.get(id)
+
+        if not item:
+            return jsonify({"error": "Food item not found"}), 404
+
+        db.session.delete(item)
         db.session.commit()
-        return jsonify({"message": "All food data cleared successfully"}), 200
+
+        return jsonify({"message": "Food item deleted successfully"}), 200
+
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
-
+    
 @app.route('/api/food', methods=['POST'])
 def add_food():
     try:
