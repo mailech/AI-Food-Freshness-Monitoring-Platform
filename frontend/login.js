@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
           localStorage.setItem('freshCheck_userName', data.user.fullname);
           localStorage.setItem('freshCheck_userContact', data.user.email);
           alert('Login Successful!');
-          window.location.href = 'dashboard.html';
+          window.location.href = 'Dashboard.html';
         } else {
           alert(data.message || 'Login failed');
         }

@@ -1,0 +1,39 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: freshcheck-backend
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./backend/instance:/app/backend/instance
+      - ./backend/uploads:/app/backend/uploads
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: freshcheck-frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  database:
+    image: postgres:16
+    container_name: freshcheck-database
+    environment:
+      POSTGRES_DB: freshcheck
+      POSTGRES_USER: freshcheck
+      POSTGRES_PASSWORD: freshcheck123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

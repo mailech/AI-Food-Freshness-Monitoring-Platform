@@ -1,0 +1,15 @@
+FROM python:3.13-slim
+
+WORKDIR /app
+
+COPY backend/requirements.txt ./backend/requirements.txt
+
+RUN pip install Flask Flask-CORS tensorflow numpy Pillow PyJWT Flask-Bcrypt Flask-SQLAlchemy psycopg2-binary
+COPY backend ./backend
+COPY ml ./ml
+
+WORKDIR /app/backend
+
+EXPOSE 5000
+
+CMD ["python", "app.py"]

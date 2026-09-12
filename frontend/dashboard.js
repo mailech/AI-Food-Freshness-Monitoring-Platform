@@ -2,8 +2,7 @@
 
 
 document.addEventListener("DOMContentLoaded", async () => {
-  const token = localStorage.getItem("token") || sessionStorage.getItem("token");
-
+  const token = localStorage.getItem("freshcheck_token") || sessionStorage.getItem("freshcheck_token");
   // Load User Profile Info from LocalStorage
   const userName = localStorage.getItem("userName") || "Sayantika Mahanta";
   const userEmail = localStorage.getItem("userEmail") || "sayantikamahanta02@gmail.com";
@@ -95,7 +94,7 @@ function renderDashboardData(items, summary) {
         <tr>
           <td><strong>${item.food_name || item.name || 'Food Item'}</strong></td>
           <td>${item.category || 'General'}</td>
-          <td>${item.purchase_date || item.created_at || 'Today'}</td>
+          <td>${item.scanned_date || item.created_at || 'Today'}</td>
           <td>${item.expiry_date || 'N/A'}</td>
           <td>${
               item.ai_confidence !== undefined

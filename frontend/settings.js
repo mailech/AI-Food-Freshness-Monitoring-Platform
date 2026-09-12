@@ -40,14 +40,34 @@ document.addEventListener("DOMContentLoaded", async () => {
   // 4. Handle Clear Data Action
   const btnClearData = document.getElementById("btnClearData");
   if (btnClearData) {
-    btnClearData.addEventListener("click", () => {
-      if (confirm("Are you sure you want to clear all local data? This cannot be undone.")) {
-        localStorage.clear();
-        alert("All local data cleared successfully!");
-        window.location.reload();
+  btnClearData.addEventListener("click", async () => {
+    if (confirm("Are you sure you want to clear all saved food data? This cannot be undone.")) {
+      try {
+        const token = localStorage.getItem("freshcheck_token");
+
+        const response = await fetch("http://127.0.0.1:5000/api/food/clear", {
+          method: "DELETE",
+          headers: {
+            "Authorization": `Bearer ${token}`
+          }
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          localStorage.removeItem("freshcheck_food_items");
+          alert("All saved food data cleared successfully!");
+          window.location.reload();
+        } else {
+          alert(data.error || "Failed to clear saved data.");
+        }
+      } catch (error) {
+        console.error("Clear data error:", error);
+        alert("Unable to connect to the backend.");
       }
-    });
-  }
+    }
+  });
+}
 });
 
 /**

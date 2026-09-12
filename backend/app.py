@@ -18,7 +18,7 @@ app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
 app.config['SECRET_KEY'] = 'freshcheck-secret-key-12345'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///freshcheck.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql+psycopg2://freshcheck:freshcheck123@database:5432/freshcheck'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db.init_app(app)
@@ -167,6 +167,16 @@ def get_food():
     items = FoodItem.query.order_by(FoodItem.id.desc()).all()
     return jsonify([item.to_dict() for item in items]), 200
 
+@app.route('/api/food/clear', methods=['DELETE'])
+def clear_food():
+    try:
+        FoodItem.query.delete()
+        db.session.commit()
+        return jsonify({"message": "All food data cleared successfully"}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
 @app.route('/api/food', methods=['POST'])
 def add_food():
     try:
@@ -227,7 +237,7 @@ def add_food():
 @app.route('/api/dashboard', methods=['GET'])
 def get_dashboard():
     try:
-        # FoodItem দিয়ে লাইভ DB থেকে Query
+       
         items = FoodItem.query.order_by(FoodItem.id.desc()).all()
         
         items_list = [item.to_dict() for item in items]
@@ -332,4 +342,4 @@ def predict():
 # ==========================================
 
 if __name__ == '__main__':
-    app.run(host='127.0.0.1', port=5000, debug=True)
+       app.run(host='0.0.0.0', port=5000, debug=True)
