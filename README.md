@@ -1,4 +1,4 @@
-# FreshGuard AI - Food Freshness Detection, Quality Monitoring & Management Platform
+# Food Freshness AI - Food Freshness Detection, Quality Monitoring & Management Platform
 
 [![Python](https://img.shields.io/badge/Python-3.11%2B-blue.svg)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110.0-009688.svg)](https://fastapi.tiangolo.com/)
