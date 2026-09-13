@@ -1,0 +1,134 @@
+{
+  "model_name": "FoodFreshnessCNN-SE",
+  "dataset": "Kaggle Fruits Fresh and Rotten for Classification",
+  "classes": [
+    "freshapples",
+    "freshbanana",
+    "freshoranges",
+    "rottenapples",
+    "rottenbanana",
+    "rottenoranges"
+  ],
+  "class_to_idx": {
+    "freshapples": 0,
+    "freshbanana": 1,
+    "freshoranges": 2,
+    "rottenapples": 3,
+    "rottenbanana": 4,
+    "rottenoranges": 5
+  },
+  "test_accuracy": 0.9711,
+  "weighted_precision": 0.9712,
+  "weighted_recall": 0.9711,
+  "weighted_f1_score": 0.9711,
+  "confusion_matrix": [
+    [
+      387,
+      0,
+      0,
+      8,
+      0,
+      0
+    ],
+    [
+      0,
+      379,
+      0,
+      2,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      371,
+      5,
+      0,
+      12
+    ],
+    [
+      14,
+      0,
+      2,
+      580,
+      1,
+      4
+    ],
+    [
+      0,
+      1,
+      0,
+      0,
+      529,
+      0
+    ],
+    [
+      0,
+      0,
+      10,
+      19,
+      0,
+      374
+    ]
+  ],
+  "per_class_metrics": {
+    "freshapples": {
+      "precision": 0.9651,
+      "recall": 0.9797,
+      "f1_score": 0.9724
+    },
+    "freshbanana": {
+      "precision": 0.9974,
+      "recall": 0.9948,
+      "f1_score": 0.9961
+    },
+    "freshoranges": {
+      "precision": 0.9687,
+      "recall": 0.9562,
+      "f1_score": 0.9624
+    },
+    "rottenapples": {
+      "precision": 0.9446,
+      "recall": 0.9651,
+      "f1_score": 0.9547
+    },
+    "rottenbanana": {
+      "precision": 0.9981,
+      "recall": 0.9981,
+      "f1_score": 0.9981
+    },
+    "rottenoranges": {
+      "precision": 0.959,
+      "recall": 0.928,
+      "f1_score": 0.9433
+    }
+  },
+  "training_history": {
+    "train_loss": [
+      0.5217,
+      0.2925,
+      0.2009,
+      0.1421
+    ],
+    "val_loss": [
+      0.4148,
+      0.2145,
+      0.1567,
+      0.0965
+    ],
+    "train_acc": [
+      0.8242,
+      0.8965,
+      0.9284,
+      0.9509
+    ],
+    "val_acc": [
+      0.8419,
+      0.9225,
+      0.9457,
+      0.9609
+    ]
+  },
+  "training_duration_seconds": 921.47,
+  "trained_at": "2026-09-13T11:02:12Z"
+}
