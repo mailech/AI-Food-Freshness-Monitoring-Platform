@@ -82,7 +82,7 @@ The deep neural network was trained and evaluated directly against the Kaggle da
 | :--- | :--- |
 | **Test Accuracy** | **97.11%** |
 | **F1-Score (Macro)** | **97.11%** |
-| **Precision (Macro)** | **97.11%** |
+| **Precision (Macro)** | **97.12%** |
 | **Recall (Macro)** | **97.11%** |
 | **Training Samples** | 10,901 images |
 | **Test Evaluation Samples** | 2,698 images |
