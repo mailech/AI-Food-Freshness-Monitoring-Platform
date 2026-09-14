@@ -1,16 +1,28 @@
 from pydantic import BaseModel, EmailStr
-from typing import Optional, List
+from typing import Optional, List, Literal
 from datetime import datetime
+
+
+# =========================
+# USER / AUTHENTICATION
+# =========================
 
 class UserRegister(BaseModel):
     email: str
     password: str
     full_name: str
-    role: str = "Consumer"
+    role: Literal[
+        "Consumer",
+        "Retail Manager",
+        "Warehouse Operator",
+        "Food Quality Inspector"
+    ] = "Consumer"
+
 
 class UserLogin(BaseModel):
     email: str
     password: str
+
 
 class UserOut(BaseModel):
     id: int
@@ -20,17 +32,25 @@ class UserOut(BaseModel):
     avatar: str
     is_active: bool
     created_at: datetime
+
     class Config:
         from_attributes = True
+
 
 class UserUpdate(BaseModel):
     full_name: Optional[str] = None
     avatar: Optional[str] = None
 
+
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: UserOut
+
+
+# =========================
+# FOOD ITEMS
+# =========================
 
 class FoodItemCreate(BaseModel):
     name: str
@@ -40,6 +60,7 @@ class FoodItemCreate(BaseModel):
     quantity: int = 1
     unit: str = "pieces"
 
+
 class FoodItemUpdate(BaseModel):
     name: Optional[str] = None
     category: Optional[str] = None
@@ -47,6 +68,7 @@ class FoodItemUpdate(BaseModel):
     description: Optional[str] = None
     quantity: Optional[int] = None
     unit: Optional[str] = None
+
 
 class FoodItemOut(BaseModel):
     id: int
@@ -59,14 +81,21 @@ class FoodItemOut(BaseModel):
     image_url: str
     added_by: Optional[int]
     created_at: datetime
+
     class Config:
         from_attributes = True
+
+
+# =========================
+# BATCH
+# =========================
 
 class BatchCreate(BaseModel):
     label: str
     source: str = ""
     expiry_date: Optional[datetime] = None
     food_item_id: int
+
 
 class BatchOut(BaseModel):
     id: int
@@ -76,8 +105,14 @@ class BatchOut(BaseModel):
     expiry_date: Optional[datetime]
     food_item_id: int
     created_at: datetime
+
     class Config:
         from_attributes = True
+
+
+# =========================
+# FOOD ANALYSIS
+# =========================
 
 class AnalysisOut(BaseModel):
     id: int
@@ -101,8 +136,14 @@ class AnalysisOut(BaseModel):
     consumption_recommendation: str
     risk_level: str
     created_at: datetime
+
     class Config:
         from_attributes = True
+
+
+# =========================
+# STORAGE
+# =========================
 
 class StorageConditionCreate(BaseModel):
     food_item_id: int
@@ -112,6 +153,7 @@ class StorageConditionCreate(BaseModel):
     light_exposure: str = "Dark"
     storage_duration_hours: float = 0.0
     packaging_type: str = "Open"
+
 
 class StorageConditionOut(BaseModel):
     id: int
@@ -124,8 +166,14 @@ class StorageConditionOut(BaseModel):
     packaging_type: str
     is_compliant: bool
     recorded_at: datetime
+
     class Config:
         from_attributes = True
+
+
+# =========================
+# NOTIFICATIONS
+# =========================
 
 class NotificationOut(BaseModel):
     id: int
@@ -137,8 +185,14 @@ class NotificationOut(BaseModel):
     priority: str
     related_item_id: Optional[int]
     created_at: datetime
+
     class Config:
         from_attributes = True
+
+
+# =========================
+# DASHBOARD
+# =========================
 
 class DashboardStats(BaseModel):
     total_items: int = 0

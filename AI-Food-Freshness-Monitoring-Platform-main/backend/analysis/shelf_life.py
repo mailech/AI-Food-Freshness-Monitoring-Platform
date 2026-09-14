@@ -23,9 +23,9 @@ def predict_shelf_life(food_name, freshness_score, storage_data=None):
         remaining *= temp_factor * humidity_factor * pack_factor
 
     remaining = max(0, round(remaining, 1))
-
     if remaining <= 0:
-        text = "Expired — consume immediately or discard"
+    text = "Expired — discard"
+
         risk = "Critical"
     elif remaining <= 1:
         text = f"{remaining} day remaining — consume today"
