@@ -120,7 +120,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
                   className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
                     isActive 
                       ? 'bg-gradient-to-r from-indigo-500/20 to-emerald-500/10 border-l-4 border-indigo-500 text-indigo-400 font-semibold' 
-                      : 'hover:bg-slate-800/30 text-slate-400 hover:text-slate-200'
+                      : 'hover:bg-slate-200/60 dark:hover:bg-slate-800/30 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                   }`}
                 >
                   <IconComponent className="w-5 h-5" />
@@ -231,8 +231,8 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
             {/* Short Profile tag */}
             <div className="h-8 w-px bg-slate-800"></div>
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-slate-400 hidden sm:block">
-                Hello, <strong className="text-slate-200 font-semibold">{userName}</strong>
+              <span className="text-sm font-medium text-slate-600 dark:text-slate-400 hidden sm:block">
+                Hello, <strong className="text-slate-800 dark:text-slate-200 font-semibold">{userName}</strong>
               </span>
               <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center border border-slate-700">
                 <UserIcon className="w-4 h-4 text-indigo-400" />

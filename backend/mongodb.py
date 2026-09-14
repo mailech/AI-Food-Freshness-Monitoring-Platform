@@ -11,7 +11,7 @@ class MongoDBConnection:
         
     def connect(self):
         try:
-            self.client = MongoClient(settings.MONGO_URL, serverSelectionTimeoutMS=5000)
+            self.client = MongoClient(settings.MONGO_URL, serverSelectionTimeoutMS=1000)
             # Ping database to verify connection
             self.client.admin.command('ping')
             self.db = self.client[settings.MONGO_DB]

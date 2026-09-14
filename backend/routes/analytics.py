@@ -27,11 +27,14 @@ def get_dashboard_kpis(
     expired_items = query.filter(InventoryItem.status == "Expired").count()
     
     # Average freshness
-    avg_freshness = query.with_entities(func.avg(InventoryItem.freshness_score)).scalar() or 100.0
+    if total_items == 0:
+        avg_freshness = 0.0
+    else:
+        avg_freshness = query.with_entities(func.avg(InventoryItem.freshness_score)).scalar() or 0.0
     
-    # Simulated metrics
-    total_waste_saved_kg = float(db.query(func.sum(InventoryItem.quantity))
-                                 .filter(InventoryItem.status == "Fresh")
+    # Waste saved metric scoped to user's query
+    total_waste_saved_kg = float(query.filter(InventoryItem.status == "Fresh")
+                                 .with_entities(func.sum(InventoryItem.quantity))
                                  .scalar() or 0.0) * 0.45 # coefficient for waste savings
                                  
     return {
@@ -62,7 +65,7 @@ def get_category_distribution(
         {
             "category": r[0],
             "count": r[1],
-            "avg_freshness": round(float(r[2]), 1) if r[2] else 100.0
+            "avg_freshness": round(float(r[2]), 1) if r[2] is not None else 0.0
         }
         for r in results
     ]

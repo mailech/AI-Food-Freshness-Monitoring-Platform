@@ -261,7 +261,7 @@ const DashboardPage: React.FC = () => {
           <div className="h-56 relative flex items-center justify-center mt-4">
             <Doughnut data={doughnutData} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }} />
             <div className="absolute flex flex-col items-center justify-center text-center">
-              <span className="text-2xl font-black text-slate-100">{kpis.total_items}</span>
+              <span className="text-2xl font-black text-slate-800 dark:text-slate-100">{kpis.total_items}</span>
               <span className="text-[9px] uppercase tracking-widest text-slate-500">Total</span>
             </div>
           </div>

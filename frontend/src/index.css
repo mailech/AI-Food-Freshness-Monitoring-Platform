@@ -14,26 +14,42 @@
 
 /* Glassmorphism Styles */
 .glass-panel {
-  background: rgba(30, 41, 59, 0.45); /* Slate 800 with transparency */
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+  color: #1e293b;
+}
+
+.dark .glass-panel {
+  background: rgba(30, 41, 59, 0.5);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+  color: #f8fafc;
 }
 
 .glass-panel-light {
-  background: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(226, 232, 240, 0.8);
   box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
 }
 
 .glass-input {
+  background: rgba(241, 245, 249, 0.9);
+  border: 1px solid rgba(203, 213, 225, 0.8);
+  color: #0f172a;
+  transition: all 0.2s ease-in-out;
+}
+
+.dark .glass-input {
   background: rgba(15, 23, 42, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: #f8fafc;
-  transition: all 0.2s ease-in-out;
 }
 
 .glass-input:focus {
