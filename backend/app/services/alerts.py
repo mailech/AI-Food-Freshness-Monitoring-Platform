@@ -1,15 +1,11 @@
-"""Persistence operations for explicitly generated alerts.
-
-No threshold or food-condition rules live here. Future freshness, shelf-life,
-storage, and inventory workflows can call ``generate_alert`` when rules exist.
-"""
+"""Persistence operations for manual and automatic alerts."""
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.alert import Alert
 from app.models.food_batch import FoodBatch
-from app.schemas.alerts import AlertCreate, AlertPriority
+from app.schemas.alerts import AlertCreate, AlertPriority, AlertSource
 
 
 def get_food_batch(db: Session, food_batch_id: int) -> FoodBatch | None:
@@ -38,9 +34,68 @@ def list_alerts(db: Session, *, user_id: int, category=None,
 
 def generate_alert(db: Session, *, user_id: int, payload: AlertCreate) -> Alert:
     """Persist supplied information without inferring any food condition."""
-    alert = Alert(user_id=user_id, food_batch_id=payload.food_batch_id,
-                  category=payload.category, priority=payload.priority.value,
-                  title=payload.title, message=payload.message)
+    alert = Alert(
+        user_id=user_id,
+        food_batch_id=payload.food_batch_id,
+        category=payload.category,
+        priority=payload.priority.value,
+        title=payload.title,
+        message=payload.message,
+        source=AlertSource.MANUAL.value,
+        condition_key=None,
+    )
+    db.add(alert)
+    db.commit()
+    db.refresh(alert)
+    return alert
+
+
+def find_active_automatic_alert(
+    db: Session, *, user_id: int, food_batch_id: int, condition_key: str
+) -> Alert | None:
+    """Return the newest unresolved automatic alert for a deterministic condition."""
+    statement = (
+        select(Alert)
+        .where(
+            Alert.user_id == user_id,
+            Alert.food_batch_id == food_batch_id,
+            Alert.source == AlertSource.AUTOMATIC.value,
+            Alert.condition_key == condition_key,
+            Alert.is_dismissed.is_(False),
+        )
+        .order_by(Alert.created_at.desc(), Alert.id.desc())
+        .limit(1)
+    )
+    return db.scalar(statement)
+
+
+def persist_automatic_alert(
+    db: Session,
+    *,
+    user_id: int,
+    food_batch_id: int,
+    category,
+    priority: AlertPriority,
+    title: str,
+    message: str,
+    condition_key: str,
+) -> Alert:
+    """Create an automatic alert only when no active equivalent exists."""
+    existing = find_active_automatic_alert(
+        db, user_id=user_id, food_batch_id=food_batch_id, condition_key=condition_key
+    )
+    if existing is not None:
+        return existing
+    alert = Alert(
+        user_id=user_id,
+        food_batch_id=food_batch_id,
+        category=category,
+        priority=priority.value,
+        title=title,
+        message=message,
+        source=AlertSource.AUTOMATIC.value,
+        condition_key=condition_key,
+    )
     db.add(alert)
     db.commit()
     db.refresh(alert)

@@ -28,6 +28,8 @@ class Alert(Base):
     priority: Mapped[str] = mapped_column(String(50), nullable=False)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     message: Mapped[str] = mapped_column(Text, nullable=False)
+    source: Mapped[str] = mapped_column(String(20), nullable=False, server_default="manual", index=True)
+    condition_key: Mapped[str | None] = mapped_column(String(150), nullable=True, index=True)
     is_read: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
     is_dismissed: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
     created_at: Mapped[datetime] = mapped_column(

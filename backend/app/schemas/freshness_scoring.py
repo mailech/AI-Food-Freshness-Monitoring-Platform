@@ -18,6 +18,13 @@ class FreshnessScoreResponse(BaseModel):
     shelf_life_score: Decimal | None
     product_age_score: Decimal | None
     freshness_score: Decimal | None
+    storage_temperature: Decimal | None
+    storage_humidity: Decimal | None
+    storage_source: str | None
+    shelf_life_raw_prediction: Decimal | None
+    shelf_life_unit_status: str | None
+    packaging: str | None
+    spoilage_probability: Decimal | None
     visual_weight: Decimal
     storage_weight: Decimal
     shelf_life_weight: Decimal

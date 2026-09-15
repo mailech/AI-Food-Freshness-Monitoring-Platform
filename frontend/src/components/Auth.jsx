@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { ApiError } from '../services/api'
 import * as auth from '../services/auth'
 
-const ROLES = ['Consumer', 'Retail Manager', 'Warehouse Operator', 'Food Quality Inspector', 'Administrator']
+const ROLES = ['Consumer', 'Retail Manager', 'Warehouse Operator', 'Food Quality Inspector']
 
 const friendlyError = error => {
   if (!(error instanceof ApiError)) return 'Unable to complete this request. Please try again.'
@@ -60,8 +60,8 @@ export default function Auth({ onAuthenticated }) {
       <small>{labels[view][0]}</small><h2>{labels[view][1]}</h2><p className="login-project-title">Food Freshness Monitoring Platform</p>
       {view === 'register' && <Field label="Full Name" value={form.name} onChange={update('name')} required />}
       <Field label="Work email" type="email" value={form.email} onChange={update('email')} required />
-      <Field label={view === 'register' ? 'New Password' : 'Password'} type="password" value={form.password} onChange={update('password')} required />
-      {view === 'register' && <Field label="Confirm Password" type="password" value={form.confirmPassword} onChange={update('confirmPassword')} required />}
+      <PasswordField label={view === 'register' ? 'New Password' : 'Password'} value={form.password} onChange={update('password')} required />
+      {view === 'register' && <PasswordField label="Confirm Password" value={form.confirmPassword} onChange={update('confirmPassword')} required />}
       <label className="field">Role<select value={form.role} onChange={update('role')}>{ROLES.map(role => <option key={role}>{role}</option>)}</select></label>
       {message && <p className="error" role="alert">{message}</p>}
       {success && <p className="success-message" role="status">{success}</p>}
@@ -74,4 +74,10 @@ export default function Auth({ onAuthenticated }) {
 
 function Field({ label, type = 'text', value, onChange, required = false }) {
   return <label className="field">{label}<input type={type} value={value} onChange={onChange} required={required} /></label>
+}
+
+function PasswordField({ label, value, onChange, required = false }) {
+  const [visible, setVisible] = useState(false)
+  const inputId = useId()
+  return <div className="field"><label htmlFor={inputId}>{label}</label><div className="password-input"><input id={inputId} type={visible ? 'text' : 'password'} value={value} onChange={onChange} required={required} /><button type="button" className="password-toggle" onClick={() => setVisible(current => !current)} aria-label={`${visible ? 'Hide' : 'Show'} ${label}`} aria-pressed={visible}>{visible ? <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 3 18 18M10.6 10.7a2 2 0 0 0 2.7 2.7M9.9 4.2A10.8 10.8 0 0 1 12 4c5 0 8.3 4.1 9.3 6.1a1.9 1.9 0 0 1 0 1.8 17.8 17.8 0 0 1-3.1 4.1M6.2 6.2A17.8 17.8 0 0 0 2.7 10a1.9 1.9 0 0 0 0 1.8C3.7 13.9 7 18 12 18c1 0 1.9-.2 2.8-.5" /></svg> : <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.7 10.1C3.7 8.1 7 4 12 4s8.3 4.1 9.3 6.1a1.9 1.9 0 0 1 0 1.8C20.3 13.9 17 18 12 18S3.7 13.9 2.7 11.9a1.9 1.9 0 0 1 0-1.8Z" /><circle cx="12" cy="11" r="3" /></svg>}</button></div></div>
 }

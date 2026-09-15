@@ -21,6 +21,9 @@ class StorageCondition(Base):
     humidity: Mapped[float | None] = mapped_column(Numeric(5, 2), nullable=True)
     air_circulation: Mapped[float | None] = mapped_column(Numeric(6, 2), nullable=True)
     light_level: Mapped[float | None] = mapped_column(Numeric(8, 2), nullable=True)
+    # Stored as hours so the value can be passed to shelf-life dwell_hours.
+    storage_duration: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    door_opens_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
     recorded_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False, index=True
     )

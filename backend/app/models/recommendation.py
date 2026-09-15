@@ -29,6 +29,8 @@ class Recommendation(TimestampMixin, Base):
     )
     priority: Mapped[str] = mapped_column(String(50), nullable=False)
     message: Mapped[str] = mapped_column(Text, nullable=False)
+    source: Mapped[str] = mapped_column(String(20), nullable=False, server_default="manual", index=True)
+    condition_key: Mapped[str | None] = mapped_column(String(150), nullable=True, index=True)
     status: Mapped[str] = mapped_column(String(50), nullable=False, server_default="Pending")
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 

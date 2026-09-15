@@ -9,8 +9,10 @@ from app.models.storage_condition import StorageCondition
 from app.models.user import User
 from app.schemas.storage import StorageConditionCreate, StorageConditionResponse
 from app.services.storage import delete_condition, get_batch, get_condition, latest_condition, list_conditions, record_condition
+from app.services.automatic_alerts import evaluate_automatic_alerts
+from app.services.automatic_recommendations import evaluate_automatic_recommendations
 router=APIRouter(prefix='/storage',tags=['storage'])
-OperationalUser=Annotated[User,Depends(require_roles(UserRole.RETAIL_MANAGER,UserRole.WAREHOUSE_OPERATOR,UserRole.ADMINISTRATOR))]
+OperationalUser=Annotated[User,Depends(require_roles(UserRole.CONSUMER,UserRole.RETAIL_MANAGER,UserRole.WAREHOUSE_OPERATOR,UserRole.FOOD_QUALITY_INSPECTOR,UserRole.ADMINISTRATOR))]
 AuthenticatedUser=Annotated[User,Depends(get_current_user)]
 def _batch(db:Session, ident:int)->None:
     if get_batch(db,ident) is None: raise HTTPException(status_code=404,detail='Food batch not found.')
@@ -21,8 +23,13 @@ def _condition(db:Session,ident:int)->StorageCondition:
 @router.get('/health')
 def storage_health()->dict[str,str]: return {'module':'storage','status':'ready'}
 @router.post('/conditions',response_model=StorageConditionResponse,status_code=status.HTTP_201_CREATED)
-def create_condition(payload:StorageConditionCreate,db:Annotated[Session,Depends(get_db)],_:OperationalUser)->StorageCondition:
-    _batch(db,payload.food_batch_id); return record_condition(db,payload)
+def create_condition(payload:StorageConditionCreate,db:Annotated[Session,Depends(get_db)],current_user:OperationalUser)->StorageCondition:
+    """Persist a storage record. ``storage_duration`` is hours; ``door_opens_count`` is required."""
+    _batch(db,payload.food_batch_id)
+    condition=record_condition(db,payload)
+    evaluate_automatic_alerts(db, food_batch_id=payload.food_batch_id, user_id=current_user.id)
+    evaluate_automatic_recommendations(db, food_batch_id=payload.food_batch_id)
+    return condition
 @router.get('/conditions/{condition_id}',response_model=StorageConditionResponse)
 def read_condition(condition_id:int,db:Annotated[Session,Depends(get_db)],_:AuthenticatedUser)->StorageCondition: return _condition(db,condition_id)
 @router.get('/batches/{food_batch_id}/conditions',response_model=list[StorageConditionResponse])

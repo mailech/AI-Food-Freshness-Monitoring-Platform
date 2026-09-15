@@ -14,6 +14,8 @@ from app.schemas.shelf_life import ShelfLifePredictionRequest, ShelfLifePredicti
 from app.services.shelf_life import (ShelfLifeInferenceError, ShelfLifeModelUnavailableError,
                                      delete_prediction, get_batch, get_freshness_analysis,
                                      get_prediction, list_predictions, predict_shelf_life)
+from app.services.automatic_alerts import evaluate_automatic_alerts
+from app.services.automatic_recommendations import evaluate_automatic_recommendations
 
 router = APIRouter(prefix="/shelf-life", tags=["shelf-life"])
 OperationalUser = Annotated[User, Depends(require_roles(UserRole.RETAIL_MANAGER, UserRole.WAREHOUSE_OPERATOR, UserRole.FOOD_QUALITY_INSPECTOR, UserRole.ADMINISTRATOR))]
@@ -39,14 +41,17 @@ def shelf_life_health() -> dict[str, str]:
 
 
 @router.post("/predict", response_model=ShelfLifePredictionResponse, status_code=status.HTTP_201_CREATED)
-def create_prediction(payload: ShelfLifePredictionRequest, db: Annotated[Session, Depends(get_db)], _: PredictionCreator) -> ShelfLifePrediction:
+def create_prediction(payload: ShelfLifePredictionRequest, db: Annotated[Session, Depends(get_db)], current_user: PredictionCreator) -> ShelfLifePrediction:
     _batch_or_404(db, payload.food_batch_id)
     if payload.freshness_analysis_id is not None:
         analysis = get_freshness_analysis(db, payload.freshness_analysis_id)
         if analysis is None or analysis.food_batch_id != payload.food_batch_id:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Freshness analysis not found for this food batch.")
     try:
-        return predict_shelf_life(db, payload)
+        prediction = predict_shelf_life(db, payload)
+        evaluate_automatic_alerts(db, food_batch_id=payload.food_batch_id, user_id=current_user.id)
+        evaluate_automatic_recommendations(db, food_batch_id=payload.food_batch_id)
+        return prediction
     except ShelfLifeModelUnavailableError as exc:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Shelf-life model is unavailable.") from exc
     except ShelfLifeInferenceError as exc:

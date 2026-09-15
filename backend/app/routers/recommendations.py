@@ -18,8 +18,9 @@ def rec(db,i):
 def recommendations_health():return {'module':'recommendations','status':'ready'}
 @router.post('',response_model=RecommendationResponse,status_code=201)
 def create(p:RecommendationCreate,db:Annotated[Session,Depends(get_db)],_:Op):
- if not get_batch(db,p.food_batch_id):raise HTTPException(404,'Food batch not found.')
- return generate_recommendation(db,p)
+    """Persist a user-authored manual recommendation. Automatic recommendations are generated elsewhere."""
+    if not get_batch(db,p.food_batch_id):raise HTTPException(404,'Food batch not found.')
+    return generate_recommendation(db,p)
 @router.get('',response_model=list[RecommendationResponse])
 def listing(db:Annotated[Session,Depends(get_db)],_:Auth,food_batch_id:int|None=None,recommendation_type:RecommendationType|None=None,priority:str|None=None,status:str|None=None):return list_recommendations(db,food_batch_id,recommendation_type,priority,status)
 @router.get('/batches/{batch_id}',response_model=list[RecommendationResponse])

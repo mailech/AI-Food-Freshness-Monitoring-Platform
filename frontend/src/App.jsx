@@ -236,6 +236,10 @@ const scoringError = error => {
   return error.message || 'Unable to complete the freshness scoring request.'
 }
 const isPendingScore = entry => !entry || entry.status === 'pending_model_integration' || entry.freshness_score == null
+const preferredScoreRecord = response => {
+  if (!Array.isArray(response) || !response.length) return null
+  return response.find(score => score.status === 'complete' && score.freshness_score != null) || response[0]
+}
 const scoringValue = value => (value == null || value === '' ? 'Not available' : String(value))
 const scoringWeight = value => {
   if (value == null || value === '') return 'Not available'
@@ -251,6 +255,7 @@ function AnalysisPage({ role, onUnauthorized }) {
   const [batches, setBatches] = useState([])
   const [foodBatchId, setFoodBatchId] = useState('')
   const [result, setResult] = useState(null)
+  const [compositeScore, setCompositeScore] = useState(null)
   const [history, setHistory] = useState([])
   const [uploadError, setUploadError] = useState('')
   const [validationMessage, setValidationMessage] = useState('')
@@ -258,6 +263,10 @@ function AnalysisPage({ role, onUnauthorized }) {
   const [historyLoading, setHistoryLoading] = useState(false)
   const canCreate = canCreateFreshness(role)
   const canDelete = canDeleteFreshness(role)
+  const hasCompositeScore = compositeScore?.status === 'complete' && compositeScore.freshness_score != null
+  const compositeScoreDisplay = hasCompositeScore
+    ? `${scoringValue(compositeScore.freshness_score)}/100`
+    : loading ? 'Calculating composite score…' : 'Score unavailable — storage/shelf-life data required'
   const handleError = error => {
     if (error instanceof ApiError && error.status === 401) { auth.logout(); onUnauthorized(); return }
     setValidationMessage(freshnessError(error))
@@ -269,6 +278,24 @@ function AnalysisPage({ role, onUnauthorized }) {
     finally { setHistoryLoading(false) }
   }
   useEffect(() => { inventoryApi.getBatches().then(setBatches).catch(handleError) }, [])
+  useEffect(() => {
+    let active = true
+    if (!foodBatchId) {
+      setCompositeScore(null)
+      return () => { active = false }
+    }
+    const loadCompositeScore = async () => {
+      try {
+        const response = await freshnessScoringApi.getBatchScores(foodBatchId)
+        if (active) setCompositeScore(preferredScoreRecord(response))
+      } catch (error) {
+        if (active) setCompositeScore(null)
+        handleError(error)
+      }
+    }
+    loadCompositeScore()
+    return () => { active = false }
+  }, [foodBatchId])
   const selectImage = file => {
     if (!file) return
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) { setUploadError('Please select a JPG, PNG, or WEBP image.'); return }
@@ -278,7 +305,7 @@ function AnalysisPage({ role, onUnauthorized }) {
   }
   const selectBatch = event => {
     const batchId = event.target.value
-    setFoodBatchId(batchId); setResult(null); setValidationMessage('')
+    setFoodBatchId(batchId); setResult(null); setCompositeScore(null); setValidationMessage('')
     const batch = batches.find(entry => String(entry.id) === batchId)
     if (batch) { setProductName(batch.food_item.name); setFoodCategory(batch.food_item.category) }
     loadHistory(batchId)
@@ -286,7 +313,15 @@ function AnalysisPage({ role, onUnauthorized }) {
   const analyze = async () => {
     if (!foodBatchId) { setValidationMessage('Please select a food batch.'); return }
     if (!imageFile) { setValidationMessage('Please select a food image.'); return }
-    try { setLoading(true); setValidationMessage(''); const analysis = await freshnessApi.analyze({ image: imageFile, foodBatchId }); setResult(analysis); await loadHistory(foodBatchId) }
+    try {
+      setLoading(true); setValidationMessage('')
+      const analysis = await freshnessApi.analyze({ image: imageFile, foodBatchId })
+      setResult(analysis)
+      await freshnessScoringApi.createScore(foodBatchId)
+      const scores = await freshnessScoringApi.getBatchScores(foodBatchId)
+      setCompositeScore(preferredScoreRecord(scores))
+      await loadHistory(foodBatchId)
+    }
     catch (error) { handleError(error) }
     finally { setLoading(false) }
   }
@@ -295,15 +330,16 @@ function AnalysisPage({ role, onUnauthorized }) {
     catch (error) { handleError(error) }
     finally { setLoading(false) }
   }
-  const reset = () => { setImage(null); setImageFile(null); setResult(null); setUploadError(''); setValidationMessage('') }
+  const reset = () => { setImage(null); setImageFile(null); setResult(null); setCompositeScore(null); setUploadError(''); setValidationMessage('') }
   return <>
     <Title title="Freshness Analysis" text="Analyze food images to assess freshness, quality, and potential spoilage." />
+    {result && hasCompositeScore && <section className="analysis-results"><div className="result-grid"><article className="result-score"><span>Composite Freshness Score</span><b>{`${scoringValue(compositeScore.freshness_score)}/100`}</b></article><article className="result-stat"><span>Visual Freshness</span><b>{`${scoringValue(compositeScore.visual_freshness_score)}/100 (${scoringWeight(compositeScore.visual_weight)})`}</b></article><article className="result-stat"><span>Storage Condition</span><b>{`${scoringValue(compositeScore.storage_condition_score)}/100 (${scoringWeight(compositeScore.storage_weight)})`}</b></article><article className="result-stat"><span>Shelf-life</span><b>{`${scoringValue(compositeScore.shelf_life_score)}/100 (${scoringWeight(compositeScore.shelf_life_weight)})`}</b></article><article className="result-stat"><span>Product Age</span><b>{`${scoringValue(compositeScore.product_age_score)}/100 (${scoringWeight(compositeScore.product_age_weight)})`}</b></article></div></section>}
     <div className="analysis-note">Upload a clear, well-lit food image to support a complete freshness assessment. The trained image model supports apples, bananas, and oranges only.</div>
     <div className="analysis-workspace">
       <Panel title="Food image" text="Upload a clear image for a visual freshness assessment."><div className={'upload-zone ' + (image ? 'has-image' : '')} onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); selectImage(event.dataTransfer.files[0]) }}>{image ? <div className="image-preview"><img src={image.preview} alt="Selected food preview" /><div><b>{image.name}</b><small>Image selected and ready for assessment.</small><div><label className="link change-image" htmlFor="food-image">Change image</label><button className="link delete" onClick={() => { setImage(null); setResult(null); setValidationMessage('') }}>Remove image</button></div></div></div> : <><i>↑</i><b>Drag and drop a food image here</b><small>Supported formats: JPG, PNG and WEBP</small><label className="button secondary" htmlFor="food-image">Choose Image</label></>}<input id="food-image" type="file" accept="image/jpeg,image/png,image/webp" onClick={event => { event.currentTarget.value = '' }} onChange={event => selectImage(event.target.files[0])} /></div>{uploadError && <p className="upload-error">{uploadError}</p>}</Panel>
       <Panel title="Food information" text="Select the real inventory batch for this analysis."><div className="analysis-fields"><FormField label="Food batch"><select value={foodBatchId} onChange={selectBatch}><option value="">Select an inventory batch</option>{batches.map(batch => <option key={batch.id} value={batch.id}>{batch.food_item.name} · {batch.batch_number}</option>)}</select></FormField><FormField label="Food/Product Name"><input value={productName} readOnly placeholder="Selected from the batch" /></FormField><FormField label="Category"><input value={foodCategory} readOnly /></FormField></div>{foodBatchId && !classifierSupportsProduct(productName) && <p className="upload-error">{classifierScopeMessage}</p>}<button className="button primary analyze-button" disabled={!canCreate || loading || !image || !foodBatchId} onClick={analyze}>{loading ? 'Uploading…' : 'Analyze Freshness'}</button>{validationMessage ? <p className="upload-error">{validationMessage}</p> : (!image || !foodBatchId) && <small className="button-hint">Select an inventory batch and image to begin.</small>}</Panel>
     </div>
-    {result && <section className="analysis-results"><div className="analysis-results-heading"><div><small>FRESHNESS ASSESSMENT</small><h2>Freshness Assessment</h2><p>Product: {productName}</p></div><button className="button secondary" onClick={reset}>New Analysis</button></div>{!result.analysis_result?.model_scope?.supported && <div className="analysis-summary"><b>Model scope notice</b><p>{result.analysis_result?.model_scope?.message || classifierScopeMessage}</p></div>}{analysisStatus(result) === 'pending_model_integration' ? <div className="analysis-summary"><b>Analysis pending model integration</b><p>{result.analysis_result?.message || 'The image was stored and the analysis record was created. A trained freshness model is not configured yet.'}</p></div> : <><div className="result-grid"><article className="result-score"><span>Raw trained-model class</span><b>{modelPrediction(result)}</b></article><article className="result-stat"><span>Model confidence</span><b>{modelConfidence(result)}</b></article><article className="result-stat"><span>Freshness Score</span><b>{result.freshness_score ?? 'Not available'}</b></article></div><div className="analysis-summary"><b>Class probabilities</b>{Object.entries(modelProbabilities(result)).length ? <p>{Object.entries(modelProbabilities(result)).map(([label, value]) => `${label}: ${typeof value === 'number' ? `${(value * 100).toFixed(2)}%` : 'Not available'}`).join(' · ')}</p> : <p>Class probabilities are not available for this analysis.</p>}</div></>}</section>}
+    {result && <section className="analysis-results"><div className="analysis-results-heading"><div><small>FRESHNESS ASSESSMENT</small><h2>Freshness Assessment</h2><p>Product: {productName}</p></div><button className="button secondary" onClick={reset}>New Analysis</button></div>{!result.analysis_result?.model_scope?.supported && <div className="analysis-summary"><b>Model scope notice</b><p>{result.analysis_result?.model_scope?.message || classifierScopeMessage}</p></div>}{analysisStatus(result) === 'pending_model_integration' ? <div className="analysis-summary"><b>Analysis pending model integration</b><p>{result.analysis_result?.message || 'The image was stored and the analysis record was created. A trained freshness model is not configured yet.'}</p></div> : <><div className="result-grid"><article className="result-score"><span>Raw trained-model class</span><b>{modelPrediction(result)}</b></article><article className="result-stat"><span>Model confidence</span><b>{modelConfidence(result)}</b></article><article className="result-stat"><span>Composite Freshness Score</span><b>{compositeScoreDisplay}</b></article></div><div className="analysis-summary"><b>Class probabilities</b>{Object.entries(modelProbabilities(result)).length ? <p>{Object.entries(modelProbabilities(result)).map(([label, value]) => `${label}: ${typeof value === 'number' ? `${(value * 100).toFixed(2)}%` : 'Not available'}`).join(' · ')}</p> : <p>Class probabilities are not available for this analysis.</p>}</div></>}</section>}
     <Panel title="Analysis history" text={foodBatchId ? 'Persisted analyses for the selected inventory batch.' : 'Select an inventory batch to view persisted analyses.'}><div className="analysis-history">{historyLoading ? <p className="button-hint">Loading analysis history…</p> : history.length ? history.map(entry => <div className="history-row" key={entry.id}><div><b>Analysis #{entry.id}</b><small>{analysisDate(entry.analyzed_at)}</small></div><strong>{analysisStatus(entry) === 'pending_model_integration' ? 'Pending' : modelConfidence(entry)}</strong><em className="badge warning">{analysisStatus(entry) === 'pending_model_integration' ? 'Model pending' : modelPrediction(entry)}</em>{canDelete && <button className="link delete" disabled={loading} onClick={() => removeAnalysis(entry.id)}>Delete</button>}</div>) : <p className="button-hint">No persisted analyses for this batch.</p>}</div></Panel>
   </>
 }
@@ -314,6 +350,7 @@ function FreshnessScoring({ role, onUnauthorized }) {
   const [foodBatchId, setFoodBatchId] = useState('')
   const [result, setResult] = useState(null)
   const [history, setHistory] = useState([])
+  const [recommendations, setRecommendations] = useState([])
   const [loading, setLoading] = useState(false)
   const [historyLoading, setHistoryLoading] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -330,9 +367,20 @@ function FreshnessScoring({ role, onUnauthorized }) {
   }
   const loadHistory = async batchId => {
     if (!batchId) { setHistory([]); return }
-    try { setHistoryLoading(true); setHistory(await freshnessScoringApi.getBatchScores(batchId)) }
+    try {
+      setHistoryLoading(true)
+      const response = await freshnessScoringApi.getBatchScores(batchId)
+      const scoreRecord = preferredScoreRecord(response)
+      setHistory(Array.isArray(response) ? response : [])
+      setResult(scoreRecord)
+    }
     catch (requestError) { handleError(requestError) }
     finally { setHistoryLoading(false) }
+  }
+  const loadRecommendations = async batchId => {
+    if (!batchId) { setRecommendations([]); return }
+    try { setRecommendations(await recommendationsApi.getBatchRecommendations(batchId)) }
+    catch (requestError) { handleError(requestError) }
   }
   useEffect(() => {
     setBatchesLoading(true)
@@ -343,6 +391,7 @@ function FreshnessScoring({ role, onUnauthorized }) {
     setFoodBatchId(batchId)
     setResult(null); setError(''); setMessage('')
     loadHistory(batchId)
+    loadRecommendations(batchId)
   }
   const createScore = async () => {
     if (!foodBatchId) { setError('Please select a food batch.'); return }
@@ -353,6 +402,7 @@ function FreshnessScoring({ role, onUnauthorized }) {
       setResult(created)
       setMessage('Freshness score record created.')
       await loadHistory(foodBatchId)
+      await loadRecommendations(foodBatchId)
     } catch (requestError) { handleError(requestError) }
     finally { setLoading(false) }
   }
@@ -368,10 +418,10 @@ function FreshnessScoring({ role, onUnauthorized }) {
   }
   const reset = () => { setResult(null); setError(''); setMessage('') }
   const components = result ? [
-    ['Visual freshness', result.visual_freshness_score, result.visual_weight],
-    ['Storage conditions', result.storage_condition_score, result.storage_weight],
+    ['Visual Freshness', result.visual_freshness_score, result.visual_weight],
+    ['Storage Condition', result.storage_condition_score, result.storage_weight],
     ['Shelf-life', result.shelf_life_score, result.shelf_life_weight],
-    ['Product age', result.product_age_score, result.product_age_weight],
+    ['Product Age', result.product_age_score, result.product_age_weight],
   ] : []
   return <>
     <Title title="Freshness Scoring" text="Create a composite freshness-score evaluation for a real inventory batch. Component scores are stored by the backend and are not calculated in the browser." />
@@ -409,15 +459,24 @@ function FreshnessScoring({ role, onUnauthorized }) {
         </div>
         <button className="button secondary" onClick={reset}>New Score</button>
       </div>
-      {pending && <div className="analysis-summary"><b>Score pending model integration</b><p>The evaluation record was created with status {result.status}. Component scores and the overall score are not available until the backend supplies them.</p></div>}
+      {pending && <div className="analysis-summary"><b>Composite score unavailable</b><p>Every weighted component must come from real data. This batch does not yet have scoreable storage conditions and shelf-life output, so no composite score is shown.</p></div>}
       <div className="scoring-grid">
-        <article className="scoring-highlight"><span>Overall freshness score</span><b>{pending ? 'Not available' : scoringValue(result.freshness_score)}</b><small>{pending ? 'Unavailable until component scores exist' : 'Returned by the scoring API'}</small></article>
+        <article className="scoring-highlight"><span>Composite Freshness Score</span><b>{pending ? 'Score unavailable' : `${scoringValue(result.freshness_score)}/100`}</b><small>{pending ? 'Storage thresholds and a calibrated shelf-life unit are required; no score is invented.' : 'Returned by the scoring API'}</small></article>
         <article className="scoring-stat"><span>Status</span><b>{result.status || 'Not available'}</b><small>Backend evaluation status</small></article>
         <article className="scoring-stat"><span>Created</span><b>{result.created_at ? analysisDate(result.created_at) : 'Not available'}</b><small>Recorded timestamp</small></article>
       </div>
       <div className="scoring-components">
-        {components.map(item => <div className="signal" key={item[0]}><span>{item[0]}</span><b>{scoringValue(item[1])} · {scoringWeight(item[2])}</b></div>)}
+        {components.map(item => <div className="signal" key={item[0]}><span>{item[0]}</span><b>{item[1] == null ? 'Score unavailable' : `${scoringValue(item[1])}/100`} ({scoringWeight(item[2])})</b></div>)}
       </div>
+      <div className="scoring-components">
+        <div className="signal"><span>Spoilage Probability</span><b>{result.spoilage_probability == null ? 'Not available' : `${(Number(result.spoilage_probability) * 100).toFixed(2)}%`}</b></div>
+        <div className="signal"><span>Estimated Shelf-life</span><b>{result.shelf_life_raw_prediction == null ? 'Not available' : `${scoringValue(result.shelf_life_raw_prediction)} (${result.shelf_life_unit_status || 'unit not established'})`}</b></div>
+        <div className="signal"><span>Temperature</span><b>{result.storage_temperature == null ? 'Not available' : `${scoringValue(result.storage_temperature)} °F`}</b></div>
+        <div className="signal"><span>Humidity</span><b>{result.storage_humidity == null ? 'Not available' : `${scoringValue(result.storage_humidity)}%`}</b></div>
+        <div className="signal"><span>Packaging</span><b>{result.packaging || 'Not available'}</b></div>
+        <div className="signal"><span>Storage data source</span><b>{result.storage_source || 'Not available'}</b></div>
+      </div>
+      <div className="scoring-components"><div className="signal"><span>Smart Recommendations</span><b>{recommendations.length ? recommendations.map(item => item.message).join(' · ') : 'No recommendations recorded for this batch.'}</b></div></div>
     </section>}
     <Panel title="Score history" text={foodBatchId ? 'Persisted scoring evaluations for the selected inventory batch.' : 'Select an inventory batch to view persisted scores.'}>
       <div className="scoring-history">
@@ -468,8 +527,19 @@ const validateShelfLifeForm = form => {
   if (!Number.isInteger(doorOpensCount) || doorOpensCount < 0 || doorOpensCount > 10000) return 'Door opens count must be a whole number between 0 and 10000.'
   return ''
 }
-const emptyStorageForm = () => ({ foodBatchId: '', temperature: '', humidity: '', airCirculation: '', lightLevel: '', duration: '' })
+const emptyStorageForm = () => ({ foodBatchId: '', temperature: '', humidity: '', airCirculation: '', lightLevel: '', duration: '', doorOpensCount: '' })
 const canManageStorage = role => ['Retail Manager', 'Warehouse Operator', 'Administrator'].includes(role)
+const HOURS_PER_DAY = 24
+const MAX_STORAGE_DURATION_HOURS = 8760
+const MAX_STORAGE_DURATION_DAYS = MAX_STORAGE_DURATION_HOURS / HOURS_PER_DAY
+const storageDurationHoursFromDays = days => Number(days) * HOURS_PER_DAY
+const storageDurationDisplay = hours => {
+  if (hours == null || hours === '') return 'Not available'
+  const value = Number(hours)
+  if (Number.isNaN(value)) return 'Not available'
+  if (value % HOURS_PER_DAY === 0) return `${value / HOURS_PER_DAY} days (${value} hours)`
+  return `${value} hours`
+}
 const storageError = error => {
   if (!(error instanceof ApiError)) return 'Unable to complete the storage request.'
   if (error.status === 403) return 'Access denied. Your account cannot modify storage conditions.'
@@ -496,7 +566,10 @@ const validateStorageForm = form => {
   if (lightLevel < 0 || lightLevel > 1_000_000) return 'Light level must be between 0 and 1000000.'
   if (form.duration === '' || Number.isNaN(Number(form.duration))) return 'Please enter the storage duration in days.'
   const duration = Number(form.duration)
-  if (!Number.isInteger(duration) || duration < 0 || duration > 36500) return 'Storage duration must be a whole number between 0 and 36500 days.'
+  if (!Number.isInteger(duration) || duration < 0 || duration > MAX_STORAGE_DURATION_DAYS) return `Storage duration must be a whole number between 0 and ${MAX_STORAGE_DURATION_DAYS} days.`
+  if (form.doorOpensCount === '' || Number.isNaN(Number(form.doorOpensCount))) return 'Please enter the door opens count.'
+  const doorOpensCount = Number(form.doorOpensCount)
+  if (!Number.isInteger(doorOpensCount) || doorOpensCount < 0 || doorOpensCount > 10000) return 'Door opens count must be a whole number between 0 and 10000.'
   return ''
 }
 const priorityTone = priority => priority === 'High' ? 'danger' : priority === 'Medium' ? 'warning' : 'success'
@@ -576,7 +649,7 @@ function AlertsNotifications({ role, onUnauthorized }) {
   const relatedBatch = alert => batchLabel(batches, alert.food_batch_id)
   const displayed = alerts.filter(alert => {
     const related = relatedBatch(alert)
-    const haystack = [alert.title, alert.message, alert.category, related].join(' ').toLowerCase()
+    const haystack = [alert.title, alert.message, alert.category, alert.source, related].join(' ').toLowerCase()
     return !search.trim() || haystack.includes(search.trim().toLowerCase())
   })
   const summary = {
@@ -649,7 +722,7 @@ function AlertsNotifications({ role, onUnauthorized }) {
   const clearFilters = () => { setSearch(''); setCategoryFilter('All'); setPriorityFilter('All'); setReadFilter('All'); setBatchFilter('') }
   return <>
     <div className="alerts-heading">
-      <Title title="Alerts & Notifications" text="Review persisted freshness, shelf-life, spoilage, storage, and inventory alerts for your account." />
+      <Title title="Alerts & Notifications" text="Automatic alerts are created from recorded spoilage, freshness, and storage conditions. You can still add a manual alert when your role allows it." />
       <button className="button secondary" onClick={markAllRead} disabled={busy || loading || !summary.unread}>Mark all as read</button>
     </div>
     {message && <p className="inventory-note" role="status">{message}</p>}
@@ -673,7 +746,7 @@ function AlertsNotifications({ role, onUnauthorized }) {
       <button className="button secondary" onClick={clearFilters}>Reset filters</button>
       <button className="link dismissed-toggle" onClick={() => { setShowDismissed(current => !current); setSelected(null) }}>{showDismissed ? 'View active alerts' : 'View dismissed alerts'}</button>
     </section>
-    {canCreate && <Panel title="Add alert" text="Create a persisted alert for a real inventory batch. Alerts belong to your account.">
+    {canCreate && <Panel title="Add alert" text="Create a manual alert for a real inventory batch. Automatic alerts are generated separately from recorded conditions.">
       <form className="storage-form" onSubmit={createAlert}>
         <FormField label="Food batch">
           <select required value={form.foodBatchId} onChange={updateForm('foodBatchId')} disabled={batchesLoading || busy}>
@@ -691,7 +764,7 @@ function AlertsNotifications({ role, onUnauthorized }) {
     <section className="alerts-list">
       {loading ? <div className="no-alerts">Loading alerts…</div> : displayed.length ? displayed.map(alert => <article key={alert.id} className={'alert-card ' + (!alert.is_read ? 'unread' : '') + (selected === alert.id ? ' selected' : '')} onClick={() => selectAlert(alert)}>
         <div className="alert-card-top">
-          <div className="alert-category"><span>{alert.category}</span>{!alert.is_read && <i>Unread</i>}</div>
+          <div className="alert-category"><span>{alert.category}</span><em className={'badge ' + (alert.source === 'automatic' ? 'warning' : 'success')}>{alert.source === 'automatic' ? 'Automatic' : 'Manual'}</em>{!alert.is_read && <i>Unread</i>}</div>
           <div className="alert-badges"><em className={'badge ' + priorityTone(alert.priority)}>{alert.priority}</em><time>{alert.created_at ? analysisDate(alert.created_at) : 'Not available'}</time></div>
         </div>
         <h3>{alert.title}</h3>
@@ -705,6 +778,7 @@ function AlertsNotifications({ role, onUnauthorized }) {
         </div>
         {selected === alert.id && <div className="alert-detail">
           <div><span>Alert category</span><b>{alert.category}</b></div>
+          <div><span>Source</span><b>{alert.source === 'automatic' ? 'Automatic' : 'Manual'}</b></div>
           <div><span>Priority</span><b>{alert.priority}</b></div>
           <div><span>Related batch</span><b>{relatedBatch(alert)}</b></div>
           <div><span>Date and time</span><b>{alert.created_at ? analysisDate(alert.created_at) : 'Not available'}</b></div>
@@ -801,13 +875,13 @@ function Recommendations({ role, onUnauthorized }) {
   const activeCount = recommendations.filter(item => item.status !== 'Completed').length
   const hasFilters = priorityFilter !== 'All' || typeFilter || statusFilter || batchFilter
   return <>
-    <Title title="Recommendations" text="Review persisted recommendations for inventory batches. Status changes are saved through the recommendations API." />
+    <Title title="Recommendations" text="Automatic recommendations are created from recorded spoilage, freshness, and storage conditions. You can still add a manual recommendation when your role allows it." />
     {message && <p className="inventory-note" role="status">{message}</p>}
     {error && <p className="error inventory-note" role="alert">{error}</p>}
     <section className="recommendation-overview">
       <div className="overview-heading">
         <div><small>CURRENT PRIORITIES</small><h2>{loading ? 'Loading recommendations…' : `${activeCount} active recommendation${activeCount === 1 ? '' : 's'}`}</h2></div>
-        <span>{loading ? 'Loading recorded recommendations.' : hasFilters ? 'Counts reflect the current API filters.' : 'Recorded recommendation types from the API.'}</span>
+        <span>{loading ? 'Loading recorded recommendations.' : hasFilters ? 'Counts reflect the current API filters.' : 'Recorded automatic and manual recommendations from the API.'}</span>
       </div>
       <div className="overview-grid">{RECOMMENDATION_TYPES.map(type => <article key={type}><small>{type}</small><b>{loading ? 'Loading…' : `${typeCounts[type]} recorded`}</b><em>Recommendation type</em></article>)}</div>
     </section>
@@ -829,7 +903,7 @@ function Recommendations({ role, onUnauthorized }) {
         {hasFilters && <button className="link clear-filter" onClick={clearFilters}>Clear filters</button>}
       </div>
     </div>
-    {editable && <Panel title="Add recommendation" text="Create a persisted recommendation for a real inventory batch.">
+    {editable && <Panel title="Add recommendation" text="Create a manual recommendation for a real inventory batch. Automatic recommendations are generated separately from recorded conditions.">
       <form className="storage-form" onSubmit={createRecommendation}>
         <FormField label="Food batch">
           <select required value={form.foodBatchId} onChange={updateForm('foodBatchId')} disabled={batchesLoading || busy}>
@@ -860,10 +934,15 @@ function Recommendations({ role, onUnauthorized }) {
               <small>{item.recommendation_type}</small>
               <h3>{batchLabel(batches, item.food_batch_id)}</h3>
             </div>
-            <em className={'badge ' + priorityTone(item.priority)}>{item.priority}</em>
+            <div className="recommendation-badges">
+              <em className={'badge ' + (item.source === 'automatic' ? 'warning' : 'success')}>{item.source === 'automatic' ? 'Automatic' : 'Manual'}</em>
+              <em className={'badge ' + (completed ? 'success' : 'warning')}>{completed ? 'Completed' : 'Active'}</em>
+              <em className={'badge ' + priorityTone(item.priority)}>{item.priority}</em>
+            </div>
           </div>
           <p>{item.message}</p>
           <div className="recommendation-meta">
+            <span>Source {item.source === 'automatic' ? 'Automatic' : 'Manual'}</span>
             <span>Created {item.created_at ? analysisDate(item.created_at) : 'Not available'}</span>
             <span>Updated {item.updated_at ? analysisDate(item.updated_at) : 'Not available'}</span>
             <span>Completed {item.completed_at ? analysisDate(item.completed_at) : 'Not completed'}</span>
@@ -871,7 +950,7 @@ function Recommendations({ role, onUnauthorized }) {
           <div className="recommendation-footer">
             <div>
               <span className="context-label">{item.recommendation_type}</span>
-              <span className={'recommendation-status ' + (completed ? 'complete' : '')}>{item.status}</span>
+              <span className={'recommendation-status ' + (completed ? 'complete' : '')}>{completed ? `Completed · ${item.status}` : `Active · ${item.status}`}</span>
             </div>
             {editable && <div className="recommendation-actions">
               {item.status === 'New' && <button className="button secondary" disabled={busy} onClick={() => setStatus(item.id, 'In Progress')}>{updatingId === item.id ? 'Saving…' : 'Mark In Progress'}</button>}
@@ -898,7 +977,7 @@ function StorageMonitoring({ role, onUnauthorized }) {
   const [error, setError] = useState('')
   const editable = canManageStorage(role)
   const selectedBatch = batches.find(entry => String(entry.id) === String(form.foodBatchId))
-  const complete = Boolean(form.foodBatchId && form.temperature !== '' && form.humidity !== '' && form.airCirculation !== '' && form.lightLevel !== '' && form.duration !== '')
+  const complete = Boolean(form.foodBatchId && form.temperature !== '' && form.humidity !== '' && form.airCirculation !== '' && form.lightLevel !== '' && form.duration !== '' && form.doorOpensCount !== '')
   const handleError = caught => {
     if (caught instanceof ApiError && caught.status === 401) { auth.logout(); onUnauthorized(); return true }
     setError(storageError(caught))
@@ -944,7 +1023,8 @@ function StorageMonitoring({ role, onUnauthorized }) {
         humidity: Number(form.humidity),
         air_circulation: Number(form.airCirculation),
         light_level: Number(form.lightLevel),
-        storage_duration: Number(form.duration),
+        storage_duration: storageDurationHoursFromDays(form.duration),
+        door_opens_count: Number(form.doorOpensCount),
       })
       setLatest(created)
       setMessage('Storage conditions recorded.')
@@ -967,6 +1047,8 @@ function StorageMonitoring({ role, onUnauthorized }) {
     ['Humidity', storageReading(latest.humidity, '%')],
     ['Air circulation', storageReading(latest.air_circulation, '')],
     ['Light level', storageReading(latest.light_level, '')],
+    ['Storage duration', storageDurationDisplay(latest.storage_duration)],
+    ['Door opens count', latest.door_opens_count == null ? 'Not available' : String(latest.door_opens_count)],
     ['Recorded at', latest.recorded_at ? analysisDate(latest.recorded_at) : 'Not available'],
   ] : []
   const metrics = [
@@ -974,6 +1056,8 @@ function StorageMonitoring({ role, onUnauthorized }) {
     ['Humidity', latest ? storageReading(latest.humidity, '%') : 'Not available', 'From latest record'],
     ['Air circulation', latest ? storageReading(latest.air_circulation, '') : 'Not available', 'From latest record'],
     ['Light level', latest ? storageReading(latest.light_level, '') : 'Not available', 'From latest record'],
+    ['Storage duration', latest ? storageDurationDisplay(latest.storage_duration) : 'Not available', 'Stored as hours'],
+    ['Door opens', latest?.door_opens_count == null ? 'Not available' : String(latest.door_opens_count), 'From latest record'],
     ['Recorded at', latest?.recorded_at ? analysisDate(latest.recorded_at) : 'Not available', 'Backend timestamp'],
   ]
   return <>
@@ -1021,13 +1105,15 @@ function StorageMonitoring({ role, onUnauthorized }) {
         <FormField label="Humidity (%)"><input required type="number" step="0.1" min="0" max="100" value={form.humidity} onChange={update('humidity')} disabled={!editable} placeholder="e.g. 65" /></FormField>
         <FormField label="Air circulation"><input required type="number" step="0.1" min="0" max="10000" value={form.airCirculation} onChange={update('airCirculation')} disabled={!editable} placeholder="0 to 10000" /></FormField>
         <FormField label="Light level"><input required type="number" step="0.1" min="0" max="1000000" value={form.lightLevel} onChange={update('lightLevel')} disabled={!editable} placeholder="0 to 1000000" /></FormField>
-        <FormField label="Storage duration (days)"><input required type="number" min="0" max="36500" step="1" value={form.duration} onChange={update('duration')} disabled={!editable} placeholder="e.g. 3" /></FormField>
+        <FormField label="Storage Duration (days)"><input required type="number" min="0" max={MAX_STORAGE_DURATION_DAYS} step="1" value={form.duration} onChange={update('duration')} disabled={!editable} placeholder="e.g. 3" /></FormField>
+        <FormField label="Door Opens Count"><input required type="number" min="0" max="10000" step="1" value={form.doorOpensCount} onChange={update('doorOpensCount')} disabled={!editable} placeholder="e.g. 5" /></FormField>
         <div className="storage-update">
           <button className="button primary" disabled={!editable || submitting || deleting || !complete || batchesLoading}>{submitting ? 'Saving…' : 'Update Conditions'}</button>
         </div>
       </form>
       {!editable && <small className="button-hint">Your role can view storage records but cannot create or delete them.</small>}
       {editable && !complete && <small className="button-hint">Select an inventory batch and complete the required storage fields to continue.</small>}
+      {editable && complete && <small className="button-hint">Duration is entered in days and saved as hours so it can be used as shelf-life dwell time.</small>}
     </Panel>
     <div className="storage-main-grid">
       <Panel title="Storage optimization" text="Optimization is pending until backend rules are configured.">
@@ -1043,7 +1129,7 @@ function StorageMonitoring({ role, onUnauthorized }) {
     <Panel title="Storage history" text={form.foodBatchId ? 'Persisted storage-condition records for the selected inventory batch.' : 'Select an inventory batch to view persisted storage records.'}>
       <div className="storage-history">
         {loading ? <p className="button-hint">Loading storage history…</p> : history.length ? history.map(entry => <div className="history-row" key={entry.id}>
-          <div><b>Record #{entry.id}</b><small>{entry.recorded_at ? analysisDate(entry.recorded_at) : 'Timestamp not available'} · Air {storageReading(entry.air_circulation, '')} · Light {storageReading(entry.light_level, '')}</small></div>
+          <div><b>Record #{entry.id}</b><small>{entry.recorded_at ? analysisDate(entry.recorded_at) : 'Timestamp not available'} · Duration {storageDurationDisplay(entry.storage_duration)} · Door opens {entry.door_opens_count == null ? 'Not available' : entry.door_opens_count}</small></div>
           <strong>{storageReading(entry.temperature, '°C')} · {storageReading(entry.humidity, '%')}</strong>
           <em className="badge">Recorded</em>
           {editable && <button className="link delete" disabled={submitting || deleting} onClick={() => removeCondition(entry.id)}>Delete</button>}

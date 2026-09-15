@@ -12,6 +12,8 @@ from app.models.freshness_analysis import FreshnessAnalysis
 from app.models.user import User
 from app.schemas.freshness import FreshnessAnalysisResponse
 from app.services.freshness import analyze_freshness, delete_analysis, get_analysis, get_batch, list_analyses, store_uploaded_image, upload_directory
+from app.services.automatic_alerts import evaluate_automatic_alerts
+from app.services.automatic_recommendations import evaluate_automatic_recommendations
 from ml.src.freshness_inference import InferenceError, InvalidImageError, ModelUnavailableError
 
 router = APIRouter(prefix="/freshness", tags=["freshness"])
@@ -45,12 +47,12 @@ def freshness_health() -> dict[str, str]:
 
 
 @router.post("/analyze", response_model=FreshnessAnalysisResponse, status_code=status.HTTP_201_CREATED)
-async def create_analysis(food_batch_id: Annotated[int, Form()], image: Annotated[UploadFile, File(...)], db: Annotated[Session, Depends(get_db)], _: AnalysisCreator) -> FreshnessAnalysis:
+async def create_analysis(food_batch_id: Annotated[int, Form()], image: Annotated[UploadFile, File(...)], db: Annotated[Session, Depends(get_db)], current_user: AnalysisCreator) -> FreshnessAnalysis:
     """Store a validated image and run the trained freshness classifier."""
     _batch_or_404(db, food_batch_id)
     image_reference = await store_uploaded_image(image)
     try:
-        return analyze_freshness(db, food_batch_id, image_reference)
+        analysis = analyze_freshness(db, food_batch_id, image_reference)
     except InvalidImageError as exc:
         _discard_upload(image_reference)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
@@ -64,6 +66,9 @@ async def create_analysis(food_batch_id: Annotated[int, Form()], image: Annotate
         # Do not leave a file behind if persistence fails.
         _discard_upload(image_reference)
         raise
+    evaluate_automatic_alerts(db, food_batch_id=food_batch_id, user_id=current_user.id)
+    evaluate_automatic_recommendations(db, food_batch_id=food_batch_id)
+    return analysis
 
 
 @router.get("/analyses/{analysis_id}", response_model=FreshnessAnalysisResponse)

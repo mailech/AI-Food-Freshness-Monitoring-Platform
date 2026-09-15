@@ -12,7 +12,7 @@ from app.models.mixins import TimestampMixin
 
 
 class FreshnessScore(TimestampMixin, Base):
-    """Persist scoring inputs and outcomes without deriving scientific values."""
+    """Persist composite-score inputs, prototype policy outputs, and result details."""
 
     __tablename__ = "freshness_scores"
 
@@ -25,6 +25,13 @@ class FreshnessScore(TimestampMixin, Base):
     shelf_life_score: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)
     product_age_score: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)
     freshness_score: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)
+    storage_temperature: Mapped[Decimal | None] = mapped_column(Numeric(6, 2), nullable=True)
+    storage_humidity: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)
+    storage_source: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    shelf_life_raw_prediction: Mapped[Decimal | None] = mapped_column(Numeric(12, 4), nullable=True)
+    shelf_life_unit_status: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    packaging: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    spoilage_probability: Mapped[Decimal | None] = mapped_column(Numeric(6, 5), nullable=True)
     visual_weight: Mapped[Decimal] = mapped_column(Numeric(3, 2), nullable=False, server_default="0.40")
     storage_weight: Mapped[Decimal] = mapped_column(Numeric(3, 2), nullable=False, server_default="0.25")
     shelf_life_weight: Mapped[Decimal] = mapped_column(Numeric(3, 2), nullable=False, server_default="0.20")

@@ -42,7 +42,7 @@ def alerts_health() -> dict[str, str]:
 
 @router.post("/", response_model=AlertResponse, status_code=status.HTTP_201_CREATED)
 def create_alert(payload: AlertCreate, db: DatabaseSession, current_user: AlertCreator) -> Alert:
-    """Persist explicit input; no automatic alert rules run here."""
+    """Persist a user-authored manual alert. Automatic condition alerts are generated elsewhere."""
     if get_food_batch(db, payload.food_batch_id) is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Food batch not found.")
     return generate_alert(db, user_id=current_user.id, payload=payload)

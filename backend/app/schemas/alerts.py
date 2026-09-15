@@ -15,6 +15,12 @@ class AlertPriority(str, Enum):
     LOW = "Low"
 
 
+class AlertSource(str, Enum):
+    """Whether an alert was created by a user or by condition evaluation."""
+    MANUAL = "manual"
+    AUTOMATIC = "automatic"
+
+
 class AlertCreate(BaseModel):
     """Explicit batch-scoped alert input for users and future rule engines."""
     food_batch_id: int = Field(gt=0, description="Existing food batch this alert belongs to.")
@@ -42,6 +48,7 @@ class AlertResponse(BaseModel):
     priority: AlertPriority
     title: str
     message: str
+    source: AlertSource = AlertSource.MANUAL
     is_read: bool
     is_dismissed: bool
     created_at: datetime

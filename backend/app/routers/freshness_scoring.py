@@ -18,6 +18,8 @@ from app.services.freshness_scoring import (
     get_freshness_score,
     list_batch_scores,
 )
+from app.services.automatic_alerts import evaluate_automatic_alerts
+from app.services.automatic_recommendations import evaluate_automatic_recommendations
 
 router = APIRouter(prefix="/freshness-scoring", tags=["freshness-scoring"])
 AuthenticatedUser = Annotated[User, Depends(get_current_user)]
@@ -61,10 +63,13 @@ def _score_or_404(db: Session, score_id: int) -> FreshnessScore:
 
 @router.post("/batches/{food_batch_id}", response_model=FreshnessScoreResponse,
              status_code=status.HTTP_201_CREATED)
-def create_score(food_batch_id: int, db: DatabaseSession, _: ScoreCreator) -> FreshnessScore:
-    """Store a pending evaluation without calculating unavailable model outputs."""
+def create_score(food_batch_id: int, db: DatabaseSession, current_user: ScoreCreator) -> FreshnessScore:
+    """Calculate a score only from the batch's recorded, usable components."""
     _batch_or_404(db, food_batch_id)
-    return create_freshness_score(db, food_batch_id)
+    score = create_freshness_score(db, food_batch_id)
+    evaluate_automatic_alerts(db, food_batch_id=food_batch_id, user_id=current_user.id)
+    evaluate_automatic_recommendations(db, food_batch_id=food_batch_id)
+    return score
 
 
 @router.get("/batches/{food_batch_id}", response_model=list[FreshnessScoreResponse])
