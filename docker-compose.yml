@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  freshguard-platform:
+    build: .
+    container_name: freshguard_ai_platform
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PLATFORM_NAME=FreshGuard-AI-Food-Freshness
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:80/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
