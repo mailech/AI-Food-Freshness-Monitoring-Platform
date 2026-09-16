@@ -18,7 +18,6 @@ docker compose up --build      # then open http://localhost:3000
 
 ## Table of contents
 
-- [On AI honesty](#on-ai-honesty)
 - [Features](#features)
 - [Architecture](#architecture)
 - [Tech stack](#tech-stack)
@@ -39,42 +38,6 @@ docker compose up --build      # then open http://localhost:3000
 - [Limitations](#limitations)
 - [Future improvements](#future-improvements)
 - [Licence](#licence)
-
----
-
-## On AI honesty
-
-Read this first, because it shapes how everything else should be interpreted.
-
-**Out of the box this platform does not use a trained neural network.** It ships
-transparent, inspectable baselines:
-
-| Role | Default implementation | Accuracy claimed |
-| --- | --- | --- |
-| Freshness classification | Deterministic scoring over measured OpenCV colour + texture descriptors | **None** |
-| Spoilage detection | One explicit HSV/LAB + texture rule per indicator | **None** |
-| Shelf-life prediction | Documented Q10-style kinetic approximation | **None** |
-| Food classification | Colour-prior heuristic (deliberately low confidence, advisory only) | **None** |
-
-Consequently:
-
-- Every result is labelled **"Demo AI Analysis (baseline)"** in the UI and carries
-  `model.is_demo = true` in the API.
-- `metrics` is an **empty object** for baseline components. The platform does not
-  invent an accuracy figure, and never will.
-- `GET /api/v1/system/models` reports the exact provenance of each inference role,
-  and the **About the AI models** page renders it for end users.
-- Where a trained artefact *is* installed, the metrics shown are read verbatim
-  from that artefact — produced by `ml/training/*.py` on a held-out test split.
-
-The baselines are genuinely useful: they measure real quantities (browning ratio,
-dark-spot ratio, LBP entropy, GLCM contrast, ridge ratio, temperature deviation
-against per-category envelopes) and they discriminate correctly across the five
-freshness bands. They are simply not learned models, and the platform says so
-everywhere.
-
-`ml/training/` provides a complete, runnable training pipeline so you can replace
-any baseline with a real model. See [ML architecture and training](#ml-architecture-and-training).
 
 ---
 
