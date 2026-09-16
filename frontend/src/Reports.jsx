@@ -136,9 +136,57 @@ function Reports({ onBack }) {
     : recentActivity.slice(0, 4);
 
   const handleGenerateReport = () => {
-    alert(
-      `Report generated successfully for ${period}.`
-    );
+    const rows = [
+      ["Food Freshness Report", period],
+      [],
+      ["Food", "Analyses", "Fresh", "Near Spoilage", "Spoiled", "Average Score"],
+      ...foodReport.map((item) => [
+        item.food,
+        item.analyses,
+        item.fresh,
+        item.nearSpoilage,
+        item.spoiled,
+        item.averageScore,
+      ]),
+      [],
+      ["Summary", "Value"],
+      ["Total Analyses", totalAnalyses],
+      ["Fresh Food", totalFresh],
+      ["Near Spoilage", totalNearSpoilage],
+      ["Spoiled", totalSpoiled],
+      ["Average Freshness Score", averageScore],
+    ];
+
+    const html = `
+      <html>
+        <head><meta charset="UTF-8"></head>
+        <body>
+          <h2>Food Freshness Report - ${period}</h2>
+          <table border="1">
+            ${rows.map((row) => `
+              <tr>${row.map((cell) => `<td>${cell ?? ""}</td>`).join("")}</tr>
+            `).join("")}
+          </table>
+        </body>
+      </html>
+    `;
+
+    const blob = new Blob([html], {
+      type: "application/vnd.ms-excel;charset=utf-8;",
+    });
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `FoodFresh_Report_${period.replace(/\\s+/g, "_")}.xls`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const handlePdfExport = () => {
+    window.print();
   };
 
   const getStatusClass = (status) => {
@@ -178,7 +226,14 @@ function Reports({ onBack }) {
             className="generate-report-btn"
             onClick={handleGenerateReport}
           >
-            ↓ Generate Report
+            ↓ Excel Export
+          </button>
+
+          <button
+            className="generate-report-btn"
+            onClick={handlePdfExport}
+          >
+            ↓ PDF / Print
           </button>
 
           {onBack && (

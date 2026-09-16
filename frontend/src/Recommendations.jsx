@@ -100,8 +100,13 @@ const storageTips = [
 ];
 
 function Recommendations({ onBack }) {
-  const [recommendations, setRecommendations] =
-    useState(recommendationData);
+  const [recommendations, setRecommendations] = useState(() => {
+  const savedRecommendations = JSON.parse(
+    localStorage.getItem("foodfresh_recommendations") || "[]"
+  );
+
+  return [...savedRecommendations, ...recommendationData];
+});
 
   const [filter, setFilter] = useState("All");
 

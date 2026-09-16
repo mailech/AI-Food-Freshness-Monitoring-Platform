@@ -1,0 +1,44 @@
+[
+    {
+        "name": "Test Consumer",
+        "email": "consumer@test.com",
+        "password": "$2b$12$Yed4gJCIQL3VzpWnbrn2LegAzqGIhjIOASVzrlj6lgXalSjgozVue",
+        "role": "consumer"
+    },
+    {
+        "name": "retailer",
+        "email": "retailer@gmail.com",
+        "password": "$2b$12$MDR.SvHUiRdP.AhMtKKXUuyi3wQKumfadQUOzfG4mypxg/2yx6TEy",
+        "role": "retail_manager"
+    },
+    {
+        "name": "Retailer test",
+        "email": "retailertest@gmail.com",
+        "password": "$2b$12$XDm86eGhi0VTMPwlKYNPOOrDMdxGRE7SyU8a4NFFmUurBj7oNWGsS",
+        "role": "retail_manager"
+    },
+    {
+        "name": "Nanditha",
+        "email": "nandithamaram@gmail.com",
+        "password": "$2b$12$FtOpgjQEyrGReztDceBQYO/Moi/ogqHe/IZI2CB3Stapn2viD2Zm.",
+        "role": "admin"
+    },
+    {
+        "name": "consumer",
+        "email": "consumer@gmail.com",
+        "password": "$2b$12$Hw85c5HxU90shObTdN2Nbe/sWkqWEIVGCalWqMZlrElE6Cpp1sqCC",
+        "role": "consumer"
+    },
+    {
+        "name": "warehouse",
+        "email": "warehouse@gmail.com",
+        "password": "$2b$12$FFuD2TvVPJWGFMgeR2hwyuHnINaHGGL/hlOELdxvN5wAKHrKer05a",
+        "role": "warehouse_operator"
+    },
+    {
+        "name": "NANDITHA MARAM",
+        "email": "nandithamaram23@gmail.com",
+        "password": "$2b$12$tqm3tiQe9C4hUy5jsGMopuE2KFX8keIcz1v37gx4vYlBnUnhF8LDG",
+        "role": "quality_inspector"
+    }
+]

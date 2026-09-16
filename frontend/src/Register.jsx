@@ -12,68 +12,191 @@ function Register() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  const handleRegister = (e) => {
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  // ============================================================
+  // ROLE INFORMATION
+  // ============================================================
+
+  const roleDetails = {
+    admin: {
+      name: "Administrator",
+      icon: "👑",
+      description:
+        "Manage users, platform, inventory and analytics",
+    },
+
+    consumer: {
+      name: "Consumer",
+      icon: "👤",
+      description:
+        "Check food freshness, shelf life and recommendations",
+    },
+
+    retail_manager: {
+      name: "Retail Manager",
+      icon: "🏪",
+      description:
+        "Monitor inventory, freshness and shelf-life alerts",
+    },
+
+    warehouse_operator: {
+      name: "Warehouse Operator",
+      icon: "📦",
+      description:
+        "Manage storage conditions, batches and inventory",
+    },
+
+    quality_inspector: {
+      name: "Food Quality Inspector",
+      icon: "🔍",
+      description:
+        "Analyze food quality, spoilage and freshness",
+    },
+  };
+
+  // ============================================================
+  // REGISTER
+  // ============================================================
+
+  const handleRegister = async (e) => {
     e.preventDefault();
 
+    setError("");
+
     if (!selectedRole) {
-      alert("Please select your account type.");
+      setError("Please select your account type.");
       return;
     }
 
-    if (!name || !email || !password || !confirmPassword) {
-      alert("Please fill all fields.");
+    if (
+      !name.trim() ||
+      !email.trim() ||
+      !password ||
+      !confirmPassword
+    ) {
+      setError("Please fill all fields.");
       return;
     }
 
     if (password !== confirmPassword) {
-      alert("Passwords do not match.");
+      setError("Passwords do not match.");
       return;
     }
 
     if (password.length < 6) {
-      alert("Password must be at least 6 characters.");
+      setError("Password must be at least 6 characters.");
       return;
     }
 
     const normalizedEmail = email.toLowerCase().trim();
 
-    const existingUsers =
-      JSON.parse(
-        localStorage.getItem("foodfresh_registered_users")
-      ) || [];
+    setLoading(true);
 
-    const emailExists = existingUsers.some(
-      (user) => user.email === normalizedEmail
-    );
+    try {
+      // ========================================================
+      // CALL FASTAPI REGISTER
+      // ========================================================
 
-    if (emailExists) {
-      alert("An account with this email already exists.");
-      return;
+      const response = await fetch(
+        "http://127.0.0.1:8000/register",
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+
+          body: JSON.stringify({
+            name: name.trim(),
+            email: normalizedEmail,
+            password: password,
+            role: selectedRole,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      // ========================================================
+      // REGISTRATION ERROR
+      // ========================================================
+
+      if (!response.ok) {
+        setError(
+          data.detail ||
+            "Unable to create account."
+        );
+
+        return;
+      }
+
+      // ========================================================
+      // SUCCESS
+      // ========================================================
+
+      alert(
+        "Account created successfully! Please sign in."
+      );
+
+      // Clear form
+
+      setName("");
+      setEmail("");
+      setPassword("");
+      setConfirmPassword("");
+      setSelectedRole(null);
+
+      // Go to login
+
+      navigate("/login");
+
+    } catch (error) {
+
+      console.error(
+        "REGISTRATION ERROR:",
+        error
+      );
+
+      setError(
+        "Unable to connect to the FoodFresh server. Please make sure the backend is running."
+      );
+
+    } finally {
+
+      setLoading(false);
+
     }
-
-    const newUser = {
-      name: name.trim(),
-      email: normalizedEmail,
-      password: password,
-      role: selectedRole,
-    };
-
-    existingUsers.push(newUser);
-
-    localStorage.setItem(
-      "foodfresh_registered_users",
-      JSON.stringify(existingUsers)
-    );
-
-    alert("Account created successfully!");
-
-    navigate("/login");
   };
+
+  // ============================================================
+  // ROLE BUTTON STYLE
+  // ============================================================
+
+  const roleButtonStyle = {
+    width: "100%",
+    padding: "18px",
+    border: "1px solid #dce8df",
+    borderRadius: "12px",
+    background: "#f8fcf9",
+    color: "#12372a",
+    cursor: "pointer",
+    textAlign: "left",
+    fontSize: "15px",
+  };
+
+  // ============================================================
+  // UI
+  // ============================================================
 
   return (
     <div className="auth-page">
 
+      {/* ====================================================== */}
       {/* LEFT SIDE */}
+      {/* ====================================================== */}
 
       <div className="auth-left">
 
@@ -90,7 +213,6 @@ function Register() {
 
         </div>
 
-
         <div className="auth-content">
 
           <span className="auth-label">
@@ -100,26 +222,39 @@ function Register() {
           <h1>
             Start reducing
             <br />
-            <span>food waste today.</span>
+            <span>
+              food waste today.
+            </span>
           </h1>
 
           <p>
-            Create your account and start monitoring food
-            freshness with AI-powered insights.
+            Create your account and start monitoring
+            food freshness with AI-powered insights.
           </p>
 
           <div className="auth-features">
-            <div>✓ Track food inventory</div>
-            <div>✓ Analyze freshness</div>
-            <div>✓ Get intelligent alerts</div>
+
+            <div>
+              ✓ Track food inventory
+            </div>
+
+            <div>
+              ✓ Analyze freshness
+            </div>
+
+            <div>
+              ✓ Get intelligent alerts
+            </div>
+
           </div>
 
         </div>
 
       </div>
 
-
+      {/* ====================================================== */}
       {/* RIGHT SIDE */}
+      {/* ====================================================== */}
 
       <div className="auth-right">
 
@@ -139,10 +274,12 @@ function Register() {
 
           </div>
 
-
+          {/* ================================================== */}
           {/* ROLE SELECTION */}
+          {/* ================================================== */}
 
           {!selectedRole && (
+
             <>
 
               <h1>
@@ -153,12 +290,11 @@ function Register() {
                 Choose your account type
               </p>
 
-
               <div
                 style={{
                   display: "flex",
                   flexDirection: "column",
-                  gap: "15px",
+                  gap: "12px",
                   marginTop: "25px",
                 }}
               >
@@ -167,18 +303,10 @@ function Register() {
 
                 <button
                   type="button"
-                  onClick={() => setSelectedRole("admin")}
-                  style={{
-                    width: "100%",
-                    padding: "20px",
-                    border: "1px solid #dce8df",
-                    borderRadius: "12px",
-                    background: "#f8fcf9",
-                    color: "#12372a",
-                    cursor: "pointer",
-                    textAlign: "left",
-                    fontSize: "15px",
-                  }}
+                  onClick={() =>
+                    setSelectedRole("admin")
+                  }
+                  style={roleButtonStyle}
                 >
 
                   <strong
@@ -192,28 +320,20 @@ function Register() {
                   </strong>
 
                   <span>
-                    Manage platform, inventory and analytics
+                    Manage users, platform, inventory
+                    and analytics
                   </span>
 
                 </button>
 
-
-                {/* USER / STAFF */}
+                {/* CONSUMER */}
 
                 <button
                   type="button"
-                  onClick={() => setSelectedRole("user")}
-                  style={{
-                    width: "100%",
-                    padding: "20px",
-                    border: "1px solid #dce8df",
-                    borderRadius: "12px",
-                    background: "#f8fcf9",
-                    color: "#12372a",
-                    cursor: "pointer",
-                    textAlign: "left",
-                    fontSize: "15px",
-                  }}
+                  onClick={() =>
+                    setSelectedRole("consumer")
+                  }
+                  style={roleButtonStyle}
                 >
 
                   <strong
@@ -223,26 +343,110 @@ function Register() {
                       marginBottom: "5px",
                     }}
                   >
-                    👤 User / Staff
+                    👤 Consumer
                   </strong>
 
                   <span>
-                    Monitor food freshness and daily operations
+                    Check food freshness, shelf life
+                    and recommendations
+                  </span>
+
+                </button>
+
+                {/* RETAIL MANAGER */}
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setSelectedRole("retail_manager")
+                  }
+                  style={roleButtonStyle}
+                >
+
+                  <strong
+                    style={{
+                      display: "block",
+                      fontSize: "17px",
+                      marginBottom: "5px",
+                    }}
+                  >
+                    🏪 Retail Manager
+                  </strong>
+
+                  <span>
+                    Monitor inventory, freshness and
+                    shelf-life alerts
+                  </span>
+
+                </button>
+
+                {/* WAREHOUSE OPERATOR */}
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setSelectedRole(
+                      "warehouse_operator"
+                    )
+                  }
+                  style={roleButtonStyle}
+                >
+
+                  <strong
+                    style={{
+                      display: "block",
+                      fontSize: "17px",
+                      marginBottom: "5px",
+                    }}
+                  >
+                    📦 Warehouse Operator
+                  </strong>
+
+                  <span>
+                    Manage storage conditions,
+                    batches and inventory
+                  </span>
+
+                </button>
+
+                {/* FOOD QUALITY INSPECTOR */}
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setSelectedRole(
+                      "quality_inspector"
+                    )
+                  }
+                  style={roleButtonStyle}
+                >
+
+                  <strong
+                    style={{
+                      display: "block",
+                      fontSize: "17px",
+                      marginBottom: "5px",
+                    }}
+                  >
+                    🔍 Food Quality Inspector
+                  </strong>
+
+                  <span>
+                    Analyze food quality, spoilage
+                    and freshness
                   </span>
 
                 </button>
 
               </div>
 
-
               <div className="divider">
                 <span>or</span>
               </div>
 
-
               <p className="register-text">
 
-                Already have an account?
+                Already have an account?{" "}
 
                 <Link to="/login">
                   Sign in
@@ -251,17 +455,23 @@ function Register() {
               </p>
 
             </>
+
           )}
 
-
+          {/* ================================================== */}
           {/* REGISTRATION FORM */}
+          {/* ================================================== */}
 
           {selectedRole && (
+
             <>
 
               <button
                 type="button"
-                onClick={() => setSelectedRole(null)}
+                onClick={() => {
+                  setSelectedRole(null);
+                  setError("");
+                }}
                 style={{
                   border: "none",
                   background: "none",
@@ -271,26 +481,24 @@ function Register() {
                   marginBottom: "15px",
                   fontSize: "14px",
                 }}
+                disabled={loading}
               >
                 ← Change account type
               </button>
-
 
               <h1>
                 Create account
               </h1>
 
               <p className="auth-subtitle">
+
                 Register as{" "}
 
                 <strong>
-                  {selectedRole === "admin"
-                    ? "Administrator"
-                    : "User / Staff"}
+                  {roleDetails[selectedRole].name}
                 </strong>
 
               </p>
-
 
               <form onSubmit={handleRegister}>
 
@@ -309,10 +517,10 @@ function Register() {
                     onChange={(e) =>
                       setName(e.target.value)
                     }
+                    disabled={loading}
                   />
 
                 </div>
-
 
                 {/* EMAIL */}
 
@@ -329,10 +537,10 @@ function Register() {
                     onChange={(e) =>
                       setEmail(e.target.value)
                     }
+                    disabled={loading}
                   />
 
                 </div>
-
 
                 {/* PASSWORD */}
 
@@ -349,10 +557,10 @@ function Register() {
                     onChange={(e) =>
                       setPassword(e.target.value)
                     }
+                    disabled={loading}
                   />
 
                 </div>
-
 
                 {/* CONFIRM PASSWORD */}
 
@@ -367,12 +575,33 @@ function Register() {
                     placeholder="Confirm your password"
                     value={confirmPassword}
                     onChange={(e) =>
-                      setConfirmPassword(e.target.value)
+                      setConfirmPassword(
+                        e.target.value
+                      )
                     }
+                    disabled={loading}
                   />
 
                 </div>
 
+                {/* ERROR */}
+
+                {error && (
+
+                  <div
+                    style={{
+                      color: "#d64545",
+                      background: "#fff1f1",
+                      padding: "10px 12px",
+                      borderRadius: "8px",
+                      marginBottom: "15px",
+                      fontSize: "14px",
+                    }}
+                  >
+                    {error}
+                  </div>
+
+                )}
 
                 {/* TERMS */}
 
@@ -381,6 +610,7 @@ function Register() {
                   <input
                     type="checkbox"
                     required
+                    disabled={loading}
                   />
 
                   <span>
@@ -389,22 +619,23 @@ function Register() {
 
                 </label>
 
-
                 {/* CREATE ACCOUNT */}
 
                 <button
                   className="auth-button"
                   type="submit"
+                  disabled={loading}
                 >
-                  Create Account →
+                  {loading
+                    ? "Creating Account..."
+                    : "Create Account →"}
                 </button>
 
               </form>
 
-
               <p className="register-text">
 
-                Already have an account?
+                Already have an account?{" "}
 
                 <Link to="/login">
                   Sign in
@@ -413,6 +644,7 @@ function Register() {
               </p>
 
             </>
+
           )}
 
         </div>

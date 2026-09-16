@@ -101,7 +101,13 @@ const historyData = [
 ];
 
 function FreshnessHistory({ onBack }) {
-  const [history, setHistory] = useState(historyData);
+  const [history, setHistory] = useState(() => {
+  const savedHistory = JSON.parse(
+    localStorage.getItem("foodfresh_history") || "[]"
+  );
+
+  return [...savedHistory, ...historyData];
+});
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("All");
   const [selectedRecord, setSelectedRecord] = useState(null);
@@ -142,15 +148,16 @@ function FreshnessHistory({ onBack }) {
     return "history-spoiled";
   };
 
-  const clearHistory = () => {
-    const confirmClear = window.confirm(
-      "Are you sure you want to clear the freshness history?"
-    );
+const clearHistory = () => {
+  const confirmClear = window.confirm(
+    "Are you sure you want to clear the freshness history?"
+  );
 
-    if (confirmClear) {
-      setHistory([]);
-    }
-  };
+  if (confirmClear) {
+    setHistory([]);
+    localStorage.removeItem("foodfresh_history");
+  }
+};
 
   return (
     <div className="freshness-history-page">
@@ -262,12 +269,12 @@ function FreshnessHistory({ onBack }) {
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
         >
-          <option value="All">All Results</option>
-          <option value="Fresh">Fresh</option>
-          <option value="Near Spoilage">
-            Near Spoilage
-          </option>
-          <option value="Spoiled">Spoiled</option>
+         <option value="All">All Results</option>
+        <option value="Fresh">Fresh</option>
+        <option value="Good">Good</option>
+        <option value="Acceptable">Acceptable</option>
+        <option value="Near Spoilage">Near Spoilage</option>
+        <option value="Spoiled">Spoiled</option> 
         </select>
 
       </div>

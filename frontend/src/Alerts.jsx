@@ -83,7 +83,14 @@ const initialAlerts = [
 ];
 
 function Alerts({ onBack }) {
-  const [alerts, setAlerts] = useState(initialAlerts);
+  const [alerts, setAlerts] = useState(() => {
+    const savedAlerts = JSON.parse(
+      localStorage.getItem("foodfresh_alerts") || "[]"
+    );
+
+    return [...savedAlerts, ...initialAlerts];
+  });
+
   const [filter, setFilter] = useState("All");
 
   const filteredAlerts = alerts.filter((alert) => {
@@ -104,15 +111,24 @@ function Alerts({ onBack }) {
     (alert) => alert.unread
   ).length;
 
-  const markAsRead = (id) => {
-    setAlerts(
-      alerts.map((alert) =>
-        alert.id === id
-          ? { ...alert, unread: false }
-          : alert
-      )
-    );
-  };
+const markAsRead = (id) => {
+  const updatedAlerts = alerts.map((alert) =>
+    alert.id === id
+      ? { ...alert, unread: false }
+      : alert
+  );
+
+  setAlerts(updatedAlerts);
+
+  const aiAlerts = updatedAlerts.filter(
+    (alert) => alert.source === "AI Analysis"
+  );
+
+  localStorage.setItem(
+    "foodfresh_alerts",
+    JSON.stringify(aiAlerts)
+  );
+};
 
   const markAllAsRead = () => {
     setAlerts(
@@ -319,7 +335,53 @@ function Alerts({ onBack }) {
                   <p className="alert-message">
                     {alert.message}
                   </p>
+                  {alert.source === "AI Analysis" && (
+  <div className="ai-alert-details">
 
+    <div className="ai-alert-detail">
+      <span>Freshness Score</span>
+      <strong>
+        {alert.freshnessScore}/100
+      </strong>
+    </div>
+
+    <div className="ai-alert-detail">
+      <span>AI Confidence</span>
+      <strong>
+        {alert.confidence}%
+      </strong>
+    </div>
+
+    <div className="ai-alert-detail">
+      <span>Remaining Shelf Life</span>
+      <strong>
+        {alert.shelfLife}
+      </strong>
+    </div>
+
+    <div className="ai-alert-detail">
+      <span>Visual Score</span>
+      <strong>
+        {alert.visualScore}/100
+      </strong>
+    </div>
+
+    <div className="ai-alert-detail">
+      <span>Storage Score</span>
+      <strong>
+        {alert.storageScore}/100
+      </strong>
+    </div>
+
+    <div className="ai-alert-detail">
+      <span>Source</span>
+      <strong>
+        AI Image Analysis
+      </strong>
+    </div>
+
+  </div>
+)}
                   <div className="alert-bottom">
 
                     <span className="alert-time">

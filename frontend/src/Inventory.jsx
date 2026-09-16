@@ -77,7 +77,13 @@ const initialInventory = [
 ];
 
 function Inventory({ onBack }) {
-  const [inventory, setInventory] = useState(initialInventory);
+  const [inventory, setInventory] = useState(() => {
+  const savedInventory = JSON.parse(
+    localStorage.getItem("foodfresh_inventory") || "[]"
+    );
+
+    return [...savedInventory, ...initialInventory];
+  });
 
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All Categories");
@@ -93,6 +99,12 @@ function Inventory({ onBack }) {
     unit: "kg",
     freshness: "Fresh",
     shelfLife: "",
+    storageTemperature: "6",
+    humidity: "65",
+    storageDuration: "0",
+    airCirculation: "Good",
+    lightExposure: "Low",
+    packaging: "Proper",
     emoji: "🍎",
   });
 
@@ -147,6 +159,12 @@ function Inventory({ onBack }) {
       unit: newFood.unit,
       freshness: newFood.freshness,
       shelfLife: newFood.shelfLife,
+      storageTemperature: Number(newFood.storageTemperature),
+      humidity: Number(newFood.humidity),
+      storageDuration: Number(newFood.storageDuration),
+      airCirculation: newFood.airCirculation,
+      lightExposure: newFood.lightExposure,
+      packaging: newFood.packaging,
       batch: `${newFood.name.substring(0, 3).toUpperCase()}-${Date.now()
         .toString()
         .slice(-3)}`,
@@ -162,6 +180,12 @@ function Inventory({ onBack }) {
       unit: "kg",
       freshness: "Fresh",
       shelfLife: "",
+      storageTemperature: "6",
+      humidity: "65",
+      storageDuration: "0",
+      airCirculation: "Good",
+      lightExposure: "Low",
+      packaging: "Proper",
       emoji: "🍎",
     });
 
@@ -501,6 +525,86 @@ function Inventory({ onBack }) {
                 />
               </div>
 
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Temperature (°C)</label>
+                  <input
+                    type="number"
+                    name="storageTemperature"
+                    value={newFood.storageTemperature}
+                    onChange={handleInputChange}
+                    step="0.1"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Humidity (%)</label>
+                  <input
+                    type="number"
+                    name="humidity"
+                    value={newFood.humidity}
+                    onChange={handleInputChange}
+                    min="0"
+                    max="100"
+                  />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Storage Duration (Days)</label>
+                  <input
+                    type="number"
+                    name="storageDuration"
+                    value={newFood.storageDuration}
+                    onChange={handleInputChange}
+                    min="0"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Air Circulation</label>
+                  <select
+                    name="airCirculation"
+                    value={newFood.airCirculation}
+                    onChange={handleInputChange}
+                  >
+                    <option>Good</option>
+                    <option>Moderate</option>
+                    <option>Poor</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Light Exposure</label>
+                  <select
+                    name="lightExposure"
+                    value={newFood.lightExposure}
+                    onChange={handleInputChange}
+                  >
+                    <option>Low</option>
+                    <option>Medium</option>
+                    <option>High</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Packaging</label>
+                  <select
+                    name="packaging"
+                    value={newFood.packaging}
+                    onChange={handleInputChange}
+                  >
+                    <option>Proper</option>
+                    <option>Open</option>
+                    <option>Damaged</option>
+                    <option>None</option>
+                  </select>
+                </div>
+              </div>
+
               <div className="modal-buttons">
                 <button
                   type="button"
@@ -576,6 +680,36 @@ function Inventory({ onBack }) {
               <div>
                 <span>Last Analyzed</span>
                 <strong>{selectedItem.lastAnalyzed}</strong>
+              </div>
+
+              <div>
+                <span>Temperature</span>
+                <strong>{selectedItem.storageTemperature ?? 6}°C</strong>
+              </div>
+
+              <div>
+                <span>Humidity</span>
+                <strong>{selectedItem.humidity ?? 65}%</strong>
+              </div>
+
+              <div>
+                <span>Storage Duration</span>
+                <strong>{selectedItem.storageDuration ?? 0} Days</strong>
+              </div>
+
+              <div>
+                <span>Air Circulation</span>
+                <strong>{selectedItem.airCirculation ?? "Good"}</strong>
+              </div>
+
+              <div>
+                <span>Light Exposure</span>
+                <strong>{selectedItem.lightExposure ?? "Low"}</strong>
+              </div>
+
+              <div>
+                <span>Packaging</span>
+                <strong>{selectedItem.packaging ?? "Proper"}</strong>
               </div>
             </div>
 

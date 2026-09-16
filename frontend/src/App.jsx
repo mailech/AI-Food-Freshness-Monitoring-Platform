@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 
 import Login from "./Login";
@@ -12,9 +12,70 @@ import Recommendations from "./Recommendations";
 import Alerts from "./Alerts";
 import Reports from "./Reports";
 import Settings from "./Settings";
-
+import StorageMonitoring from "./StorageMonitoring";
 import "./App.css";
 
+const ROLE_PERMISSIONS = {
+  admin: [
+    "Dashboard",
+    "Analyze Food",
+    "Inventory",
+    "Food Batches",
+    "Storage Monitoring",
+    "Freshness History",
+    "Recommendations",
+    "Alerts",
+    "Reports",
+    "Settings",
+  ],
+
+  consumer: [
+    "Dashboard",
+    "Analyze Food",
+    "Freshness History",
+    "Recommendations",
+  ],
+
+  retail_manager: [
+    "Dashboard",
+    "Analyze Food",
+    "Inventory",
+    "Food Batches",
+    "Freshness History",
+    "Recommendations",
+    "Alerts",
+    "Reports",
+  ],
+
+  warehouse_operator: [
+    "Dashboard",
+    "Inventory",
+    "Food Batches",
+    "Storage Monitoring",
+    "Freshness History",
+    "Recommendations",
+    "Alerts",
+  ],
+
+  quality_inspector: [
+    "Dashboard",
+    "Analyze Food",
+    "Storage Monitoring",
+    "Freshness History",
+    "Recommendations",
+    "Alerts",
+    "Reports",
+  ],
+};
+function ProtectedDashboard() {
+  const token = localStorage.getItem("foodfresh_access_token");
+
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <Dashboard />;
+}
 function Dashboard() {
   const [activePage, setActivePage] = useState("Dashboard");
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -22,24 +83,132 @@ function Dashboard() {
   const storedUser = JSON.parse(localStorage.getItem("foodfresh_user") || "null");
   const currentUser = storedUser || { name: "User", email: "", role: "user" };
   const isAdmin = currentUser.role === "admin";
-
+  const allowedPages =
+  ROLE_PERMISSIONS[currentUser.role] ||
+  ROLE_PERMISSIONS.consumer;
   const [selectedFile, setSelectedFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState(null);
+  const [alertCount, setAlertCount] = useState(() => {
+  const savedAlerts = JSON.parse(
+    localStorage.getItem("foodfresh_alerts") || "[]"
+  );
 
-  const menuItems = [
-    { name: "Dashboard", icon: "▦" },
-    { name: "Analyze Food", icon: "⌁" },
-    { name: "Inventory", icon: "▤" },
-    { name: "Food Batches", icon: "▥" },
-    { name: "Freshness History", icon: "◷" },
-    { name: "Recommendations", icon: "✦" },
-    { name: "Alerts", icon: "⚠" },
-    { name: "Reports", icon: "▥" },
-    ...(isAdmin ? [{ name: "Settings", icon: "⚙" }] : []),
-  ];
+  return savedAlerts.filter(
+    (alert) => alert.unread
+  ).length;
+});
+const [dashboardStats, setDashboardStats] = useState({
+  total: 0,
+  fresh: 0,
+  good: 0,
+  acceptable: 0,
+  nearSpoilage: 0,
+  spoiled: 0,
+  averageScore: 0,
+});
+const [freshnessTrend, setFreshnessTrend] = useState([]);
+const [dashboardRecommendations, setDashboardRecommendations] = useState([]);
+const loadDashboardStats = () => {
+  const inventory = JSON.parse(
+    localStorage.getItem("foodfresh_inventory") || "[]"
+  );
 
+  const scores = inventory
+    .map((item) =>
+      Number(item.freshnessScore ?? item.score)
+    )
+    .filter((score) => !isNaN(score));
+
+  setDashboardStats({
+    total: inventory.length,
+
+fresh: inventory.filter(
+  (item) => item.freshness === "Fresh"
+).length,
+
+good: inventory.filter(
+  (item) => item.freshness === "Good"
+).length,
+
+acceptable: inventory.filter(
+  (item) => item.freshness === "Acceptable"
+).length,
+
+nearSpoilage: inventory.filter(
+  (item) => item.freshness === "Near Spoilage"
+).length,
+
+    spoiled: inventory.filter(
+      (item) => item.freshness === "Spoiled"
+    ).length,
+
+    averageScore:
+      scores.length > 0
+        ? Math.round(
+            scores.reduce(
+              (sum, score) => sum + score,
+              0
+            ) / scores.length
+          )
+        : 0,
+  });
+};
+const loadFreshnessTrend = () => {
+  const history = JSON.parse(
+    localStorage.getItem("foodfresh_history") || "[]"
+  );
+
+  const scores = history
+    .map((item) => Number(item.score))
+    .filter((score) => !isNaN(score));
+
+  setFreshnessTrend(scores.slice(0, 7).reverse());
+};
+const loadDashboardRecommendations = () => {
+  const recommendations = JSON.parse(
+    localStorage.getItem("foodfresh_recommendations") || "[]"
+  );
+
+  setDashboardRecommendations(recommendations.slice(0, 2));
+};
+useEffect(() => {
+  loadDashboardStats();
+  loadFreshnessTrend();
+  loadDashboardRecommendations();
+}, []);
+const getDistributionPercentage = (count) => {
+  if (dashboardStats.total === 0) return 0;
+
+  return Math.round(
+    (count / dashboardStats.total) * 100
+  );
+};
+  // Storage & product information
+  const [temperature, setTemperature] = useState(6);
+  const [humidity, setHumidity] = useState(65);
+  const [storageDuration, setStorageDuration] = useState(0);
+  const [productAgeDays, setProductAgeDays] = useState(0);
+  const [airCirculation, setAirCirculation] = useState("Good");
+  const [lightExposure, setLightExposure] = useState("Low");
+  const [packaging, setPackaging] = useState("Proper");
+const allMenuItems = [
+  { name: "Dashboard", icon: "▦" },
+  { name: "Analyze Food", icon: "⌁" },
+  { name: "Inventory", icon: "▤" },
+  { name: "Food Batches", icon: "▥" },
+  { name: "Storage Monitoring", icon: "▣" },
+  { name: "Freshness History", icon: "◷" },
+  { name: "Recommendations", icon: "✦" },
+  { name: "Alerts", icon: "⚠" },
+  { name: "Reports", icon: "▥" },
+  { name: "Settings", icon: "⚙" },
+];
+
+const menuItems = allMenuItems.filter(
+  (item) => allowedPages.includes(item.name)
+);
   // =========================
   // FILE UPLOAD
   // =========================
@@ -93,62 +262,427 @@ function Dashboard() {
     setActivePage("Dashboard");
   };
 
-  // =========================
-  // ANALYZE IMAGE
-  // =========================
+ // =========================
+// ANALYZE IMAGE
+// =========================
 
-  const handleAnalyze = async () => {
-    if (!selectedFile) {
-      alert("Please select a food image first.");
-      return;
-    }
+const handleAnalyze = async () => {
+  if (!selectedFile) {
+    alert("Please select a food image first.");
+    return;
+  }
 
-    setAnalyzing(true);
-    setAnalysisResult(null);
+  setAnalyzing(true);
+  setAnalysisResult(null);
 
-    try {
-      const formData = new FormData();
+  try {
+    const formData = new FormData();
 
-      formData.append("file", selectedFile);
+    // Food image
+    formData.append("file", selectedFile);
 
-      const response = await fetch(
-        "/api/analyze",
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
+    // Storage & product information
+    formData.append("temperature", temperature);
+    formData.append("humidity", humidity);
+    formData.append("storage_duration", storageDuration);
+    formData.append("product_age_days", productAgeDays);
+    formData.append("air_circulation", airCirculation);
+    formData.append("light_exposure", lightExposure);
+    formData.append("packaging", packaging);
 
-      const data = await response.json();
+const token = localStorage.getItem(
+  "foodfresh_access_token"
+);
 
-      if (!response.ok || !data.success) {
-        throw new Error(
-          data.message || "Analysis failed"
-        );
-      }
+const response = await fetch(
+  "http://127.0.0.1:8000/analyze",
+  {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: formData,
+  }
+);
 
-      setAnalysisResult(data.result);
-    } catch (error) {
-      console.error("Analysis error:", error);
+const responseText = await response.text();
 
-      alert(
-        "Unable to analyze image. Please make sure the backend is running."
-      );
-    } finally {
-      setAnalyzing(false);
-    }
+let data;
+
+try {
+  data = responseText ? JSON.parse(responseText) : null;
+} catch (parseError) {
+  console.error("Invalid backend response:", responseText);
+
+  throw new Error(
+    `Backend returned an invalid response (${response.status}).`
+  );
+}
+
+if (!response.ok) {
+  throw new Error(
+    data?.message ||
+    data?.detail ||
+    `Analysis failed with status ${response.status}`
+  );
+}
+
+if (!data || !data.success) {
+  throw new Error(
+    data?.message ||
+    "Analysis failed. Backend returned no valid result."
+  );
+}
+
+setAnalysisResult(data.result);
+const result = data.result;
+
+const foodEmojiMap = {
+  Apple: "🍎",
+  Banana: "🍌",
+  Bellpepper: "🫑",
+  Carrot: "🥕",
+  Cucumber: "🥒",
+  Grape: "🍇",
+  Guava: "🍈",
+  Jujube: "🫒",
+  Mango: "🥭",
+  Orange: "🍊",
+  Pomegranate: "🍎",
+  Potato: "🥔",
+  Strawberry: "🍓",
+  Tomato: "🍅"
+};
+
+const historyEmoji = foodEmojiMap[result.food] || "🍎";
+
+const now = new Date();
+
+const historyItem = {
+  id: Date.now(),
+  food: result.food,
+  emoji: historyEmoji,
+  batchId: `AI-${Date.now().toString().slice(-6)}`,
+  freshness: result.classification,
+  score: Number(result.freshness_score),
+  confidence: Number(result.confidence),
+  shelfLife: result.shelf_life,
+  date: now.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric"
+  }),
+  time: now.toLocaleTimeString("en-IN", {
+    hour: "2-digit",
+    minute: "2-digit"
+  }),
+
+  visualScore: result.visual_score,
+  storageScore: result.storage_score,
+  shelfLifeScore: result.shelf_life_score,
+  productAgeScore: result.product_age_score,
+
+  visualAnalysis: result.visual_analysis || null,
+  storage: result.storage || null
+};
+
+const existingHistory = JSON.parse(
+  localStorage.getItem("foodfresh_history") || "[]"
+);
+
+localStorage.setItem(
+  "foodfresh_history",
+  JSON.stringify([
+    historyItem,
+    ...existingHistory
+  ])
+);
+// ==========================================
+// SAVE AI RESULT TO RECOMMENDATIONS
+// ==========================================
+
+const existingRecommendations = JSON.parse(
+  localStorage.getItem("foodfresh_recommendations") || "[]"
+);
+
+let aiRecommendation;
+
+if (result.classification === "Spoiled") {
+  aiRecommendation = {
+    id: Date.now(),
+    food: result.food,
+    emoji: historyEmoji,
+    status: "Spoiled",
+    priority: "Critical",
+    title: `Remove ${result.food}`,
+    message:
+      `${result.food} has been classified as spoiled. ` +
+      `Remove it from usable inventory immediately.`,
+    action: "Remove from inventory",
+    category: "Safety"
   };
+} else if (result.classification === "Near Spoilage") {
+  aiRecommendation = {
+    id: Date.now(),
+    food: result.food,
+    emoji: historyEmoji,
+    status: "Near Spoilage",
+    priority: "High",
+    title: `Use ${result.food} Soon`,
+    message:
+      `${result.food} is approaching spoilage. ` +
+      `Prioritize consumption before the remaining shelf life ends.`,
+    action: "Consume soon",
+    category: "Food Usage"
+  };
+} else if (result.classification === "Acceptable") {
+  aiRecommendation = {
+    id: Date.now(),
+    food: result.food,
+    emoji: historyEmoji,
+    status: "Acceptable",
+    priority: "Medium",
+    title: `Monitor ${result.food}`,
+    message:
+      `${result.food} is acceptable but should be monitored regularly ` +
+      `to maintain quality.`,
+    action: "Monitor condition",
+    category: "Monitoring"
+  };
+} else {
+  aiRecommendation = {
+    id: Date.now(),
+    food: result.food,
+    emoji: historyEmoji,
+    status: result.classification,
+    priority: "Low",
+    title: `Maintain ${result.food} Storage`,
+    message:
+      `${result.food} is currently in ${result.classification.toLowerCase()} ` +
+      `condition. Continue appropriate storage practices.`,
+    action: "Continue storage",
+    category: "Storage"
+  };
+}
+
+localStorage.setItem(
+  "foodfresh_recommendations",
+  JSON.stringify([
+    aiRecommendation,
+    ...existingRecommendations
+  ])
+);
+// ==========================================
+// AI ANALYSIS ALERT + INVENTORY + BATCH
+// ==========================================
+
+const resultEmoji = foodEmojiMap[result.food] || "🥗";
+const resultBatch = `AI-${Date.now().toString().slice(-6)}`;
+
+const newAlert = {
+  id: Date.now(),
+  food: result.food || "Unknown Food",
+  emoji: resultEmoji,
+  batch: resultBatch,
+  type: result.classification,
+  severity:
+    result.classification === "Spoiled"
+      ? "Critical"
+      : "High",
+  title:
+    result.classification === "Spoiled"
+      ? "Food Spoilage Detected"
+      : "Food Near Spoilage",
+  message:
+    result.classification === "Spoiled"
+      ? `${result.food} has been classified as spoiled by the AI freshness analysis. Remove the item from usable inventory immediately.`
+      : `${result.food} is approaching spoilage. Prioritize consumption and inspect the associated batch.`,
+  freshnessScore: Number(result.freshness_score),
+  confidence: Number(result.confidence),
+  remainingDays: Number(result.remaining_days),
+  shelfLife: result.shelf_life,
+  visualScore: Number(result.visual_score),
+  storageScore: Number(result.storage_score),
+  detectedAt: new Date().toISOString(),
+  time: "Just now",
+  unread: true,
+  source: "AI Analysis"
+};
+
+
+// ==========================================
+// AUTOMATIC SPOILAGE ALERT
+// ==========================================
+
+if (
+  result.classification === "Near Spoilage" ||
+  result.classification === "Spoiled"
+) {
+  const existingAlerts = JSON.parse(
+    localStorage.getItem("foodfresh_alerts") || "[]"
+  );
+
+  const isSpoiled =
+    result.classification === "Spoiled";
+
+  const updatedAlerts = [
+    newAlert,
+    ...existingAlerts
+  ];
+
+  localStorage.setItem(
+    "foodfresh_alerts",
+    JSON.stringify(updatedAlerts)
+  );
+
+  setAlertCount(prev => prev + 1);
+
+  alert(
+    `${isSpoiled
+      ? "🚨 SPOILAGE ALERT"
+      : "⚠️ NEAR SPOILAGE ALERT"}\n\n` +
+    `${result.food}\n\n` +
+    `Freshness Score: ${result.freshness_score}/100\n` +
+    `Classification: ${result.classification}\n` +
+    `Remaining Shelf Life: ${result.shelf_life}\n\n` +
+    `${newAlert.message}`
+  );
+}
+
+
+// ==========================================
+// FOOD CATEGORY
+// ==========================================
+
+const foodCategories = {
+  Apple: "Fruit",
+  Banana: "Fruit",
+  Bellpepper: "Vegetable",
+  Carrot: "Vegetable",
+  Cucumber: "Vegetable",
+  Grape: "Fruit",
+  Guava: "Fruit",
+  Jujube: "Fruit",
+  Mango: "Fruit",
+  Orange: "Fruit",
+  Pomegranate: "Fruit",
+  Potato: "Vegetable",
+  Strawberry: "Fruit",
+  Tomato: "Vegetable"
+};
+
+const foodCategory =
+  foodCategories[result.food] || "Other";
+
+
+// ==========================================
+// SAVE AI RESULT TO INVENTORY
+// ==========================================
+
+const existingInventory = JSON.parse(
+  localStorage.getItem("foodfresh_inventory") || "[]"
+);
+
+const inventoryItem = {
+  id: Date.now(),
+  emoji: resultEmoji,
+  name: result.food,
+  category: foodCategory,
+  quantity: 1,
+  unit: "kg",
+  freshness: result.classification,
+  score: Number(result.freshness_score),
+  freshnessScore: Number(result.freshness_score),
+  confidence: Number(result.confidence),
+  shelfLife: result.shelf_life,
+  batch: resultBatch,
+  lastAnalyzed: "Just now",
+  storageTemperature: Number(temperature),
+  humidity: Number(humidity),
+  storageDuration: Number(storageDuration),
+  airCirculation,
+  lightExposure,
+  packaging
+};
+
+localStorage.setItem(
+  "foodfresh_inventory",
+  JSON.stringify([
+    inventoryItem,
+    ...existingInventory
+  ])
+);
+loadDashboardStats();
+loadFreshnessTrend();
+loadDashboardRecommendations();
+
+// ==========================================
+// SAVE AI RESULT TO FOOD BATCHES
+// ==========================================
+
+const existingBatches = JSON.parse(
+  localStorage.getItem("foodfresh_batches") || "[]"
+);
+
+const batchItem = {
+  id: Date.now() + 1,
+  batchId: resultBatch,
+  food: result.food,
+  emoji: resultEmoji,
+  category: foodCategory,
+  quantity: "1 kg",
+  freshness: result.classification,
+  score: Number(result.freshness_score),
+  shelfLife: result.shelf_life,
+  added: "Just now",
+
+  status:
+    result.classification === "Spoiled"
+      ? "Expired"
+      : result.classification === "Near Spoilage"
+      ? "Priority"
+      : "Active",
+
+  storageTemperature: Number(temperature),
+  humidity: Number(humidity)
+};
+
+localStorage.setItem(
+  "foodfresh_batches",
+  JSON.stringify([
+    batchItem,
+    ...existingBatches
+  ])
+);
+
+} catch (error) {
+    console.error("Analysis error:", error);
+
+    alert(
+      error.message ||
+      "Unable to analyze image. Please make sure the backend is running."
+    );
+
+  } finally {
+    setAnalyzing(false);
+  }
+};
 
   // =========================
   // LOGOUT
   // =========================
 
   const handleLogout = () => {
-    localStorage.removeItem("foodfresh_logged_in");
-    localStorage.removeItem("foodfresh_user");
-    window.location.href = "/login";
-  };
 
+    localStorage.removeItem("foodfresh_logged_in");
+
+    localStorage.removeItem("foodfresh_user");
+
+    localStorage.removeItem("foodfresh_access_token");
+
+    window.location.href = "/login";
+
+  };
   // =========================
   // SIDEBAR
   // =========================
@@ -268,10 +802,18 @@ function Dashboard() {
       </div>
 
       <div className="top-actions">
-
-        <button className="notification">
+        <button
+          className="notification"
+          onClick={() => setActivePage("Alerts")}
+          title="View Alerts"
+        >
           🔔
-          <span className="notification-dot"></span>
+
+          {alertCount > 0 && (
+            <span className="notification-badge">
+              {alertCount > 99 ? "99+" : alertCount}
+            </span>
+          )}
         </button>
 
         <button className="help-button">
@@ -363,7 +905,7 @@ function Dashboard() {
                   </div>
 
                   <h2>
-                    1,284
+                    {dashboardStats.total}
                   </h2>
 
                   <div className="stat-change positive">
@@ -391,7 +933,7 @@ function Dashboard() {
                   </div>
 
                   <h2 className="fresh-text">
-                    1,042
+                    {dashboardStats.fresh}
                   </h2>
 
                   <div className="stat-change positive">
@@ -421,7 +963,7 @@ function Dashboard() {
                   </div>
 
                   <h2 className="warning-text">
-                    42
+                    {dashboardStats.nearSpoilage}
                   </h2>
 
                   <div className="stat-change warning-change">
@@ -445,7 +987,7 @@ function Dashboard() {
                   </div>
 
                   <h2 className="danger-text">
-                    08
+                    {dashboardStats.spoiled}
                   </h2>
 
                   <div className="stat-change danger-change">
@@ -475,7 +1017,7 @@ function Dashboard() {
                   </div>
 
                   <h2>
-                    92<span>/100</span>
+                   {dashboardStats.averageScore}<span>/100</span>
                   </h2>
 
                   <div className="progress">
@@ -525,8 +1067,15 @@ function Dashboard() {
                       <div className="donut-center">
 
                         <strong>
-                          84%
-                        </strong>
+  {dashboardStats.total > 0
+    ? Math.round(
+        ((dashboardStats.fresh +
+          dashboardStats.good) /
+          dashboardStats.total) *
+          100
+      )
+    : 0}%
+</strong>
 
                         <span>
                           OPTIMAL
@@ -541,25 +1090,42 @@ function Dashboard() {
                       <div>
                         <span className="legend-dot fresh-dot"></span>
                         Fresh
-                        <strong>62%</strong>
+                        <strong>
+  {getDistributionPercentage(dashboardStats.fresh)}%
+</strong>
                       </div>
 
                       <div>
                         <span className="legend-dot good-dot"></span>
                         Good
-                        <strong>22%</strong>
+                        <strong>
+  {getDistributionPercentage(dashboardStats.good)}%
+</strong>
                       </div>
 
                       <div>
                         <span className="legend-dot acceptable-dot"></span>
                         Acceptable
-                        <strong>10%</strong>
+                        <strong>
+  {getDistributionPercentage(dashboardStats.acceptable)}%
+</strong>
                       </div>
+                      <div>
+  <span className="legend-dot warning-dot"></span>
+  Near Spoilage
+  <strong>
+    {getDistributionPercentage(
+      dashboardStats.nearSpoilage
+    )}%
+  </strong>
+</div>
 
                       <div>
                         <span className="legend-dot spoiled-dot"></span>
                         Spoiled
-                        <strong>6%</strong>
+                        <strong>
+  {getDistributionPercentage(dashboardStats.spoiled)}%
+</strong>
                       </div>
 
                     </div>
@@ -598,70 +1164,43 @@ function Dashboard() {
 
                   </div>
 
-                  <div className="bar-chart">
-
-                    <div
-                      className="bar"
-                      style={{ height: "48%" }}
-                    >
-                      <span>88</span>
-                    </div>
-
-                    <div
-                      className="bar"
-                      style={{ height: "55%" }}
-                    >
-                      <span>89</span>
-                    </div>
-
-                    <div
-                      className="bar"
-                      style={{ height: "51%" }}
-                    >
-                      <span>88</span>
-                    </div>
-
-                    <div
-                      className="bar"
-                      style={{ height: "62%" }}
-                    >
-                      <span>90</span>
-                    </div>
-
-                    <div
-                      className="bar"
-                      style={{ height: "68%" }}
-                    >
-                      <span>91</span>
-                    </div>
-
-                    <div
-                      className="bar"
-                      style={{ height: "76%" }}
-                    >
-                      <span>92</span>
-                    </div>
-
-                    <div
-                      className="bar active-bar"
-                      style={{ height: "85%" }}
-                    >
-                      <span>94</span>
-                    </div>
-
-                  </div>
+  <div className="bar-chart">
+  {freshnessTrend.length > 0 ? (
+    freshnessTrend.map((score, index) => (
+      <div
+        key={index}
+        className={
+          index === freshnessTrend.length - 1
+            ? "bar active-bar"
+            : "bar"
+        }
+        style={{
+          height: `${Math.max(5, score)}%`,
+        }}
+      >
+        <span>{Math.round(score)}</span>
+      </div>
+    ))
+  ) : (
+    <div className="no-data">
+      No analysis data yet
+    </div>
+  )}
+</div>
 
                   <div className="chart-labels">
-
-                    <span>Mon</span>
-                    <span>Tue</span>
-                    <span>Wed</span>
-                    <span>Thu</span>
-                    <span>Fri</span>
-                    <span>Sat</span>
-                    <span>Sun</span>
-
-                  </div>
+  {freshnessTrend.length > 0 ? (
+    freshnessTrend.map((_, index) => (
+      <span key={index}>
+        {index === freshnessTrend.length - 1
+          ? "Today"
+          : `${freshnessTrend.length - index - 1}d`}
+      </span>
+    ))
+  ) : (
+    <span>No data</span>
+  )}
+</div>
 
                 </div>
 
@@ -686,6 +1225,19 @@ function Dashboard() {
                         estimate freshness and
                         remaining shelf life.
                       </p>
+                      <div className="chart-labels">
+  {freshnessTrend.length > 0 ? (
+    freshnessTrend.map((_, index) => (
+      <span key={index}>
+        {index === freshnessTrend.length - 1
+          ? "Today"
+          : `${freshnessTrend.length - index - 1}d`}
+      </span>
+    ))
+  ) : (
+    <span>No data</span>
+  )}
+</div>
 
                     </div>
 
@@ -833,37 +1385,79 @@ function Dashboard() {
 
                   </div>
 
-                  <div className="recommendation">
+                  {dashboardRecommendations.length > 0 ? (
+  dashboardRecommendations.map((rec, index) => (
+    <div className="recommendation" key={rec.id || index}>
+      
+      <span
+        className={`priority ${
+          rec.priority === "Critical" || rec.priority === "High"
+            ? ""
+            : "logistics"
+        }`}
+      >
+        {rec.priority?.toUpperCase() || "INFO"}
+      </span>
 
-                    <span className="priority logistics">
-                      LOGISTICS
-                    </span>
+      <h4>{rec.title}</h4>
 
-                    <h4>
-                      Cooling Optimization
-                    </h4>
+      <p>{rec.message}</p>
 
-                    <p>
-                      Shelf 04 currently maintains
-                      6°C. Lowering it to 4°C may
-                      extend shelf life.
-                    </p>
+    </div>
+  ))
+) : (
+  <div className="recommendation">
 
-                  </div>
+    <h4>No recommendations yet</h4>
 
-                  <div className="waste-box">
+    <p>
+      Analyze food items to receive AI-powered
+      storage and freshness recommendations.
+    </p>
 
-                    <strong>
-                      ♻ Waste Prevented
-                    </strong>
+  </div>
+)}
 
-                    <p>
-                      Your monitoring system has
-                      saved an estimated 42kg of
-                      potential food waste this week.
-                    </p>
+<div className="waste-box">
+  {(() => {
+    const history = JSON.parse(
+      localStorage.getItem("foodfresh_history") || "[]"
+    );
 
-                  </div>
+    const nearSpoilage = history.filter(
+  (item) =>
+    item.classification === "Near Spoilage" ||
+    Number(item.score) < 60
+).length;
+
+const spoiled = history.filter(
+  (item) =>
+    item.classification === "Spoiled" ||
+    Number(item.score) < 40
+).length;
+
+const wastePrevented = Math.max(
+  0,
+  (nearSpoilage - spoiled) * 2
+);
+
+    return (
+      <>
+        <strong>
+          ♻ Waste Prevented: {wastePrevented} kg
+        </strong>
+
+        <p>
+          Your monitoring system has helped
+          identify {nearSpoilage} item
+          {nearSpoilage !== 1 ? "s" : ""} approaching
+          spoilage, enabling timely action and
+          reducing potential food waste.
+        </p>
+      </>
+    );
+  })()}
+</div>
 
                 </div>
 
@@ -918,98 +1512,71 @@ function Dashboard() {
                     </thead>
 
                     <tbody>
+  {(() => {
+    const history = JSON.parse(
+      localStorage.getItem("foodfresh_history") || "[]"
+    );
 
-                      <tr>
+    const recentHistory = history.slice(0, 5);
 
-                        <td>
-                          🍎 Gala Apple
-                        </td>
+    if (recentHistory.length === 0) {
+      return (
+        <tr>
+          <td colSpan="6" style={{ textAlign: "center" }}>
+            No food analysis available yet
+          </td>
+        </tr>
+      );
+    }
 
-                        <td>
-                          Fruit
-                        </td>
+    return recentHistory.map((item, index) => {
+      const freshness = item.classification || item.freshness || "Unknown";
 
-                        <td>
-                          <span className="table-badge fresh-badge">
-                            Fresh
-                          </span>
-                        </td>
+      let badgeClass = "fresh-badge";
 
-                        <td>
-                          94/100
-                        </td>
+      if (
+        freshness === "Near Spoilage" ||
+        freshness === "Acceptable"
+      ) {
+        badgeClass = "warning-badge";
+      }
 
-                        <td>
-                          7 Days
-                        </td>
+      if (freshness === "Spoiled") {
+        badgeClass = "danger-badge";
+      }
 
-                        <td>
-                          Today
-                        </td>
+      return (
+        <tr key={item.id || index}>
+          <td>
+            {item.food || "Unknown Food"}
+          </td>
 
-                      </tr>
+          <td>
+            {item.category || "Food"}
+          </td>
 
-                      <tr>
+          <td>
+            <span className={`table-badge ${badgeClass}`}>
+              {freshness}
+            </span>
+          </td>
 
-                        <td>
-                          🍌 Banana
-                        </td>
+          <td>
+            {Math.round(Number(item.score) || 0)}/100
+          </td>
 
-                        <td>
-                          Fruit
-                        </td>
+          <td>
+            {item.shelfLife || "N/A"}
+          </td>
 
-                        <td>
-                          <span className="table-badge warning-badge">
-                            Near Spoilage
-                          </span>
-                        </td>
-
-                        <td>
-                          58/100
-                        </td>
-
-                        <td>
-                          1 Day
-                        </td>
-
-                        <td>
-                          Today
-                        </td>
-
-                      </tr>
-
-                      <tr>
-
-                        <td>
-                          🥛 Milk
-                        </td>
-
-                        <td>
-                          Dairy
-                        </td>
-
-                        <td>
-                          <span className="table-badge fresh-badge">
-                            Fresh
-                          </span>
-                        </td>
-
-                        <td>
-                          91/100
-                        </td>
-
-                        <td>
-                          5 Days
-                        </td>
-
-                        <td>
-                          Yesterday
-                        </td>
-
-                      </tr>
-
-                    </tbody>
+          <td>
+            {item.date || "Today"}
+          </td>
+        </tr>
+      );
+    });
+  })()}
+</tbody>
 
                   </table>
 
@@ -1108,7 +1675,98 @@ function Dashboard() {
                       <p className="selected-name">
                         {selectedFile?.name}
                       </p>
+                      <div className="storage-inputs">
 
+  <div className="storage-input-header">
+    <h4>Storage & Product Information</h4>
+    <span>Used for freshness scoring</span>
+  </div>
+
+  <div className="storage-grid">
+
+    <div className="input-group">
+      <label>Temperature (°C)</label>
+      <input
+        type="number"
+        value={temperature}
+        onChange={(e) => setTemperature(e.target.value)}
+        min="-20"
+        max="50"
+        step="0.1"
+      />
+    </div>
+
+    <div className="input-group">
+      <label>Humidity (%)</label>
+      <input
+        type="number"
+        value={humidity}
+        onChange={(e) => setHumidity(e.target.value)}
+        min="0"
+        max="100"
+      />
+    </div>
+
+    <div className="input-group">
+      <label>Storage Duration (Days)</label>
+      <input
+        type="number"
+        value={storageDuration}
+        onChange={(e) => setStorageDuration(e.target.value)}
+        min="0"
+      />
+    </div>
+
+    <div className="input-group">
+      <label>Product Age (Days)</label>
+      <input
+        type="number"
+        value={productAgeDays}
+        onChange={(e) => setProductAgeDays(e.target.value)}
+        min="0"
+      />
+    </div>
+
+    <div className="input-group">
+      <label>Air Circulation</label>
+      <select
+        value={airCirculation}
+        onChange={(e) => setAirCirculation(e.target.value)}
+      >
+        <option value="Good">Good</option>
+        <option value="Moderate">Moderate</option>
+        <option value="Poor">Poor</option>
+      </select>
+    </div>
+
+    <div className="input-group">
+      <label>Light Exposure</label>
+      <select
+        value={lightExposure}
+        onChange={(e) => setLightExposure(e.target.value)}
+      >
+        <option value="Low">Low</option>
+        <option value="Medium">Medium</option>
+        <option value="High">High</option>
+      </select>
+    </div>
+
+    <div className="input-group">
+      <label>Packaging</label>
+      <select
+        value={packaging}
+        onChange={(e) => setPackaging(e.target.value)}
+      >
+        <option value="Proper">Proper</option>
+        <option value="Damaged">Damaged</option>
+        <option value="Open">Open</option>
+        <option value="None">None</option>
+      </select>
+    </div>
+
+  </div>
+
+</div>
                       <div className="analysis-buttons">
 
                         <label className="change-image-button">
@@ -1190,6 +1848,7 @@ function Dashboard() {
               SETTINGS
           ================================================== */}
           {activePage === "Settings" && isAdmin && <Settings />}
+          {activePage === "Storage Monitoring" && <StorageMonitoring />}
 
         </section>
 
@@ -1198,7 +1857,6 @@ function Dashboard() {
     </div>
   );
 }
-
 
 // ============================================================
 // ANALYSIS RESULT COMPONENT
@@ -1209,7 +1867,6 @@ function AnalysisResult({
   showNewAnalysis = false,
   onNewAnalysis,
 }) {
-
   return (
     <div className="result-card">
 
@@ -1217,14 +1874,12 @@ function AnalysisResult({
 
         <>
 
+          {/* RESULT HEADER */}
           <div className="result-top">
 
             <span className="fresh-badge">
-
               ●{" "}
-
               {analysisResult.freshness?.toUpperCase()}
-
             </span>
 
             <span>
@@ -1233,53 +1888,225 @@ function AnalysisResult({
 
           </div>
 
+
+          {/* FOOD NAME */}
           <h2>
             {analysisResult.food}
           </h2>
 
+
+          {/* MAIN RESULT INFORMATION */}
           <div className="result-info">
 
             <div>
-
-              <span>
-                FRESHNESS
-              </span>
+              <span>FRESHNESS SCORE</span>
 
               <strong className="fresh-text">
                 {analysisResult.freshness_score}/100
               </strong>
-
             </div>
 
-            <div>
 
-              <span>
-                SHELF LIFE
-              </span>
+            <div>
+              <span>CLASSIFICATION</span>
+
+              <strong>
+                {analysisResult.classification}
+              </strong>
+            </div>
+
+
+            <div>
+              <span>REMAINING SHELF LIFE</span>
 
               <strong>
                 {analysisResult.shelf_life}
               </strong>
-
             </div>
 
           </div>
 
+
+          {/* FRESHNESS SCORE BAR */}
           <div className="result-bar">
 
             <div
               style={{
-                width:
-                  `${analysisResult.freshness_score}%`,
+                width: `${analysisResult.freshness_score}%`,
               }}
             ></div>
 
           </div>
 
-          <small>
+          {/* VISUAL CONDITION ANALYSIS */}
+          {analysisResult.visual_analysis && (
+            <div className="visual-analysis-results">
+
+              <h4>
+                Visual Condition Analysis
+              </h4>
+
+              <div className="visual-analysis-grid">
+
+                <div>
+                  <span>Visual Condition Score</span>
+                  <strong>
+                    {analysisResult.visual_analysis.visual_condition_score}/100
+                  </strong>
+                </div>
+
+
+                <div>
+                  <span>Color</span>
+                  <strong>
+                    {analysisResult.visual_analysis.color_analysis?.condition}
+                  </strong>
+                </div>
+
+
+                <div>
+                  <span>Texture</span>
+                  <strong>
+                    {analysisResult.visual_analysis.texture_analysis?.condition}
+                  </strong>
+                </div>
+
+
+                <div>
+                  <span>Mold Detection</span>
+                  <strong>
+                    {analysisResult.visual_analysis.mold_detection?.status}
+                  </strong>
+                </div>
+
+
+                <div>
+                  <span>Bruising</span>
+                  <strong>
+                    {analysisResult.visual_analysis.bruising_detection?.status}
+                  </strong>
+                </div>
+
+
+                <div>
+                  <span>Physical Damage</span>
+                  <strong>
+                    {analysisResult.visual_analysis.physical_damage_detection?.status}
+                  </strong>
+                </div>
+
+              </div>
+
+            </div>
+          )}
+
+
+          {/* SHELF LIFE DETAILS */}
+          <div className="analysis-details">
+
+            <div>
+              <span>Expected Shelf Life</span>
+
+              <strong>
+                {analysisResult.expected_shelf_life_days} Days
+              </strong>
+            </div>
+
+
+            <div>
+              <span>Remaining Shelf Life</span>
+
+              <strong>
+                {analysisResult.remaining_days} Days
+              </strong>
+            </div>
+
+          </div>
+
+
+          {/* STORAGE CONDITIONS */}
+          <div className="storage-results">
+
+            <h4>
+              Storage Conditions
+            </h4>
+
+
+            <div className="storage-results-grid">
+
+              <div>
+                <span>Temperature</span>
+
+                <strong>
+                  {analysisResult.storage?.temperature}°C
+                </strong>
+              </div>
+
+
+              <div>
+                <span>Humidity</span>
+
+                <strong>
+                  {analysisResult.storage?.humidity}%
+                </strong>
+              </div>
+
+
+              <div>
+                <span>Air Circulation</span>
+
+                <strong>
+                  {analysisResult.storage?.air_circulation}
+                </strong>
+              </div>
+
+
+              <div>
+                <span>Light Exposure</span>
+
+                <strong>
+                  {analysisResult.storage?.light_exposure}
+                </strong>
+              </div>
+
+
+              <div>
+                <span>Packaging</span>
+
+                <strong>
+                  {analysisResult.storage?.packaging}
+                </strong>
+              </div>
+
+
+              <div>
+                <span>Storage Duration</span>
+
+                <strong>
+                  {analysisResult.storage?.storage_duration} Days
+                </strong>
+              </div>
+
+            </div>
+
+
+            {/* STORAGE WARNING */}
+            {analysisResult.storage_warning && (
+              <div className="storage-warning">
+                ⚠️ {analysisResult.storage_warning}
+              </div>
+            )}
+
+          </div>
+
+
+          {/* AI RECOMMENDATION */}
+          <small className="analysis-recommendation">
             {analysisResult.recommendation}
           </small>
 
+
+          {/* NEW ANALYSIS BUTTON */}
           {showNewAnalysis && (
 
             <button
@@ -1297,6 +2124,7 @@ function AnalysisResult({
 
         <>
 
+          {/* EMPTY RESULT STATE */}
           <div className="result-top">
 
             <span className="fresh-badge">
@@ -1309,9 +2137,11 @@ function AnalysisResult({
 
           </div>
 
+
           <h2>
             Food Analysis
           </h2>
+
 
           <small>
             Upload an image and click
@@ -1369,7 +2199,7 @@ function App() {
 
       <Route
         path="/dashboard"
-        element={<Dashboard />}
+        element={<ProtectedDashboard />}
       />
 
       <Route

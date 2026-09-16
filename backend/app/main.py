@@ -1,7 +1,20 @@
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from pathlib import Path
 from pydantic import BaseModel
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi import Depends, HTTPException, status
+from app.auth import (
+    ALLOWED_ROLES,
+    load_users,
+    save_users,
+    find_user,
+    hash_password,
+    verify_password,
+    create_access_token,
+    verify_token,
+    has_permission
+)
 from dotenv import load_dotenv
 
 import shutil
@@ -15,6 +28,14 @@ import tensorflow as tf
 
 from PIL import Image
 from email.message import EmailMessage
+
+from app.freshness_engine import (
+    calculate_freshness_score,
+    calculate_storage_score,
+    calculate_product_age_score,
+    calculate_shelf_life_score,
+    analyze_visual_condition
+)
 
 
 # =========================================================
@@ -37,7 +58,73 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# =========================================================
+# JWT AUTHENTICATION
+# =========================================================
+security = HTTPBearer()
 
+# =========================================================
+# CURRENT USER / RBAC
+# =========================================================
+
+def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """
+    Validate JWT token and return the logged-in user.
+    """
+
+    token = credentials.credentials
+
+    user_data = verify_token(token)
+
+    if not user_data:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token."
+        )
+
+    user = find_user(user_data["email"])
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found."
+        )
+
+    return {
+        "name": user["name"],
+        "email": user["email"],
+        "role": user["role"]
+    }
+
+
+def require_permission(permission: str):
+    """
+    Check whether the logged-in user's role
+    has the required permission.
+    """
+
+    def permission_checker(
+        current_user: dict = Depends(get_current_user)
+    ):
+
+        role = current_user["role"]
+
+        if not has_permission(role, permission):
+
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=(
+                    f"Access denied. "
+                    f"The {role} role does not have "
+                    f"permission for {permission}."
+                )
+            )
+
+        return current_user
+
+    return permission_checker
 # =========================================================
 # CORS
 # =========================================================
@@ -58,6 +145,12 @@ app.add_middleware(
 # DIRECTORIES
 # =========================================================
 
+# main.py is inside:
+# backend/app/main.py
+#
+# parent       = backend/app
+# parent.parent = backend
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 RAW_DATASET_DIR = BASE_DIR / "dataset" / "raw"
@@ -73,7 +166,6 @@ RAW_DATASET_DIR.mkdir(
     parents=True,
     exist_ok=True
 )
-
 
 MODEL_DIR.mkdir(
     parents=True,
@@ -94,18 +186,19 @@ def load_ml_model():
     global model
     global class_names
 
+    # -----------------------------------------------------
+    # LOAD MODEL
+    # -----------------------------------------------------
+
     if not MODEL_PATH.exists():
 
-        print(
-            "WARNING: ML model not found."
-        )
+        print("WARNING: ML model not found.")
 
         print(
             f"Expected model: {MODEL_PATH}"
         )
 
         return
-
 
     try:
 
@@ -126,6 +219,9 @@ def load_ml_model():
 
         model = None
 
+    # -----------------------------------------------------
+    # LOAD CLASS NAMES
+    # -----------------------------------------------------
 
     if CLASS_NAMES_PATH.exists():
 
@@ -164,7 +260,209 @@ def load_ml_model():
 
 load_ml_model()
 
+# =========================================================
+# AUTHENTICATION MODELS
+# =========================================================
 
+class RegisterRequest(BaseModel):
+    name: str
+    email: str
+    password: str
+    role: str
+
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+    role: str
+
+
+# =========================================================
+# REGISTER
+# =========================================================
+
+@app.post("/register")
+def register_user(data: RegisterRequest):
+
+    email = data.email.lower().strip()
+    role = data.role.lower().strip()
+
+    # Validate role
+    if role not in ALLOWED_ROLES:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid account role."
+        )
+
+    # Validate fields
+    if not data.name.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Name is required."
+        )
+
+    if len(data.password) < 6:
+        raise HTTPException(
+            status_code=400,
+            detail="Password must be at least 6 characters."
+        )
+
+    # Check existing email
+    existing_user = find_user(email)
+
+    if existing_user:
+        raise HTTPException(
+            status_code=400,
+            detail="An account with this email already exists."
+        )
+
+    # Load users
+    users = load_users()
+
+    # Create user
+    new_user = {
+        "name": data.name.strip(),
+        "email": email,
+        "password": hash_password(data.password),
+        "role": role
+    }
+
+    users.append(new_user)
+
+    save_users(users)
+
+    return {
+        "success": True,
+        "message": "Account created successfully.",
+        "user": {
+            "name": new_user["name"],
+            "email": new_user["email"],
+            "role": new_user["role"]
+        }
+    }
+
+
+# =========================================================
+# LOGIN
+# =========================================================
+
+@app.post("/login")
+def login_user(data: LoginRequest):
+
+    email = data.email.lower().strip()
+    role = data.role.lower().strip()
+
+    user = find_user(email)
+
+    if not user:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid email or password."
+        )
+
+    # Verify password
+    if not verify_password(
+        data.password,
+        user["password"]
+    ):
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid email or password."
+        )
+
+    # Verify selected role
+    if user["role"] != role:
+        raise HTTPException(
+            status_code=403,
+            detail="Selected account type does not match this account."
+        )
+
+    # Create JWT
+    access_token = create_access_token(
+        {
+            "sub": user["email"],
+            "role": user["role"]
+        }
+    )
+
+    return {
+        "success": True,
+        "message": "Login successful.",
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": {
+            "name": user["name"],
+            "email": user["email"],
+            "role": user["role"]
+        }
+    }
+
+
+# =========================================================
+# CURRENT USER
+# =========================================================
+@app.get("/me")
+def get_me(current_user: dict = Depends(get_current_user)):
+    return {
+        "success": True,
+        "user": current_user
+    }
+
+    token = credentials.credentials
+
+    user_data = verify_token(token)
+
+    if not user_data:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token."
+        )
+
+    user = find_user(
+        user_data["email"]
+    )
+
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail="User not found."
+        )
+
+    return {
+        "success": True,
+        "user": {
+            "name": user["name"],
+            "email": user["email"],
+            "role": user["role"]
+        }
+    }
+
+    user_data = verify_token(token)
+
+    if not user_data:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token."
+        )
+
+    user = find_user(
+        user_data["email"]
+    )
+
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail="User not found."
+        )
+
+    return {
+        "success": True,
+        "user": {
+            "name": user["name"],
+            "email": user["email"],
+            "role": user["role"]
+        }
+    }
 # =========================================================
 # HOME
 # =========================================================
@@ -223,6 +521,10 @@ async def upload_food_image(
     file: UploadFile = File(...)
 ):
 
+    # -----------------------------------------------------
+    # VALIDATE FILE
+    # -----------------------------------------------------
+
     if (
         not file.content_type
         or not file.content_type.startswith("image/")
@@ -238,6 +540,10 @@ async def upload_food_image(
         }
 
 
+    # -----------------------------------------------------
+    # CREATE UNIQUE FILE NAME
+    # -----------------------------------------------------
+
     file_extension = Path(
         file.filename
     ).suffix
@@ -247,6 +553,10 @@ async def upload_food_image(
         f"{uuid.uuid4()}{file_extension}"
     )
 
+
+    # -----------------------------------------------------
+    # SAVE IMAGE
+    # -----------------------------------------------------
 
     file_path = (
         RAW_DATASET_DIR /
@@ -261,6 +571,10 @@ async def upload_food_image(
             buffer
         )
 
+
+    # -----------------------------------------------------
+    # RESPONSE
+    # -----------------------------------------------------
 
     return {
 
@@ -298,6 +612,10 @@ class ForgotPasswordRequest(BaseModel):
 async def forgot_password(
     data: ForgotPasswordRequest
 ):
+
+    # -----------------------------------------------------
+    # CHECK EMAIL CONFIGURATION
+    # -----------------------------------------------------
 
     if (
         not EMAIL_ADDRESS
@@ -546,6 +864,10 @@ async def reset_password(
     data: ResetPasswordRequest
 ):
 
+    # -----------------------------------------------------
+    # CHECK PASSWORD
+    # -----------------------------------------------------
+
     if not data.password:
 
         return {
@@ -558,6 +880,10 @@ async def reset_password(
         }
 
 
+    # -----------------------------------------------------
+    # PASSWORD LENGTH
+    # -----------------------------------------------------
+
     if len(data.password) < 6:
 
         return {
@@ -569,6 +895,10 @@ async def reset_password(
 
         }
 
+
+    # -----------------------------------------------------
+    # CONFIRM PASSWORD
+    # -----------------------------------------------------
 
     if data.password != data.confirm_password:
 
@@ -600,15 +930,27 @@ def preprocess_image(
     image_path
 ):
 
+    # -----------------------------------------------------
+    # OPEN IMAGE
+    # -----------------------------------------------------
+
     image = Image.open(
         image_path
     ).convert("RGB")
 
 
+    # -----------------------------------------------------
+    # RESIZE
+    # -----------------------------------------------------
+
     image = image.resize(
         (224, 224)
     )
 
+
+    # -----------------------------------------------------
+    # CONVERT TO NUMPY
+    # -----------------------------------------------------
 
     image_array = np.array(
         image,
@@ -616,13 +958,20 @@ def preprocess_image(
     )
 
 
+    # -----------------------------------------------------
+    # ADD BATCH DIMENSION
+    # -----------------------------------------------------
+
     image_array = np.expand_dims(
         image_array,
         axis=0
     )
 
 
-    # MobileNetV2 preprocessing
+    # -----------------------------------------------------
+    # MOBILE NET V2 PREPROCESSING
+    # -----------------------------------------------------
+
     image_array = (
         tf.keras.applications
         .mobilenet_v2
@@ -636,85 +985,59 @@ def preprocess_image(
 
 
 # =========================================================
-# GET SHELF LIFE
+# EXPECTED SHELF LIFE
 # =========================================================
 
-def get_shelf_life(
-    food_name,
-    freshness
+EXPECTED_SHELF_LIFE = {
+
+    "apple": 7,
+
+    "banana": 4,
+
+    "bellpepper": 7,
+
+    "carrot": 14,
+
+    "cucumber": 5,
+
+    "grape": 7,
+
+    "guava": 5,
+
+    "jujube": 7,
+
+    "mango": 5,
+
+    "orange": 10,
+
+    "pomegranate": 14,
+
+    "potato": 21,
+
+    "strawberry": 3,
+
+    "tomato": 6
+
+}
+
+
+# =========================================================
+# GET EXPECTED SHELF LIFE
+# =========================================================
+
+def get_expected_shelf_life(
+    food_name
 ):
 
-    food = food_name.lower()
-
-
-    if freshness == "Rotten":
-
-        return "0 Days"
-
-
-    shelf_life = {
-
-        "apple": "~7 Days",
-
-        "banana": "~4 Days",
-
-        "bellpepper": "~7 Days",
-
-        "carrot": "~14 Days",
-
-        "cucumber": "~5 Days",
-
-        "grape": "~7 Days",
-
-        "guava": "~5 Days",
-
-        "jujube": "~7 Days",
-
-        "mango": "~5 Days",
-
-        "orange": "~10 Days",
-
-        "pomegranate": "~14 Days",
-
-        "potato": "~21 Days",
-
-        "strawberry": "~3 Days",
-
-        "tomato": "~6 Days"
-
-    }
-
-
-    return shelf_life.get(
-        food,
-        "~7 Days"
+    food_key = (
+        food_name
+        .lower()
+        .replace(" ", "")
     )
 
-
-# =========================================================
-# GET FRESHNESS SCORE
-# =========================================================
-
-def get_freshness_score(
-    freshness,
-    confidence
-):
-
-    if freshness == "Fresh":
-
-        score = 70 + (
-            confidence * 0.30
-        )
-
-    else:
-
-        score = (
-            confidence * 0.30
-        )
-
-
-    return round(
-        score
+    return EXPECTED_SHELF_LIFE.get(
+        food_key,
+        7
     )
 
 
@@ -724,12 +1047,32 @@ def get_freshness_score(
 
 @app.post("/analyze")
 async def analyze_food(
-    file: UploadFile = File(...)
-):
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user),
 
     # -----------------------------------------------------
-    # VALIDATE FILE
+    # STORAGE INFORMATION
     # -----------------------------------------------------
+
+    temperature: float = Form(6.0),
+
+    humidity: float = Form(65.0),
+
+    storage_duration: int = Form(0),
+
+    product_age_days: int = Form(0),
+
+    air_circulation: str = Form("Good"),
+
+    light_exposure: str = Form("Low"),
+
+    packaging: str = Form("Proper")
+
+):
+
+    # =====================================================
+    # VALIDATE IMAGE
+    # =====================================================
 
     if (
         not file.content_type
@@ -746,9 +1089,9 @@ async def analyze_food(
         }
 
 
-    # -----------------------------------------------------
+    # =====================================================
     # CHECK MODEL
-    # -----------------------------------------------------
+    # =====================================================
 
     if model is None:
 
@@ -774,9 +1117,9 @@ async def analyze_food(
         }
 
 
-    # -----------------------------------------------------
+    # =====================================================
     # SAVE UPLOADED IMAGE
-    # -----------------------------------------------------
+    # =====================================================
 
     file_extension = Path(
         file.filename
@@ -802,9 +1145,9 @@ async def analyze_food(
         )
 
 
-    # -----------------------------------------------------
+    # =====================================================
     # PREPROCESS IMAGE
-    # -----------------------------------------------------
+    # =====================================================
 
     try:
 
@@ -830,9 +1173,9 @@ async def analyze_food(
         }
 
 
-    # -----------------------------------------------------
+    # =====================================================
     # MODEL PREDICTION
-    # -----------------------------------------------------
+    # =====================================================
 
     try:
 
@@ -875,9 +1218,9 @@ async def analyze_food(
         }
 
 
-    # -----------------------------------------------------
-    # CLASS NAME
-    # -----------------------------------------------------
+    # =====================================================
+    # CHECK CLASS INDEX
+    # =====================================================
 
     if predicted_index >= len(
         class_names
@@ -893,14 +1236,18 @@ async def analyze_food(
         }
 
 
+    # =====================================================
+    # GET CLASS NAME
+    # =====================================================
+
     predicted_class = class_names[
         predicted_index
     ]
 
 
-    # -----------------------------------------------------
+    # =====================================================
     # SPLIT FOOD + FRESHNESS
-    # -----------------------------------------------------
+    # =====================================================
 
     if predicted_class.endswith(
         "_fresh"
@@ -912,6 +1259,7 @@ async def analyze_food(
             :-len("_fresh")
         ]
 
+
     elif predicted_class.endswith(
         "_rotten"
     ):
@@ -922,6 +1270,7 @@ async def analyze_food(
             :-len("_rotten")
         ]
 
+
     else:
 
         food_name = predicted_class
@@ -929,9 +1278,9 @@ async def analyze_food(
         freshness = "Unknown"
 
 
-    # -----------------------------------------------------
+    # =====================================================
     # FORMAT FOOD NAME
-    # -----------------------------------------------------
+    # =====================================================
 
     food_name = (
         food_name
@@ -940,65 +1289,312 @@ async def analyze_food(
     )
 
 
-    # -----------------------------------------------------
-    # FRESHNESS SCORE
-    # -----------------------------------------------------
+    # =====================================================
+    # EXPECTED SHELF LIFE
+    # =====================================================
 
-    freshness_score = get_freshness_score(
-        freshness,
-        confidence
+    expected_days = get_expected_shelf_life(
+        food_name
     )
 
 
-    # -----------------------------------------------------
-    # SHELF LIFE
-    # -----------------------------------------------------
-
-    shelf_life = get_shelf_life(
-        food_name,
-        freshness
-    )
-
-
-    # -----------------------------------------------------
-    # RECOMMENDATION
-    # -----------------------------------------------------
+    # =====================================================
+    # VISUAL SCORE
+    # =====================================================
+    #
+    # Current MobileNetV2 model provides the visual
+    # classification confidence.
+    #
+    # Fresh prediction:
+    # confidence is used as visual quality.
+    #
+    # Rotten prediction:
+    # confidence is inverted so a strong rotten
+    # prediction gives a low visual score.
+    #
+    # Later we will extend this with:
+    # - color
+    # - texture
+    # - mold
+    # - bruising
+    # - physical damage
+    #
+    # =====================================================
 
     if freshness == "Fresh":
 
-        recommendation = (
-            "The food appears fresh and "
-            "can be safely stored."
-        )
+        visual_score = confidence
 
     elif freshness == "Rotten":
 
-        recommendation = (
-            "The food appears spoiled. "
-            "Avoid consuming it."
+        visual_score = 100 - confidence
+
+    else:
+
+        visual_score = 50
+
+
+    visual_score = round(
+        max(
+            0,
+            min(
+                100,
+                visual_score
+            )
+        ),
+        2
+    )
+    visual_analysis = analyze_visual_condition(file_path)
+    
+
+
+    # =====================================================
+    # STORAGE SCORE
+    # =====================================================
+
+    storage_score = calculate_storage_score(
+
+        temperature=temperature,
+
+        humidity=humidity,
+
+        air_circulation=air_circulation,
+
+        light_exposure=light_exposure,
+
+        packaging=packaging
+
+    )
+
+
+    # =====================================================
+    # PRODUCT AGE SCORE
+    # =====================================================
+
+    product_age_score = calculate_product_age_score(
+
+        age_days=product_age_days,
+
+        expected_shelf_life_days=expected_days
+
+    )
+
+
+    # =====================================================
+    # REMAINING SHELF LIFE
+    # =====================================================
+    #
+    # Product age + storage duration are considered.
+    #
+    # Example:
+    #
+    # Expected shelf life = 7 days
+    # Product age = 2 days
+    # Storage duration = 1 day
+    #
+    # Remaining = 7 - 2 - 1
+    #           = 4 days
+    #
+    # =====================================================
+
+    remaining_days = max(
+
+        expected_days
+        - product_age_days
+        - storage_duration,
+
+        0
+
+    )
+
+
+    # =====================================================
+    # ROTTEN FOOD
+    # =====================================================
+
+    if freshness == "Rotten":
+
+        remaining_days = 0
+
+
+    # =====================================================
+    # SHELF LIFE SCORE
+    # =====================================================
+
+    shelf_life_score = calculate_shelf_life_score(
+
+        remaining_days=remaining_days,
+
+        expected_shelf_life_days=expected_days
+
+    )
+
+
+    # =====================================================
+    # FINAL FRESHNESS SCORE
+    # =====================================================
+    #
+    # Required model:
+    #
+    # Visual       = 40%
+    # Storage      = 25%
+    # Shelf-life   = 20%
+    # Product Age  = 15%
+    #
+    # =====================================================
+
+    freshness_analysis = calculate_freshness_score(
+
+        visual_score=visual_score,
+
+        storage_score=storage_score,
+
+        shelf_life_score=shelf_life_score,
+
+        product_age_score=product_age_score
+
+    )
+
+
+    freshness_score = (
+        freshness_analysis[
+            "freshness_score"
+        ]
+    )
+
+
+    freshness_classification = (
+        freshness_analysis[
+            "classification"
+        ]
+    )
+
+
+    # =====================================================
+    # SHELF LIFE DISPLAY
+    # =====================================================
+
+    if remaining_days == 0:
+
+        shelf_life = "0 Days"
+
+    elif remaining_days == 1:
+
+        shelf_life = "~1 Day"
+
+    else:
+
+        shelf_life = (
+            f"~{remaining_days} Days"
         )
+
+
+    # =====================================================
+    # RECOMMENDATION
+    # =====================================================
+
+    if freshness_classification == "Fresh":
+
+        recommendation = (
+
+            "The food appears fresh. "
+            "Maintain the current storage "
+            "conditions to preserve quality."
+
+        )
+
+
+    elif freshness_classification == "Good":
+
+        recommendation = (
+
+            "The food is in good condition. "
+            "Continue proper storage and "
+            "monitor its remaining shelf life."
+
+        )
+
+
+    elif freshness_classification == "Acceptable":
+
+        recommendation = (
+
+            "The food is acceptable but should "
+            "be consumed soon and stored under "
+            "suitable conditions."
+
+        )
+
+
+    elif freshness_classification == "Near Spoilage":
+
+        recommendation = (
+
+            "The food is approaching spoilage. "
+            "Prioritize consumption and improve "
+            "storage conditions."
+
+        )
+
 
     else:
 
         recommendation = (
-            "Unable to determine freshness."
+
+            "The food appears spoiled. "
+            "Avoid consuming it and remove "
+            "it from usable inventory."
+
         )
 
 
-    # -----------------------------------------------------
+    # =====================================================
+    # STORAGE WARNING
+    # =====================================================
+
+    storage_warning = None
+
+
+    if storage_score < 60:
+
+        storage_warning = (
+
+            "Storage conditions are poor. "
+            "Check temperature, humidity, "
+            "packaging and storage environment."
+
+        )
+
+    elif storage_score < 80:
+
+        storage_warning = (
+
+            "Storage conditions could be improved "
+            "to preserve food quality."
+
+        )
+
+
+    # =====================================================
     # RESULT
-    # -----------------------------------------------------
+    # =====================================================
 
     result = {
+
+        # -------------------------------------------------
+        # FOOD
+        # -------------------------------------------------
 
         "food":
             food_name,
 
+
+        # -------------------------------------------------
+        # AI IMAGE RESULT
+        # -------------------------------------------------
+
         "freshness":
             freshness,
-
-        "freshness_score":
-            freshness_score,
 
         "confidence":
             round(
@@ -1006,8 +1602,107 @@ async def analyze_food(
                 2
             ),
 
+
+        # -------------------------------------------------
+        # REQUIRED FRESHNESS RESULT
+        # -------------------------------------------------
+
+        "freshness_score":
+            freshness_score,
+
+        "classification":
+            freshness_classification,
+
+
+        # -------------------------------------------------
+        # FRESHNESS COMPONENTS
+        # -------------------------------------------------
+
+        "visual_score":
+            freshness_analysis[
+                "components"
+            ]["visual"],
+
+        "storage_score":
+            freshness_analysis[
+                "components"
+            ]["storage"],
+
+        "shelf_life_score":
+            freshness_analysis[
+                "components"
+            ]["shelf_life"],
+
+        "product_age_score":
+            freshness_analysis[
+                "components"
+            ]["product_age"],
+        "visual_analysis":
+            visual_analysis,
+
+
+        # -------------------------------------------------
+        # WEIGHTS
+        # -------------------------------------------------
+
+        "weights":
+            freshness_analysis[
+                "weights"
+            ],
+
+
+        # -------------------------------------------------
+        # SHELF LIFE
+        # -------------------------------------------------
+
+        "expected_shelf_life_days":
+            expected_days,
+
+        "remaining_days":
+            remaining_days,
+
         "shelf_life":
             shelf_life,
+
+
+        # -------------------------------------------------
+        # STORAGE
+        # -------------------------------------------------
+
+        "storage": {
+
+            "temperature":
+                temperature,
+
+            "humidity":
+                humidity,
+
+            "storage_duration":
+                storage_duration,
+
+            "air_circulation":
+                air_circulation,
+
+            "light_exposure":
+                light_exposure,
+
+            "packaging":
+                packaging
+
+        },
+
+
+        # -------------------------------------------------
+        # ALERT / WARNING
+        # -------------------------------------------------
+
+        "storage_warning":
+            storage_warning,
+
+
+        # -------------------------------------------------
+        # RECOMMENDATION
+        # -------------------------------------------------
 
         "recommendation":
             recommendation
@@ -1015,9 +1710,9 @@ async def analyze_food(
     }
 
 
-    # -----------------------------------------------------
-    # RESPONSE
-    # -----------------------------------------------------
+    # =====================================================
+    # FINAL API RESPONSE
+    # =====================================================
 
     return {
 

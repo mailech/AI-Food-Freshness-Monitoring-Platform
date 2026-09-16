@@ -77,10 +77,93 @@ const initialBatches = [
 ];
 
 function FoodBatches({ onBack }) {
-  const [batches, setBatches] = useState(initialBatches);
+  const [batches, setBatches] = useState(() => {
+  const savedBatches = JSON.parse(
+    localStorage.getItem("foodfresh_batches") || "[]"
+    );
+
+    return [...savedBatches, ...initialBatches];
+  });
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("All Batches");
   const [selectedBatch, setSelectedBatch] = useState(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newBatch, setNewBatch] = useState({
+    food: "",
+    category: "Fruit",
+    quantity: "",
+    freshness: "Fresh",
+    shelfLife: "",
+    storageTemperature: "6",
+    humidity: "65",
+  });
+
+  const handleBatchChange = (e) => {
+    setNewBatch({
+      ...newBatch,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+const handleAddBatch = (e) => {
+  e.preventDefault();
+
+  if (!newBatch.food || !newBatch.quantity || !newBatch.shelfLife) {
+    alert("Please fill Food, Quantity and Shelf Life.");
+    return;
+  }
+
+  const prefix = newBatch.food.substring(0, 3).toUpperCase();
+
+  const batch = {
+    id: Date.now(),
+    batchId: `${prefix}-${Date.now().toString().slice(-3)}`,
+    food: newBatch.food,
+    emoji: "📦",
+    category: newBatch.category,
+    quantity: `${newBatch.quantity} kg`,
+    freshness: newBatch.freshness,
+    shelfLife: newBatch.shelfLife,
+    added: "Just now",
+    status:
+      newBatch.freshness === "Spoiled"
+        ? "Expired"
+        : newBatch.freshness === "Near Spoilage"
+        ? "Priority"
+        : "Active",
+    storageTemperature: Number(newBatch.storageTemperature),
+    humidity: Number(newBatch.humidity),
+  };
+
+  setBatches((prev) => {
+    const updatedBatches = [batch, ...prev];
+
+    localStorage.setItem(
+      "foodfresh_batches",
+      JSON.stringify(
+        updatedBatches.filter(
+          (item) => !initialBatches.some(
+            (initial) => initial.id === item.id
+          )
+        )
+      )
+    );
+
+    return updatedBatches;
+  });
+
+  setNewBatch({
+    food: "",
+    category: "Fruit",
+    quantity: "",
+    freshness: "Fresh",
+    shelfLife: "",
+    storageTemperature: "6",
+    humidity: "65",
+  });
+
+  setShowAddModal(false);
+};
 
   const filteredBatches = batches.filter((batch) => {
     const searchText = search.toLowerCase();
@@ -129,15 +212,33 @@ function FoodBatches({ onBack }) {
     return "batch-expired";
   };
 
-  const removeBatch = (id) => {
-    const confirmDelete = window.confirm(
-      "Are you sure you want to remove this batch?"
+ const removeBatch = (id) => {
+  const confirmDelete = window.confirm(
+    "Are you sure you want to remove this batch?"
+  );
+
+  if (!confirmDelete) return;
+
+  setBatches((prev) => {
+    const updatedBatches = prev.filter(
+      (batch) => batch.id !== id
     );
 
-    if (!confirmDelete) return;
+    const savedBatches = updatedBatches.filter(
+      (item) =>
+        !initialBatches.some(
+          (initial) => initial.id === item.id
+        )
+    );
 
-    setBatches(batches.filter((batch) => batch.id !== id));
-  };
+    localStorage.setItem(
+      "foodfresh_batches",
+      JSON.stringify(savedBatches)
+    );
+
+    return updatedBatches;
+  });
+};
 
   return (
     <div className="batches-page">
@@ -155,7 +256,12 @@ function FoodBatches({ onBack }) {
             </button>
           )}
 
-          <button className="add-batch-btn">+ Add Batch</button>
+          <button
+  className="add-batch-btn"
+          onClick={() => setShowAddModal(true)}
+        >
+          + Add Batch
+        </button>
         </div>
       </div>
 
@@ -335,6 +441,138 @@ function FoodBatches({ onBack }) {
         )}
       </div>
 
+      {/* Add Batch Modal */}
+      {showAddModal && (
+        <div
+          className="batch-modal-overlay"
+          onClick={() => setShowAddModal(false)}
+        >
+          <div
+            className="batch-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="batch-modal-header">
+              <div>
+                <h2>+ Add Food Batch</h2>
+                <p>Register a new batch for inventory tracking</p>
+              </div>
+              <button
+                className="batch-modal-close"
+                onClick={() => setShowAddModal(false)}
+              >
+                ×
+              </button>
+            </div>
+
+            <form onSubmit={handleAddBatch}>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Food Name *</label>
+                  <input
+                    name="food"
+                    value={newBatch.food}
+                    onChange={handleBatchChange}
+                    placeholder="e.g. Mango"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Category</label>
+                  <select
+                    name="category"
+                    value={newBatch.category}
+                    onChange={handleBatchChange}
+                  >
+                    <option>Fruit</option>
+                    <option>Vegetable</option>
+                    <option>Dairy</option>
+                    <option>Meat & Poultry</option>
+                    <option>Bakery Products</option>
+                    <option>Packaged Foods</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Quantity (kg) *</label>
+                  <input
+                    type="number"
+                    name="quantity"
+                    min="0"
+                    value={newBatch.quantity}
+                    onChange={handleBatchChange}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Freshness</label>
+                  <select
+                    name="freshness"
+                    value={newBatch.freshness}
+                    onChange={handleBatchChange}
+                  >
+                    <option>Fresh</option>
+                    <option>Good</option>
+                    <option>Acceptable</option>
+                    <option>Near Spoilage</option>
+                    <option>Spoiled</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Shelf Life *</label>
+                  <input
+                    name="shelfLife"
+                    value={newBatch.shelfLife}
+                    onChange={handleBatchChange}
+                    placeholder="e.g. 5 Days"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Temperature (°C)</label>
+                  <input
+                    type="number"
+                    name="storageTemperature"
+                    value={newBatch.storageTemperature}
+                    onChange={handleBatchChange}
+                    step="0.1"
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Humidity (%)</label>
+                <input
+                  type="number"
+                  name="humidity"
+                  value={newBatch.humidity}
+                  onChange={handleBatchChange}
+                  min="0"
+                  max="100"
+                />
+              </div>
+
+              <div className="modal-buttons">
+                <button
+                  type="button"
+                  className="batch-modal-done"
+                  onClick={() => setShowAddModal(false)}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="batch-modal-done">
+                  + Create Batch
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Details Modal */}
       {selectedBatch && (
         <div
@@ -395,6 +633,16 @@ function FoodBatches({ onBack }) {
               <div>
                 <span>Added</span>
                 <strong>{selectedBatch.added}</strong>
+              </div>
+
+              <div>
+                <span>Temperature</span>
+                <strong>{selectedBatch.storageTemperature ?? 6}°C</strong>
+              </div>
+
+              <div>
+                <span>Humidity</span>
+                <strong>{selectedBatch.humidity ?? 65}%</strong>
               </div>
             </div>
 
