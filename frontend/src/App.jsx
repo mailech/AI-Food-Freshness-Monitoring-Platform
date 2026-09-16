@@ -10,24 +10,20 @@ import * as storageApi from './services/storage'
 import * as recommendationsApi from './services/recommendations'
 import * as alertsApi from './services/alerts'
 import * as reportsApi from './services/reports'
+import * as dashboardApi from './services/dashboard'
 import './App.css'
 import './Analysis.css'
 import './ShelfLife.css'
 import './Storage.css'
 import './Recommendations.css'
 import './Alerts.css'
+import './Dashboard.css'
 
 const allPages = [
   ['dashboard', 'Dashboard', '▦'], ['inventory', 'Inventory', '□'],
   ['analysis', 'Freshness Analysis', '◔'], ['scoring', 'Freshness Scoring', '◎'], ['shelfLife', 'Shelf-Life Prediction', '◷'], ['storage', 'Storage Monitoring', '♧'], ['recommendations', 'Recommendations', '✦'],
   ['alerts', 'Alerts & Notifications', '!'], ['reports', 'Reports & Export', '▤'], ['profile', 'Profile', '◉'],
 ]
-const items = [
-  ['Strawberries', 'Fruits', 'ST-2408', '48 kg', 92, 'Cold room A', '🍓'],
-  ['Whole milk', 'Dairy', 'ML-1182', '120 L', 77, 'Cold room B', '🥛'],
-  ['Atlantic salmon', 'Seafood', 'SF-9014', '36 kg', 61, 'Cold room A', '🐟'],
-]
-const category = score => score >= 85 ? ['Fresh', 'success'] : score >= 70 ? ['Good', 'success'] : score >= 50 ? ['Acceptable', 'warning'] : score >= 35 ? ['Near Spoilage', 'warning'] : ['Spoiled', 'danger']
 const toSession = user => ({ ...user, identity: user.name })
 const allowedFor = role => {
   if (role === 'Consumer') return ['dashboard', 'inventory', 'analysis', 'scoring', 'shelfLife', 'storage', 'alerts', 'recommendations', 'reports', 'profile']
@@ -72,7 +68,7 @@ export default function App() {
     {open && <button className="overlay" onClick={() => setOpen(false)} />}
     <main><header><button className="hamb" onClick={() => setOpen(true)}>☰</button><div><p>Food Freshness Monitoring Platform / {current}</p><h2>{current}</h2></div><div className="person"><span>{session.identity[0]}</span><b>{session.identity}<small>{session.role}</small></b></div></header>
       <div className="content">
-        {page === 'dashboard' && <Dashboard role={session.role} />}
+        {page === 'dashboard' && <Dashboard role={session.role} onUnauthorized={() => setSession(null)} />}
         {page === 'inventory' && <Inventory role={session.role} onUnauthorized={() => setSession(null)} />}
         {page === 'analysis' && <AnalysisPage role={session.role} onUnauthorized={() => setSession(null)} />}
         {page === 'scoring' && <FreshnessScoring role={session.role} onUnauthorized={() => setSession(null)} />}
@@ -89,11 +85,12 @@ export default function App() {
 
 function Brand() { return <div className="brand"><i>⌁</i><span><b>Food Freshness</b><small>MONITORING PLATFORM</small></span></div> }
 function Panel({ title, text, children }) { return <section className="panel"><div className="panel-head"><div><h3>{title}</h3><p>{text}</p></div></div>{children}</section> }
-function Badge({ score }) { const [label, tone] = category(score); return <em className={'badge ' + tone}>{label}</em> }
 function Title({ title, text }) { return <div className="heading"><div><small>FOOD FRESHNESS MONITORING PLATFORM</small><h1>{title}</h1><p>{text}</p></div></div> }
-function Line({ item }) { return <div className="line"><i>{item[6]}</i><span><b>{item[0]}</b><small>{item[2]} · {item[3]}</small></span><Badge score={item[4]} /></div> }
 
-function Dashboard({ role }) {
+function Dashboard({ role, onUnauthorized }) {
+  const [summary, setSummary] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const roleCopy = {
     Consumer: 'Freshness reports, shelf-life estimates, inventory and storage recommendations.',
     'Retail Manager': 'Inventory quality, freshness trends, shelf-life alerts and waste-reduction insights.',
@@ -101,9 +98,66 @@ function Dashboard({ role }) {
     'Food Quality Inspector': 'Image freshness assessment, quality classification and spoilage indicators.',
     Administrator: 'Platform analytics, reporting management and platform-level alerts.',
   }
-  return <><div className="heading"><div><small>{role.toUpperCase()} · SAMPLE DASHBOARD</small><h1>Food freshness overview</h1><p>{roleCopy[role]} Dashboard figures below are sample data, not live analytics.</p></div></div>
-    <div className="metrics">{[['⌁', 'Sample overall freshness', '86.4%'], ['□', 'Sample inventory health', '248'], ['!', 'Sample open alerts', '18'], ['♧', 'Sample storage zones', '6 / 6']].map(entry => <article className="metric" key={entry[1]}><i>{entry[0]}</i><div><p>{entry[1]}</p><h3>{entry[2]}</h3><small>Sample data</small></div></article>)}</div>
-    <div className="grid"><Panel title="Sample freshness distribution" text="Illustrative only. Scoring weights: Visual 40% · Storage 25% · Shelf-life 20% · Product age 15%"><div className="fresh"><div className="ring"><b>86</b><small>sample only</small></div><div className="signal"><span>Sample freshness trend</span><b>Improving</b></div></div></Panel><Panel title="Sample recent inventory" text="Illustrative batches, not live records">{items.map(item => <Line item={item} key={item[2]} />)}</Panel></div>
+  const loadSummary = async () => {
+    setLoading(true)
+    setError('')
+    try {
+      setSummary(await dashboardApi.getSummary())
+    } catch (caught) {
+      setSummary(null)
+      if (caught instanceof ApiError && caught.status === 401) { auth.logout(); onUnauthorized(); return }
+      setError(caught instanceof ApiError ? caught.message : 'Unable to load dashboard analytics.')
+    } finally { setLoading(false) }
+  }
+  useEffect(() => { loadSummary() }, [])
+  const average = summary?.average_freshness_score
+  const averageLabel = average == null ? 'N/A' : `${Number(average).toFixed(1)} / 100`
+  const averagePct = average == null ? 0 : Math.max(0, Math.min(100, Number(average)))
+  const metrics = summary ? [
+    ['□', 'Total monitored', String(summary.total_monitored_batches), 'Recorded inventory batches'],
+    ['⌁', 'Average freshness', averageLabel, average == null ? 'No complete freshness scores yet' : `${summary.scored_batch_count} complete score${summary.scored_batch_count === 1 ? '' : 's'}`],
+    ['◔', 'AI risk / near spoilage', String(summary.ai_risk_batch_count), 'Low score or supported rotten class'],
+    ['!', 'Active alerts', String(summary.active_alert_count), 'Your undismissed alerts'],
+  ] : []
+  return <>
+    <div className="heading"><div><small>{role.toUpperCase()} DASHBOARD</small><h1>Food freshness overview</h1><p>{roleCopy[role]} Figures below are calculated from recorded inventory, scores, storage, and alerts.</p></div></div>
+    {error && <p className="error inventory-note" role="alert">{error}</p>}
+    {loading ? <div className="dashboard-empty">Loading dashboard…</div> : summary ? <>
+      <div className="metrics">{metrics.map(entry => <article className="metric" key={entry[1]}><i>{entry[0]}</i><div><p>{entry[1]}</p><h3>{entry[2]}</h3><small>{entry[3]}</small></div></article>)}</div>
+      <div className="grid">
+        <Panel title="Average freshness" text={average == null ? 'No complete freshness scores yet' : 'Mean of the latest complete composite score per batch, out of 100.'}>
+          <div className="fresh">
+            <div className={'ring' + (average == null ? ' unavailable' : '')} style={average == null ? undefined : { background: `conic-gradient(var(--green) 0 ${averagePct}%, #e4eee9 ${averagePct}%)` }}>
+              <b>{average == null ? 'N/A' : Number(average).toFixed(0)}</b>
+              <small>{average == null ? 'no scores' : '/ 100'}</small>
+            </div>
+            <div className="signal"><span>Complete scores included</span><b>{summary.scored_batch_count}</b></div>
+          </div>
+        </Panel>
+        <Panel title="Storage compliance" text="Uses the project's existing prototype temperature and humidity bands. Air circulation and light are not scored.">
+          <div className="dashboard-compliance">
+            <article><small>Compliant</small><b>{summary.storage_compliance.compliant}</b></article>
+            <article><small>Non-compliant</small><b>{summary.storage_compliance.noncompliant}</b></article>
+            <article><small>Unknown</small><b>{summary.storage_compliance.unknown}</b></article>
+          </div>
+          <div className="signal"><span>Evaluated readings</span><b>{summary.storage_compliance.evaluated}</b></div>
+        </Panel>
+      </div>
+      <div className="grid">
+        <Panel title="Eat Me First" text="Batches with a complete freshness score, lowest score first.">
+          {summary.eat_me_first.length ? <div className="eat-first-list">{summary.eat_me_first.map(item => <article className="eat-first-item" key={item.food_batch_id}>
+            <div><b>{item.product_name} — Batch {item.batch_number}</b><small>{item.storage_location}{item.expiry_date ? ` · Expiry ${item.expiry_date}` : ''}</small></div>
+            <div className="eat-first-score"><strong>{Number(item.freshness_score).toFixed(0)} / 100</strong><em className={'badge ' + (item.priority === 'High' ? 'danger' : item.priority === 'Medium' ? 'warning' : 'success')}>{item.priority} priority</em></div>
+          </article>)}</div> : <div className="dashboard-empty">No complete freshness scores are available to rank batches.</div>}
+        </Panel>
+        <Panel title="Recent monitored batches" text="Newest recorded inventory batches.">
+          {summary.recent_batches.length ? <div className="recent-batch-list">{summary.recent_batches.map(item => <article className="recent-batch-item" key={item.food_batch_id}>
+            <div><b>{item.product_name}</b><small>{item.batch_number} · {item.quantity} {item.unit} · {item.storage_location}</small></div>
+            <div className="eat-first-score"><em className="badge warning">{item.expiry_status}</em><small>{item.latest_freshness_score == null ? 'No complete score' : `${Number(item.latest_freshness_score).toFixed(0)} / 100`}</small></div>
+          </article>)}</div> : <div className="dashboard-empty">No inventory batches have been recorded.</div>}
+        </Panel>
+      </div>
+    </> : <div className="dashboard-empty">Dashboard analytics could not be loaded.</div>}
   </>
 }
 const FOOD_CATEGORIES = ['Fruits', 'Vegetables', 'Dairy', 'Meat & Poultry', 'Seafood', 'Bakery', 'Packaged Foods', 'Beverages']
@@ -310,21 +364,82 @@ function AnalysisPage({ role, onUnauthorized }) {
     if (batch) { setProductName(batch.food_item.name); setFoodCategory(batch.food_item.category) }
     loadHistory(batchId)
   }
+  // const analyze = async () => {
+  //   if (!foodBatchId) { setValidationMessage('Please select a food batch.'); return }
+  //   if (!imageFile) { setValidationMessage('Please select a food image.'); return }
+  //   try {
+  //     setLoading(true); setValidationMessage('')
+  //     const analysis = await freshnessApi.analyze({ image: imageFile, foodBatchId })
+  //     setResult(analysis)
+  //     await freshnessScoringApi.createScore(foodBatchId)
+  //     const scores = await freshnessScoringApi.getBatchScores(foodBatchId)
+  //     setCompositeScore(preferredScoreRecord(scores))
+  //     await loadHistory(foodBatchId)
+  //   }
+  //   catch (error) { handleError(error) }
+  //   finally { setLoading(false) }
+  // }
   const analyze = async () => {
-    if (!foodBatchId) { setValidationMessage('Please select a food batch.'); return }
-    if (!imageFile) { setValidationMessage('Please select a food image.'); return }
-    try {
-      setLoading(true); setValidationMessage('')
-      const analysis = await freshnessApi.analyze({ image: imageFile, foodBatchId })
-      setResult(analysis)
-      await freshnessScoringApi.createScore(foodBatchId)
-      const scores = await freshnessScoringApi.getBatchScores(foodBatchId)
-      setCompositeScore(preferredScoreRecord(scores))
-      await loadHistory(foodBatchId)
-    }
-    catch (error) { handleError(error) }
-    finally { setLoading(false) }
+  if (!foodBatchId) {
+    setValidationMessage('Please select a food batch.')
+    return
   }
+
+  if (!imageFile) {
+    setValidationMessage('Please select a food image.')
+    return
+  }
+
+  try {
+    setLoading(true)
+    setValidationMessage('')
+
+    // 1. Analyze the uploaded image
+    const analysis = await freshnessApi.analyze({
+      image: imageFile,
+      foodBatchId,
+    })
+    setResult(analysis)
+
+    // 2. Get the latest storage data already saved for this batch
+    const storage = await storageApi.getLatestCondition(foodBatchId)
+
+    // 3. Automatically run the shelf-life ML model using stored inputs
+    if (
+      storage &&
+      storage.storage_duration != null &&
+      storage.door_opens_count != null &&
+      storage.temperature != null &&
+      storage.humidity != null
+    ) {
+      const temperatureF =
+        Number(storage.temperature) * 9 / 5 + 32
+
+      await shelfLifeApi.predict({
+        food_batch_id: Number(foodBatchId),
+        dwell_hours: Number(storage.storage_duration),
+        mean_temp_F: temperatureF,
+        mean_rh_pct: Number(storage.humidity),
+        door_opens_count: Number(storage.door_opens_count),
+        freshness_analysis_id: analysis.id,
+      })
+    }
+
+    // 4. Automatically create/update the composite freshness score
+    await freshnessScoringApi.createScore(foodBatchId)
+
+    // 5. Load the newly generated score
+    const scores = await freshnessScoringApi.getBatchScores(foodBatchId)
+    setCompositeScore(preferredScoreRecord(scores))
+
+    // 6. Refresh analysis history
+    await loadHistory(foodBatchId)
+  } catch (error) {
+    handleError(error)
+  } finally {
+    setLoading(false)
+  }
+}
   const removeAnalysis = async analysisId => {
     try { setLoading(true); await freshnessApi.deleteAnalysis(analysisId); if (result?.id === analysisId) setResult(null); await loadHistory(foodBatchId) }
     catch (error) { handleError(error) }

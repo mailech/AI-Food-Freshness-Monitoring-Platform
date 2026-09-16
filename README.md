@@ -27,9 +27,9 @@ npm run dev
 
 ```powershell
 Set-Location backend
-.\.venv\Scripts\python.exe -m uvicorn app.main:app --reload
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8003
 ```
 
-The backend health check is available at `http://127.0.0.1:8000/health`.
+The backend health check is available at `http://127.0.0.1:8003/health`. The frontend uses that URL by default through `VITE_API_BASE_URL`; see `frontend/.env.example` to override it.
 
 Copy `backend/.env.example` to `backend/.env`, configure PostgreSQL and a JWT secret, then apply the Alembic migrations before running the backend. Install backend dependencies with `pip install -r requirements.txt`; TensorFlow and Pillow are required for image inference.

@@ -5,6 +5,7 @@ from app.core.config import settings
 from app.routers import (
     alerts,
     authentication,
+    dashboard,
     database,
     freshness,
     freshness_scoring,
@@ -40,6 +41,7 @@ api_prefix = settings.api_v1_prefix
 app.include_router(authentication.router, prefix=api_prefix)
 app.include_router(database.router, prefix=api_prefix)
 app.include_router(inventory.router, prefix=api_prefix)
+app.include_router(dashboard.router, prefix=api_prefix)
 app.include_router(freshness.router, prefix=api_prefix)
 app.include_router(freshness_scoring.router, prefix=api_prefix)
 app.include_router(shelf_life.router, prefix=api_prefix)
