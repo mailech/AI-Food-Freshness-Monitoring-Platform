@@ -21,6 +21,13 @@ class ReportSummaryItem(BaseModel):
     freshness_score: float
     remaining_shelf_life_days: float
     status: str
+    packaging_type: Optional[str] = "None"
+    temperature: Optional[float] = None
+    humidity: Optional[float] = None
+    air_circulation: Optional[str] = "Medium"
+    light_exposure: Optional[str] = "Low"
+    storage_duration_days: Optional[float] = 0.0
+    prediction_methodology: Optional[str] = "Empirical FoodKeeper Baseline Model (ML Regression Dataset Pending)"
 
 class ReportPreviewResponse(BaseModel):
     report_type: str

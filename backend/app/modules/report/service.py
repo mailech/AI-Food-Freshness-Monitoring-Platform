@@ -22,6 +22,9 @@ from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 
 
+from app.modules.storage.models import StorageReading
+from app.modules.shelf_life.service import get_environmental_defaults_by_location, predict_shelf_life_kinetics
+
 class ReportService:
     @staticmethod
     async def generate_report_data(db: AsyncSession, filters: ReportFilterRequest) -> Dict[str, Any]:
@@ -74,13 +77,44 @@ class ReportService:
         total_hum_deviation = 0.0
         compliant_storage_count = 0
 
+        now = datetime.now(timezone.utc)
+
         for item in items:
             health = await calculate_item_health_score(db, item)
             score = health.combined_health_score
             classification = health.quality_classification
             
-            # Shelf life predictions lookup
-            remaining_shelf_life = health.breakdown.shelflife_score * 0.1 # Estimate remaining days from score ratio
+            # Fetch actual storage telemetry readings
+            latest_reading = await StorageReading.find(
+                StorageReading.item_id == str(item.id)
+            ).sort(-StorageReading.recorded_at).first()
+
+            if latest_reading:
+                temp = latest_reading.temperature
+                hum = latest_reading.humidity
+                air_circ = latest_reading.air_circulation
+                light_exp = latest_reading.light_exposure
+            else:
+                temp, hum = get_environmental_defaults_by_location(item.storage_location)
+                air_circ = "Medium"
+                light_exp = "Low"
+
+            entry = item.entry_date.replace(tzinfo=timezone.utc) if item.entry_date.tzinfo is None else item.entry_date
+            elapsed_days = max(0.0, (now - entry).total_seconds() / (24 * 3600))
+
+            pred = predict_shelf_life_kinetics(
+                category=item.category,
+                packaging=item.packaging_type or "None",
+                temperature=temp,
+                humidity=hum,
+                storage_duration_days=elapsed_days,
+                visual_freshness_score=health.breakdown.visual_score,
+                air_circulation=air_circ,
+                light_exposure=light_exp
+            )
+
+            remaining_shelf_life = pred["predicted_remaining_shelf_life_days"]
+            methodology = pred.get("methodology", "Empirical FoodKeeper Baseline Model (ML Regression Dataset Pending)")
             
             # Map classification count
             if score >= 85.0:
@@ -99,7 +133,7 @@ class ReportService:
             total_remaining_shelf_life += remaining_shelf_life
             
             # Expiry timeline checks
-            days_left = (item.expiry_date.replace(tzinfo=timezone.utc) - datetime.now(timezone.utc)).days
+            days_left = (item.expiry_date.replace(tzinfo=timezone.utc) - now).days
             if days_left <= 3:
                 shelf_life_warnings += 1
                 use_soon_recommendations += 1
@@ -129,7 +163,14 @@ class ReportService:
                     unit=item.unit,
                     freshness_score=score,
                     remaining_shelf_life_days=max(0.0, float(round(remaining_shelf_life, 1))),
-                    status=classification
+                    status=classification,
+                    packaging_type=item.packaging_type or "None",
+                    temperature=temp,
+                    humidity=hum,
+                    air_circulation=air_circ,
+                    light_exposure=light_exp,
+                    storage_duration_days=round(elapsed_days, 1),
+                    prediction_methodology=methodology
                 )
             )
 
@@ -391,7 +432,12 @@ class ReportService:
         ws.append(["Inventory Details"])
         ws.cell(row=ws.max_row, column=1).font = font_h2
         
-        headers = ["Item Name", "Category", "Storage Location", "Quantity", "Unit", "Freshness Score", "Remaining Shelf Life (Days)", "Status"]
+        headers = [
+            "Item Name", "Category", "Storage Location", "Packaging Type",
+            "Temp (°C)", "Humidity (%)", "Air Circulation", "Light Exposure",
+            "Duration (Days)", "Quantity", "Unit", "Freshness Score",
+            "Remaining Days", "Status", "Prediction Methodology"
+        ]
         ws.append(headers)
         
         header_row_idx = ws.max_row
@@ -411,11 +457,18 @@ class ReportService:
                 item.name,
                 item.category,
                 item.storage_location,
+                item.packaging_type or "None",
+                item.temperature if item.temperature is not None else 0.0,
+                item.humidity if item.humidity is not None else 0.0,
+                item.air_circulation or "Medium",
+                item.light_exposure or "Low",
+                item.storage_duration_days if item.storage_duration_days is not None else 0.0,
                 item.quantity,
                 item.unit,
                 item.freshness_score,
                 item.remaining_shelf_life_days,
-                item.status
+                item.status,
+                item.prediction_methodology or "Empirical FoodKeeper Baseline Model (ML Regression Dataset Pending)"
             ])
             curr_row = ws.max_row
             ws.row_dimensions[curr_row].height = 18
@@ -428,7 +481,7 @@ class ReportService:
                     cell.fill = fill_zebra
                     
                 # Format numeric columns
-                if col_idx in (4, 6, 7):
+                if col_idx in (5, 6, 9, 10, 12, 13):
                     cell.alignment = Alignment(horizontal="right", vertical="center")
                 else:
                     cell.alignment = Alignment(horizontal="left", vertical="center")

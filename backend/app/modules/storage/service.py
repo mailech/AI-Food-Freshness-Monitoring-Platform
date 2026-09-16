@@ -8,10 +8,26 @@ from app.modules.shelf_life.service import FOOD_CATEGORY_CONSTANTS
 
 def evaluate_storage_compliance(item: InventoryItem, reading: StorageReading) -> StorageComplianceReport:
     """
-    Compare storage telemetry logs against category optimal guidelines.
+    Compare storage telemetry logs against category optimal guidelines (USDA FoodKeeper / FAO Standards).
     Generates compliance statuses and actionable recommendations list.
+    When product-specific limits are unavailable, marks status as 'Reference range unavailable'.
     """
-    const = FOOD_CATEGORY_CONSTANTS.get(item.category, FOOD_CATEGORY_CONSTANTS["Fruits"])
+    const = FOOD_CATEGORY_CONSTANTS.get(item.category)
+    if not const:
+        return StorageComplianceReport(
+            item_id=str(item.id),
+            warehouse_zone=reading.warehouse_zone,
+            compliance_status="Reference range unavailable",
+            temperature=reading.temperature,
+            humidity=reading.humidity,
+            air_circulation=reading.air_circulation,
+            light_exposure=reading.light_exposure,
+            temperature_deviation=0.0,
+            humidity_deviation=0.0,
+            recorded_at=reading.recorded_at,
+            recommendations=["Reference range unavailable for this product category."]
+        )
+
     ideal_temp = const["ideal_temp"]
     ideal_humidity = const["ideal_humidity"]
 

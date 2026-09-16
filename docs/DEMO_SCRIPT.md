@@ -1,53 +1,45 @@
-# FreshLens - 5-Minute Demonstration Script
+# FreshLens — 5-Minute Demonstration Script
 
-This script outlines a 5-minute walkthrough of the FreshLens system to demonstrate features during reviews or presentations.
+This script outlines a 5-minute walkthrough of the FreshLens platform for live reviews and demonstrations.
 
 ---
 
-### 0:00–0:30 | Problem & Solution Introduction
+### 0:00–0:45 | Introduction & Overview
 * **Action**: Display the Landing Page of FreshLens.
 * **Talking Points**: 
-  - *"Welcome to FreshLens. Food waste is a massive global issue: up to 30% of fresh produce spoils before consumption. FreshLens addresses this by combining Computer Vision, IoT climate monitors, and automated FEFO (First Expired, First Out) warehouse logic to track food condition in real-time."*
-  - *"Let's explore the portal."*
+  - *"Welcome to FreshLens. Up to 30% of fresh food degrades before consumption due to inaccurate forecasting and subjective manual inspection."*
+  - *"FreshLens combines Computer Vision visual analysis, multi-factor storage telemetry monitoring, a 7-factor prediction pipeline, and First Expired, First Out (FEFO) inventory ordering to minimize spoilage."*
 
-### 0:30–1:00 | Sign In & User Portals
-* **Action**: Click **Get Started** or **Sign In**. Use the Retail Manager credentials: `retail@freshlens.com` (password: `Password123!`).
+### 0:45–1:30 | Multi-Role Portal & Role Simulator
+* **Action**: Navigate to `/dashboard/inspector` or switch roles in the Sandbox Simulator.
 * **Talking Points**:
-  - *"FreshLens implements strict Role-Based Access Control (RBAC). Depending on the user's role—Consumer, Retail Manager, Warehouse Operator—different pages and actions are exposed."*
-  - *"We are logging into the Retail Portal, which displays the overall freshness levels and FEFO recommendations."*
+  - *"FreshLens enforces Role-Based Access Control (RBAC) across 5 roles: Consumer, Retail Manager, Warehouse Operator, Food Quality Inspector, and Administrator."*
+  - *"Here in the Food Quality Inspector Dashboard, inspectors conduct formal quality audits by combining visual specimen scans with environmental metrics."*
 
-### 1:00–2:00 | Add Inventory Item & Batch
-* **Action**: 
-  1. Navigate to the **Inventory / Batches** tab.
-  2. Click **Create New Batch** (e.g., `BATCH-APP-09`, Supplier: `Valley Orchards`).
-  3. Click **Add Inventory Item** (e.g., Name: `Red Gala Apples`, Category: `Fruits`, Quantity: `50`, Unit: `kg`, Expiry: 7 days in the future, Location: `Cold Storage A`, Packaging: `Cartboard Box`).
-* **Talking Points**:
-  - *"A warehouse operator registers supply shipments under unique batches. The system tracks item categories and packaging types, as different foods degrade differently under temperature and humidity levels."*
-
-### 2:00–3:00 | Food Scanner & AI Analysis
+### 1:30–2:30 | Food Quality Inspector Audit Workflow
 * **Action**:
-  1. Navigate to the **Consumer Portal** or **Image Scan** screen.
-  2. Upload a sample apple or banana photo (or click one).
-  3. Click **Run Scan**.
+  1. Fill in the Quality Inspection Audit form (Product Name: `Gala Apples`, Category: `Fruits`, Packaging: `Cardboard Box`, Temp: `4.0°C`, Humidity: `85%`, Air Circulation: `Medium`, Light: `Low`, Duration: `2 days`).
+  2. Upload an image specimen.
+  3. Click **File Quality Inspection Audit**.
 * **Talking Points**:
-  - *"Consumers or quality inspectors scan items visually. The image goes to our FastAPI backend where it undergoes RGB/HSV color segmentations and gray Laplace roughness variance extraction, which are then passed to the computer vision pipeline."*
-  - *"The system runs in Demo Mode by default for zero-dependency testing, mapping these features deterministically to predictions. In production mode, it passes them to a 5-layer PyTorch Convolutional Neural Network."*
+  - *"The inspector enters the 7 mandatory parameters: Food Image, Product Type, Temperature, Humidity, Packaging Type, Air/Light Storage Conditions, and Storage Duration."*
+  - *"The backend executes feature vectorization and runs the prediction pipeline to estimate remaining shelf life."*
 
-### 3:00–4:00 | Freshness Score, Shelf Life, & Recommendations
-* **Action**: View the analysis results.
+### 2:30–3:30 | Freshness Scoring & Safety Mold Override
+* **Action**: Review the generated inspection report details.
 * **Talking Points**:
-  - *"The scan returns the AI predicted class, confidence level, and calculates a multi-dimensional Freshness Score. This score aggregates: visual condition (40%), storage conditions (25%), estimated shelf life (20%), and age (15%)."*
-  - *"The shelf-life is calculated using an Arrhenius kinetic model mapping temperature and humidity."*
-  - *"If mold is identified, a safety override forces the freshness score directly to 0.0 and labels the item UNSAFE."*
+  - *"FreshLens calculates the overall Freshness Score using the weighted model: Visual 40%, Storage 25%, Shelf-Life 20%, Product Age 15%."*
+  - *"Scores map directly into 5 categories: Fresh, Good, Acceptable, Near Spoilage, and Spoiled."*
+  - *"If mold is identified during the visual scan, a safety override forces the score to 0.0 and classifies the item as Spoiled immediately."*
 
-### 4:00–4:30 | Inventory Analytics & FEFO Dispatch
-* **Action**: Navigate to the **Analytics Dashboard**.
+### 3:30–4:15 | Inventory Analytics & FEFO Recommendations
+* **Action**: Navigate to `/dashboard/retail` to view FEFO dispatch order.
 * **Talking Points**:
-  - *"Warehouse managers inspect overall charts displaying total active items, waste estimations, and storage climate compliance statistics."*
-  - *"The system implements FEFO (First Expired, First Out) rules. It dynamically calculates remaining shelf-life across all batches and sorts them to prioritize dispatching the earliest decaying items first."*
+  - *"The recommendation engine generates advisories across 5 areas: storage adjustments, consumption urgency, FEFO inventory rotation, waste reduction, and quality improvement."*
+  - *"Items decaying faster than calendar limits trigger explicit FEFO override warnings so managers dispatch them ahead of older stock."*
 
-### 4:30–5:00 | Reports & Architecture Summary
-* **Action**: Navigate to **Reports**, generate a PDF/Excel report, and review the architecture.
+### 4:15–5:00 | Reports Hub & Real-Data Exports
+* **Action**: Navigate to `/dashboard/reports`, view the preview, and download a PDF / Excel report.
 * **Talking Points**:
-  - *"We can export audits as PDF summaries or Excel sheets."*
-  - *"The system architecture uses PostgreSQL for transactions (relational users/items), MongoDB for document logs (alerts/analyses/climates), FastAPI for backend routing, and Next.js for a fluid web interface. Thank you!"*
+  - *"The Reports Hub compiles Freshness, Shelf-Life, Quality, Waste Reduction, and Storage Compliance reports from real database records."*
+  - *"We can export full audits as PDF summaries or formatted Excel sheets containing all prediction parameters and model methodologies. Thank you!"*

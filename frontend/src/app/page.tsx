@@ -33,6 +33,15 @@ export default function HomePortal() {
       icon: '🏭',
     },
     {
+      role: 'Quality Inspector',
+      title: 'Food Quality Audit',
+      desc: 'Execute specimen audits, review AI visual inferences, verify environmental compliance, and log formal quality actions.',
+      link: '/dashboard/inspector',
+      color: 'from-purple-500 to-violet-600',
+      shadow: 'shadow-purple-500/10',
+      icon: '📋',
+    },
+    {
       role: 'Root Administrator',
       title: 'System Management',
       desc: 'Oversee user provisioning, service endpoints health, global discount policies, and database logs.',
@@ -105,7 +114,7 @@ export default function HomePortal() {
         </p>
 
         {/* Portal Grid with 3D card tilt */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full mt-16 text-left perspective-1000 animate-slide-up">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 w-full mt-16 text-left perspective-1000 animate-slide-up">
           {portals.map((portal) => (
             <Link key={portal.role} href={portal.link} className="group">
               <div className={`h-full bg-slate-900/40 backdrop-blur border border-slate-900 rounded-3xl p-6 flex flex-col justify-between shadow-2xl card-3d-hover relative overflow-hidden`}>

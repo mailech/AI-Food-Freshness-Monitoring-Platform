@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, List
 from pydantic import BaseModel, Field
 
 class ShelfLifePredictionRequest(BaseModel):
@@ -9,6 +9,8 @@ class ShelfLifePredictionRequest(BaseModel):
     packaging_type: Optional[str] = Field("None", description="Packaging type used")
     temperature: Optional[float] = Field(None, description="Storage temperature in Celsius")
     humidity: Optional[float] = Field(None, description="Storage relative humidity in percentage")
+    air_circulation: Optional[str] = Field("Medium", description="Air circulation: Low, Medium, High")
+    light_exposure: Optional[str] = Field("Low", description="Light exposure: Dark, Low, Medium, High")
     storage_duration_days: float = Field(0.0, description="Number of days item has already been in storage")
 
 class ShelfLifeImpactAnalysis(BaseModel):
@@ -25,9 +27,13 @@ class ShelfLifePredictionResponse(BaseModel):
     risk_level: str = Field(..., description="Risk level (LOW, MEDIUM, HIGH)")
     impact_analysis: ShelfLifeImpactAnalysis = Field(..., description="Detailed storage environment impact analysis")
     
-    # Audit fields for Heuristic vs ML distinction
-    methodology: str = Field(..., description="Heuristic estimation methodology explanation")
-    estimated_remaining_days: float = Field(..., description="Rule-based remaining days estimate")
-    estimated_expiry_date: datetime = Field(..., description="Rule-based predicted expiry date")
-    confidence_score: float = Field(..., description="Uncertainty metric / confidence score")
-    factors_affecting_shelf_life: list[str] = Field(..., description="List of environmental factors affecting shelf life")
+    # Audit & Pipeline fields
+    status: str = Field("SUCCESS", description="Prediction status: SUCCESS, UNCERTAIN, INVALID_INPUT")
+    methodology: str = Field(..., description="Prediction model methodology description")
+    estimated_remaining_days: float = Field(..., description="Remaining days estimate")
+    estimated_expiry_date: datetime = Field(..., description="Predicted expiry date")
+    confidence_score: float = Field(..., description="Model confidence score or uncertainty metric")
+    factors_affecting_shelf_life: List[str] = Field(..., description="List of environmental factors affecting shelf life")
+    model_version: Optional[str] = Field("1.0.0", description="Model version string")
+    prediction_timestamp: Optional[datetime] = Field(None, description="Timestamp of prediction")
+    input_summary: Optional[Dict[str, Any]] = Field(None, description="Summary of parsed inputs")

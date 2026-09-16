@@ -9,6 +9,7 @@ from app.core.dependencies import get_current_user
 from app.modules.user.models import User
 from app.modules.inventory.service import get_item_by_id
 from app.modules.image_analysis.models import ImageAnalysis
+from app.modules.storage.models import StorageReading
 from app.modules.shelf_life.schemas import ShelfLifePredictionRequest, ShelfLifePredictionResponse
 from app.modules.shelf_life.service import (
     predict_shelf_life_kinetics,
@@ -25,9 +26,15 @@ async def predict_shelf_life(
 ) -> Any:
     """
     Predict remaining shelf-life and expiry date for an item dynamically.
-    If item_id is provided, automatically pulls its category, packaging,
-    storage duration, and latest image analysis metrics.
+    Fuses Food Image features, Product Type, Temperature, Humidity, Packaging Type,
+    Air Circulation, Light Exposure, and Storage Duration.
     """
+    mold_detected = False
+    bruising_detected = False
+    damage_detected = False
+    air_circ = req.air_circulation or "Medium"
+    light_exp = req.light_exposure or "Low"
+
     if req.item_id:
         item = await get_item_by_id(db, item_id=req.item_id)
         if not item:
@@ -45,7 +52,7 @@ async def predict_shelf_life(
         if entry_date.tzinfo is None:
             entry_date = entry_date.replace(tzinfo=timezone.utc)
             
-        elapsed_days = (now - entry_date).total_seconds() / 86450.0
+        elapsed_days = (now - entry_date).total_seconds() / 86400.0
         duration_days = max(0.0, elapsed_days)
 
         # Lookup location default telemetry if not overridden in request
@@ -53,11 +60,25 @@ async def predict_shelf_life(
         temp_val = req.temperature if req.temperature is not None else temp_def
         hum_val = req.humidity if req.humidity is not None else hum_def
 
-        # Fetch latest image analysis score
-        latest = await ImageAnalysis.find(
+        # Fetch latest storage reading for air_circulation & light_exposure
+        latest_reading = await StorageReading.find(
+            StorageReading.item_id == str(item.id)
+        ).sort(-StorageReading.recorded_at).first()
+        if latest_reading:
+            air_circ = latest_reading.air_circulation
+            light_exp = latest_reading.light_exposure
+
+        # Fetch latest image analysis score & defect flags
+        latest_analysis = await ImageAnalysis.find(
             ImageAnalysis.item_id == str(item.id)
         ).sort(-ImageAnalysis.analyzed_at).first()
-        visual_score = latest.freshness_score if latest else 100.0
+        if latest_analysis:
+            visual_score = latest_analysis.freshness_score
+            mold_detected = latest_analysis.mold_detected
+            bruising_detected = latest_analysis.bruising_detected
+            damage_detected = latest_analysis.damage_detected
+        else:
+            visual_score = 100.0
 
     else:
         if not req.category:
@@ -78,7 +99,12 @@ async def predict_shelf_life(
         temperature=temp_val,
         humidity=hum_val,
         storage_duration_days=duration_days,
-        visual_freshness_score=visual_score
+        visual_freshness_score=visual_score,
+        air_circulation=air_circ,
+        light_exposure=light_exp,
+        mold_detected=mold_detected,
+        bruising_detected=bruising_detected,
+        damage_detected=damage_detected
     )
     return prediction
 
@@ -109,11 +135,32 @@ async def get_item_shelf_life_prediction(
         
     duration_days = max(0.0, (now - entry_date).total_seconds() / 86400.0)
 
+    # Fetch latest telemetry reading
+    air_circ = "Medium"
+    light_exp = "Low"
+    latest_reading = await StorageReading.find(
+        StorageReading.item_id == str(item.id)
+    ).sort(-StorageReading.recorded_at).first()
+    if latest_reading:
+        temp_def = latest_reading.temperature
+        hum_def = latest_reading.humidity
+        air_circ = latest_reading.air_circulation
+        light_exp = latest_reading.light_exposure
+
     # Fetch latest visual analysis score
+    mold_detected = False
+    bruising_detected = False
+    damage_detected = False
     latest = await ImageAnalysis.find(
         ImageAnalysis.item_id == str(item.id)
     ).sort(-ImageAnalysis.analyzed_at).first()
-    visual_score = latest.freshness_score if latest else 100.0
+    if latest:
+        visual_score = latest.freshness_score
+        mold_detected = latest.mold_detected
+        bruising_detected = latest.bruising_detected
+        damage_detected = latest.damage_detected
+    else:
+        visual_score = 100.0
 
     prediction = predict_shelf_life_kinetics(
         category=item.category,
@@ -121,6 +168,11 @@ async def get_item_shelf_life_prediction(
         temperature=temp_def,
         humidity=hum_def,
         storage_duration_days=duration_days,
-        visual_freshness_score=visual_score
+        visual_freshness_score=visual_score,
+        air_circulation=air_circ,
+        light_exposure=light_exp,
+        mold_detected=mold_detected,
+        bruising_detected=bruising_detected,
+        damage_detected=damage_detected
     )
     return prediction

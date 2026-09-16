@@ -114,3 +114,28 @@ async def test_storage_telemetry_and_compliance(client: AsyncClient):
     history_data = res_history.json()
     assert len(history_data) >= 2
     assert history_data[0]["temperature"] == 15.0 # latest first sorting
+
+@pytest.mark.asyncio
+async def test_storage_compliance_unavailable_range():
+    from app.modules.inventory.models import InventoryItem
+    from app.modules.storage.models import StorageReading
+    from app.modules.storage.service import evaluate_storage_compliance
+
+    # Test item with category that has no defined reference range
+    unknown_item = InventoryItem(
+        category="Exotic Specialty Fungus",
+        storage_location="Special Vault"
+    )
+    reading = StorageReading(
+        item_id="00000000-0000-0000-0000-000000000000",
+        warehouse_zone="Special Vault",
+        temperature=12.0,
+        humidity=70.0,
+        air_circulation="High",
+        light_exposure="Dark"
+    )
+
+    report = evaluate_storage_compliance(unknown_item, reading)
+    assert report.compliance_status == "Reference range unavailable"
+    assert "Reference range unavailable" in report.recommendations[0]
+

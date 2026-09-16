@@ -1,139 +1,135 @@
-# FreshLens - Food Freshness Monitoring Platform
+# FreshLens — AI Food Freshness & Storage Monitoring Platform
 
-FreshLens analyzes food images and storage conditions to estimate freshness and support inventory management. It combines computer vision, ambient storage telemetry, shelf-life estimation, and role-based dispatch prioritizing (FEFO - First Expired, First Out) to help reduce food spoilage.
+FreshLens is an engineering platform that combines computer vision, multi-factor storage telemetry monitoring, shelf-life prediction, and automated inventory management (FEFO — First Expired, First Out) to minimize food degradation across retail, warehousing, and quality inspection workflows.
 
 ---
 
-## 1. System Architecture
+## Key Capabilities
+
+* **Multi-Factor Shelf-Life Prediction**: Combines 7 inputs: Food Image features, Product Category, Storage Temperature (°C), Relative Humidity (%), Packaging Type, Storage Environmental Conditions (Air Circulation / Light Exposure), and Storage Duration (days) to estimate remaining shelf life.
+* **5 User Roles with RBAC**:
+  - **Consumer**: Read-only diagnostics, item lookup, and specimen scanning.
+  - **Retail Manager**: Inventory management, stock registration, FEFO dispatch priorities, and markdown advisories.
+  - **Warehouse Operator**: Bulk batch registration, climate sensor telemetry logging, and storage compliance tracking.
+  - **Food Quality Inspector**: Dedicated inspection workflow, batch auditing, defect classification, and official safety decision logging.
+  - **Administrator**: Full platform administration, system oversight, and user role management.
+* **Weighted Freshness Scoring Model**:
+  - Visual Condition Analysis — **40%**
+  - Storage Conditions — **25%**
+  - Shelf-Life Prediction — **20%**
+  - Product Age — **15%**
+  - *Total*: **100%**
+* **5 Quality Categories**: `Fresh` (≥85), `Good` (70–84.9), `Acceptable` (50–69.9), `Near Spoilage` (30–49.9), `Spoiled` (<30).
+* **Safety Mold Override**: Confirmed mold detection automatically forces the visual freshness score to 0 and marks the product as `Spoiled` / `UNSAFE`.
+* **Dynamic Analytics & PDF/Excel Exports**: Generates Freshness, Shelf-Life, Quality, Waste Reduction, and Storage Compliance reports with PDF and Excel downloads using real database records.
+
+---
+
+## Tech Stack
+
+* **Frontend**: Next.js 16 (React 19, TypeScript, Tailwind CSS, App Router).
+* **Backend**: FastAPI (Python 3.13, SQLAlchemy Async ORM, Beanie MongoDB ODM, Pydantic v2).
+* **Databases**:
+  - **PostgreSQL**: Transactional inventory items, supply batches, quality inspections, and user credentials.
+  - **MongoDB**: Storage climate telemetry logs, image analysis results, and system notifications.
+
+---
+
+## System Architecture
 
 ```mermaid
 graph TD
-    User([User Client / Next.js])
-    Backend[FastAPI API Layer]
-    Auth[JWT Auth & RBAC Gating]
-    Scoring[Multi-Dimensional Scoring Engine]
-    ShelfLife[Arrhenius Kinetics Estimator]
-    AI[AI/ML Inference: PyTorch / OpenCV]
-    Postgres[(PostgreSQL Relational DB)]
-    Mongo[(MongoDB Document Store)]
+    User([Client / Next.js Web UI])
+    API[FastAPI API Layer]
+    Auth[JWT Auth & RBAC Middleware]
+    Scoring[Multi-Factor Scoring Engine]
+    Pipeline[Modular Shelf-Life Prediction Pipeline]
+    CV[Computer Vision Feature Extractor]
+    PG[(PostgreSQL DB)]
+    Mongo[(MongoDB Store)]
 
-    User -->|HTTP / Multi-part Upload| Backend
-    Backend --> Auth
-    Backend --> Scoring
-    Backend --> ShelfLife
-    Backend --> AI
-    Auth --> Postgres
-    Scoring --> Postgres
-    ShelfLife --> Postgres
-    AI --> Mongo
-    Backend --> Mongo
+    User -->|HTTP Requests| API
+    API --> Auth
+    API --> Scoring
+    API --> Pipeline
+    API --> CV
+    Auth --> PG
+    Scoring --> PG
+    Pipeline --> PG
+    CV --> Mongo
+    API --> Mongo
 ```
 
 ---
 
-## 2. Key Features
+## Quick Start (Local Setup)
 
-* **Computer Vision Scanner**: Image pre-processing, CNN inference (`FoodFreshnessCNN`), and post-processing with low-confidence overrides.
-* **Storage Telemetry Logging**: Track zone climates (temperature, humidity, air circulation, light levels) in MongoDB.
-* **Arrhenius Shelf-Life Modeling**: Real-time estimations based on environmental kinetics.
-* **FEFO Dispatch Management**: Automatically prioritized list of items sorted by remaining shelf life.
-* **Dynamic Analytics Reports**: Exposes endpoints exporting PDF and Excel sheets of storage histories and compliance parameters.
-* **Production Gated Security**: Hashed passwords, JWT tokens, strict MIME-type guards, and global exception handlers.
+### Prerequisites
+- **Python 3.13+**
+- **Node.js 20+**
+- **PostgreSQL** & **MongoDB** (or run via Docker Compose)
 
----
-
-## 3. Tech Stack
-
-* **Frontend**: Next.js (App Router, dynamic concentrics, perspective tilt animations).
-* **Backend**: FastAPI (Python 3.13, SQLAlchemy, Beanie ODM, rate limiters).
-* **Databases**:
-  * **PostgreSQL**: Manages structured transactional data (Users, Batches, Items).
-  * **MongoDB**: Tracks time-series data (Scans, Readings, System Alerts).
-
----
-
-## 4. Local Installation & Development
-
-Ensure you have **Python 3.13** and **Node.js 20+** installed.
-
-### 1. Configure the Environment
-Create a `.env` file inside the `backend` folder using the root `.env.example` as a template:
+### 1. Environment Configuration
+Copy the template `.env.example` into `backend/.env`:
 ```bash
 cp .env.example backend/.env
 ```
 
-### 2. Backend Local Setup
-From the root directory:
-```powershell
+### 2. Backend Setup
+From the repository root:
+```bash
 cd backend
 python -m venv .venv
+# Windows PowerShell:
 .venv\Scripts\Activate.ps1
-pip install -r requirements.txt -r requirements-dev.txt
+# Linux/macOS:
+source .venv/bin/activate
+
+pip install -r requirements.txt
 python -m uvicorn app.main:app --reload
 ```
-* **Interactive OpenAPI docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
-* **Backend Health Check**: [http://localhost:8000/health](http://localhost:8000/health)
+- **API Swagger Documentation**: [http://localhost:8000/docs](http://localhost:8000/docs)
+- **Health Check Endpoint**: [http://localhost:8000/health](http://localhost:8000/health)
 
-### 3. Frontend Local Setup
-From another terminal:
-```powershell
+### 3. Frontend Setup
+From a separate terminal:
+```bash
 cd frontend
 npm install
+npm.cmd run build  # Verification build
 npm run dev
 ```
-* **Dashboard Portal**: [http://localhost:3000](http://localhost:3000)
+- **Dashboard Portal**: [http://localhost:3000](http://localhost:3000)
 
-### 4. Run Automated Tests
-With the virtual environment active in the `backend` folder:
-```powershell
+### 4. Running Tests
+With the virtual environment active in `backend`:
+```bash
 python -m pytest app/tests/ -v
 ```
 
-### 5. Seeding Demo Accounts
-Set up Apples, Bananas, Potatoes, Tomatoes, Oranges and test accounts (Consumer, Retail Manager, Warehouse Operator) by running:
-```powershell
-python scripts/seed_demo_data.py
-```
-
 ---
 
-## 5. Deployment with Docker Compose
+## Deployment via Docker Compose
 
-You can launch the complete, connected stack from scratch by running:
+Launch the complete stack (PostgreSQL, MongoDB, FastAPI API backend, and Next.js client) using Docker:
 ```bash
 docker compose up --build
 ```
-This builds and orchestrates:
-- PostgreSQL on port `5432`
-- MongoDB on port `27017`
-- FastAPI Backend on port `8000`
-- Next.js Web Client on port `3000`
+Ports:
+- Next.js Web Client: `3000`
+- FastAPI API Server: `8000`
+- PostgreSQL: `5432`
+- MongoDB: `27017`
 
 ---
 
-## 6. Monorepo Layout
+## Documentation Index
 
-```text
-d:\FreshLens\
-├── docker-compose.yml        # Multi-container orchestration (Postgres, Mongo, API, UI)
-├── README.md                 # Setup, run, and test guide
-├── .env.example              # Centralized environment template
-├── docs/                     # Documentation files
-│   ├── MODEL.md              # AI model architecture and training guide
-│   ├── MODEL_EVALUATION.md   # Model evaluation metrics and reports
-│   ├── DEMO_SCRIPT.md        # 5-minute live demonstration script
-│   ├── ROADMAP.md            # Product roadmap and future versions
-│   ├── VIVA.md               # Architecture and viva preparation guide
-│   └── PROJECT_STATUS.md     # Feature implementation status
-├── backend/                  # FastAPI Backend service
-│   ├── Dockerfile
-│   ├── requirements.txt      # Dependencies
-│   ├── app/                  # Core codebase
-│   │   ├── core/             # DB setups, configs, rate-limiters
-│   │   ├── modules/          # Business rules routers (Auth, Inventory, AI)
-│   │   └── tests/            # Pytest test cases
-│   └── scripts/              # Demo dataset seed scripts
-└── frontend/                 # Next.js App Router client
-    ├── Dockerfile
-    └── src/app/              # UI Dashboards (Consumer, Retail, Warehouse)
-```
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): System architecture, database schemas, and data flow.
+- [docs/PREDICTION_PIPELINE.md](docs/PREDICTION_PIPELINE.md): Multi-factor shelf-life prediction pipeline specifications.
+- [docs/ROLE_PERMISSIONS.md](docs/ROLE_PERMISSIONS.md): Role-Based Access Control matrix for all 5 roles.
+- [docs/API.md](docs/API.md): REST API endpoints reference.
+- [docs/MODEL.md](docs/MODEL.md): Computer vision model architecture and dataset requirements.
+- [docs/VIVA.md](docs/VIVA.md): Technical Q&A and viva preparation guide.
+- [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md): 5-minute demonstration script.
+- [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md): Current implementation status and verification checklist.
