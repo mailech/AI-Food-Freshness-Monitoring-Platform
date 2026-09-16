@@ -12,6 +12,9 @@ function Register() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
+  // Role
+  const [role, setRole] = useState("Consumer");
+
   const navigate = useNavigate();
 
   // Google Registration
@@ -25,7 +28,8 @@ function Register() {
       name.trim() === "" ||
       email.trim() === "" ||
       password.trim() === "" ||
-      confirmPassword.trim() === ""
+      confirmPassword.trim() === "" ||
+      role.trim() === ""
     ) {
       alert("Please fill all the details.");
       return;
@@ -58,6 +62,7 @@ function Register() {
             name: name,
             email: email,
             password: password,
+            role: role,
           }),
         }
       );
@@ -71,7 +76,6 @@ function Register() {
 
       alert(data.message);
       navigate("/login");
-
     } catch (error) {
       console.error(error);
       alert("Unable to connect to the server.");
@@ -121,6 +125,11 @@ function Register() {
             onChange={(e) => setEmail(e.target.value)}
           />
 
+          {/* Role Dropdown */}
+          
+
+         
+
           <div className="password-box">
             <input
               type={showPassword ? "text" : "password"}
@@ -154,8 +163,26 @@ function Register() {
               {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
             </span>
           </div>
+           <select
+  className="role-select"
+  value={role}
+  onChange={(e) => setRole(e.target.value)}
+>
+  <option value="Consumer">Consumer</option>
+  <option value="Retail Manager">Retail Manager</option>
+  <option value="Warehouse Operator">
+    Warehouse Operator
+  </option>
+  <option value="Food Quality Inspector">
+    Food Quality Inspector
+  </option>
+  <option value="Administrator">Administrator</option>
+</select>
 
-          <button className="green-btn" onClick={handleRegister}>
+          <button
+            className="green-btn"
+            onClick={handleRegister}
+          >
             Create Account
           </button>
 
@@ -183,4 +210,3 @@ function Register() {
 }
 
 export default Register;
-

@@ -96,7 +96,10 @@ async def google_callback(
         db.refresh(user)
 
     access_token = create_access_token(
-        data={"sub": str(user.id)}
+        data={
+            "sub": str(user.id),
+            "role": user.role
+        }
     )
 
     return RedirectResponse(
@@ -112,11 +115,13 @@ class RegisterRequest(BaseModel):
     name: str
     email: str
     password: str
+    role: str
 
 
 class LoginRequest(BaseModel):
     email: str
     password: str
+    role: str
 
 
 class UpdateProfileRequest(BaseModel):
@@ -133,6 +138,22 @@ def register_user(
     user_data: RegisterRequest,
     db: Session = Depends(get_db)
 ):
+
+    # Allowed roles
+    allowed_roles = [
+        "Consumer",
+        "Retail Manager",
+        "Warehouse Operator",
+        "Food Quality Inspector",
+        "Administrator"
+    ]
+
+    # Check whether selected role is valid
+    if user_data.role not in allowed_roles:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid role selected"
+        )
 
     # Check whether email already exists
     existing_user = db.query(User).filter(
@@ -152,11 +173,11 @@ def register_user(
 
     # Create new user
     new_user = User(
-    name=user_data.name,
-    email=user_data.email,
-    password=hashed_password,
-    role="Consumer"
-)
+        name=user_data.name,
+        email=user_data.email,
+        password=hashed_password,
+        role=user_data.role
+    )
 
     db.add(new_user)
     db.commit()
@@ -164,7 +185,8 @@ def register_user(
 
     return {
         "message": "User registered successfully",
-        "user_id": new_user.id
+        "user_id": new_user.id,
+        "role": new_user.role
     }
 
 
@@ -207,20 +229,29 @@ def login_user(
             detail="Invalid email or password"
         )
 
+    # Verify selected role
+    if user.role != user_data.role:
+        raise HTTPException(
+            status_code=403,
+            detail="Selected role does not match your account role"
+        )
+
     access_token = create_access_token(
-    data={
-        "sub": str(user.id),
+        data={
+            "sub": str(user.id),
+            "role": user.role
+        }
+    )
+
+    return {
+        "message": "Login successful",
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user_id": user.id,
+        "name": user.name,
         "role": user.role
     }
-)
-    return {
-    "message": "Login successful",
-    "access_token": access_token,
-    "token_type": "bearer",
-    "user_id": user.id,
-    "name": user.name,
-    "role": user.role
-}
+
 
 # =========================
 # GET PROFILE

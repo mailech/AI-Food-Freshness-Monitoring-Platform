@@ -77,6 +77,38 @@ function Alerts() {
           console.error("Failed to read prediction data:", error);
         }
       }
+      // ================= SHELF-LIFE ALERT =================
+
+if (savedPrediction) {
+  try {
+    const prediction = JSON.parse(savedPrediction);
+
+    const shelfLife = prediction.shelfLife || "";
+
+    if (
+      prediction.status === "Fresh" &&
+      (
+        shelfLife.includes("1 day") ||
+        shelfLife.includes("1–2") ||
+        shelfLife.includes("1-2")
+      )
+    ) {
+      generatedAlerts.push({
+        type: "Shelf-Life Alert",
+        icon: "⏳",
+        title: "Shelf Life Running Low",
+        message:
+          `${prediction.foodType || "The analyzed food"} has a short remaining shelf life. Consider consuming it soon.`,
+        status: "WARNING",
+      });
+    }
+  } catch (error) {
+    console.error(
+      "Failed to read shelf-life data:",
+      error
+    );
+  }
+}
 
       // ================= EXPIRY ALERT =================
 

@@ -46,7 +46,7 @@ function ShelfLifeReport() {
 
             <p>Food Item</p>
 
-            <h2 className="report-fresh">
+            <h2 className="report-fresh fruit-name">
               {prediction.foodType}
             </h2>
 
@@ -56,7 +56,13 @@ function ShelfLifeReport() {
 
             <p>Estimated Remaining Shelf Life</p>
 
-            <div className="freshness-score">
+            <div
+              className={
+                prediction.status === "Fresh"
+                  ? "freshness-score report-fresh"
+                  : "freshness-score report-spoiled"
+              }
+            >
               {prediction.shelfLife || "N/A"}
             </div>
 
@@ -97,7 +103,13 @@ function ShelfLifeReport() {
             <div className="report-info-box recommendation-box">
               <span>Recommendation</span>
 
-              <strong>
+              <strong
+                className={
+                  prediction.status === "Fresh"
+                    ? "report-fresh"
+                    : "report-spoiled"
+                }
+              >
                 {prediction.recommendation || "N/A"}
               </strong>
             </div>

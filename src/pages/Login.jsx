@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { FaEye, FaEyeSlash, FaLeaf } from "react-icons/fa";
@@ -8,6 +7,8 @@ function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [role, setRole] = useState("Consumer");
+
   const navigate = useNavigate();
 
   // Google Login
@@ -17,7 +18,11 @@ function Login() {
 
   // Normal Login
   const handleLogin = async () => {
-    if (email.trim() === "" || password.trim() === "") {
+    if (
+      email.trim() === "" ||
+      password.trim() === "" ||
+      role.trim() === ""
+    ) {
       alert("Please fill all the details.");
       return;
     }
@@ -33,16 +38,20 @@ function Login() {
     }
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: email,
-          password: password,
-        }),
-      });
+      const response = await fetch(
+        "http://127.0.0.1:8000/auth/login",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: email,
+            password: password,
+            role: role,
+          }),
+        }
+      );
 
       const data = await response.json();
 
@@ -52,10 +61,13 @@ function Login() {
       }
 
       localStorage.setItem("access_token", data.access_token);
+      localStorage.setItem("role", data.role);
 
       alert(data.message);
       navigate("/dashboard");
+
     } catch (error) {
+      console.error(error);
       alert("Unable to connect to the server.");
     }
   };
@@ -114,11 +126,36 @@ function Login() {
             </span>
           </div>
 
-          <button className="green-btn" onClick={handleLogin}>
+          {/* Role Dropdown */}
+          <select
+            className="role-select"
+            value={role}
+            onChange={(e) => setRole(e.target.value)}
+          >
+            <option value="Consumer">Consumer</option>
+            <option value="Retail Manager">Retail Manager</option>
+            <option value="Warehouse Operator">
+              Warehouse Operator
+            </option>
+            <option value="Food Quality Inspector">
+              Food Quality Inspector
+            </option>
+            <option value="Administrator">
+              Administrator
+            </option>
+          </select>
+
+          <button
+            className="green-btn"
+            onClick={handleLogin}
+          >
             Login
           </button>
 
-          <button className="green-btn" onClick={handleGoogleLogin}>
+          <button
+            className="green-btn"
+            onClick={handleGoogleLogin}
+          >
             Continue with Google
           </button>
 
@@ -135,4 +172,3 @@ function Login() {
 }
 
 export default Login;
-

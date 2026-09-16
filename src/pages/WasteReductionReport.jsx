@@ -41,15 +41,9 @@ function WasteReductionReport() {
 
             <p>Analyzed Food</p>
 
-            <h2
-              className={
-                prediction.status === "Fresh"
-                  ? "report-fresh"
-                  : "report-spoiled"
-              }
-            >
-              {prediction.foodType}
-            </h2>
+            <h2 className="report-fresh fruit-name">
+  {prediction.foodType}
+</h2>
           </div>
 
           <div className="freshness-score-section">
@@ -77,11 +71,18 @@ function WasteReductionReport() {
             </div>
 
             <div className="report-info-box">
-              <span>Shelf Life</span>
-              <strong>
-                {prediction.shelfLife || "N/A"}
-              </strong>
-            </div>
+  <span>Shelf Life</span>
+
+  <strong
+    className={
+      prediction.status === "Fresh"
+        ? "status-fresh"
+        : "status-spoiled"
+    }
+  >
+    {prediction.shelfLife || "N/A"}
+  </strong>
+</div>
 
             <div className="report-info-box recommendation-box">
               <span>♻️ Waste Reduction Action</span>
