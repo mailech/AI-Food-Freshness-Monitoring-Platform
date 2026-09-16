@@ -1,0 +1,1 @@
+"""Spoilage detection models."""

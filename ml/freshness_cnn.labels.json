@@ -1,0 +1,23 @@
+{
+  "_comment": "Class metadata for freshness_cnn.keras (MobileNetV2, 224x224x3 RGB 0-255, 6-class softmax). Trained on the Kaggle 'Fruits fresh and rotten for classification' dataset (sriramr): fresh/rotten apples, bananas, oranges, in Keras alphabetical folder order. Applied as a GENERAL fresh-vs-rotten estimator for ANY edible item by collapsing the 6 classes into two groups via 'is_fresh'. The final visual score BLENDS the CNN fresh/rotten score with the platform's measured colour/texture (CV) score: final = cnn_blend_weight*cnn + (1-cnn_blend_weight)*cv. This keeps the CNN in the loop while making the predicted value track the actual look of each item (set cnn_blend_weight=1.0 for pure CNN, 0.0 for pure CV). NOTE: the model only saw three fruits, so on non-fruit foods the CNN half is an approximate visual cue. Edit and POST /api/v1/admin/system/reload-models to apply.",
+  "version": "cnn-fresh-rotten-general-1.0.0",
+  "trained_on": "Kaggle: sriramr/fruits-fresh-and-rotten-for-classification (applied generally to all edible items)",
+  "input": {
+    "size": [224, 224],
+    "color": "rgb",
+    "pixel_range": [0, 255]
+  },
+  "labels": [
+    "fresh apples",
+    "fresh banana",
+    "fresh oranges",
+    "rotten apples",
+    "rotten banana",
+    "rotten oranges"
+  ],
+  "is_fresh": [true, true, true, false, false, false],
+  "fresh_score": 94.0,
+  "rotten_score": 12.0,
+  "cnn_blend_weight": 0.25,
+  "freshness_score": [94.0, 94.0, 94.0, 12.0, 12.0, 12.0]
+}

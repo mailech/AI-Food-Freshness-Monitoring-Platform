@@ -1,0 +1,125 @@
+# ---------------------------------------------------------------------------
+# AI Food Freshness Monitoring Platform - full local stack.
+#
+#   docker compose up --build
+#
+#     frontend  http://localhost:3000   (nginx: SPA + /api proxy)
+#     backend   http://localhost:8000   (FastAPI, /docs for Swagger)
+#     postgres  localhost:5432          (primary database)
+#
+# The backend container waits for PostgreSQL, applies Alembic migrations and -
+# because SEED_ON_START=true below - loads the demo data on first boot.
+#
+# The optional `mqtt` profile starts a broker for the IoT sensor path:
+#   docker compose --profile mqtt up --build
+# ---------------------------------------------------------------------------
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ffm-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-freshness}
+      POSTGRES_USER: ${POSTGRES_USER:-freshness}
+      # Development default. Override in a .env file for anything shared.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-freshness_dev_password}
+      POSTGRES_INITDB_ARGS: "--data-checksums"
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-freshness} -d ${POSTGRES_DB:-freshness}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    networks: [ffm]
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ffm-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: >-
+        postgresql+psycopg2://${POSTGRES_USER:-freshness}:${POSTGRES_PASSWORD:-freshness_dev_password}@postgres:5432/${POSTGRES_DB:-freshness}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      DEBUG: ${DEBUG:-false}
+      # CHANGE THIS for any non-local deployment.
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-docker-compose-dev-secret-change-me}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-60}
+      # nginx serves the UI on 3000 and proxies /api, so same-origin works too.
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://localhost:5173}
+      # true  -> transparent baseline models (no artefacts needed)
+      # false -> load trained artefacts from /app/app/ml/models
+      DEMO_MODE: ${DEMO_MODE:-false}
+      MODEL_PATH: /app/app/ml/models
+      UPLOAD_DIR: /app/uploads
+      REPORT_DIR: /app/reports
+      SAMPLE_DIR: /app/data/sample
+      STORAGE_BACKEND: ${STORAGE_BACKEND:-local}
+      SENSOR_PROVIDER: ${SENSOR_PROVIDER:-mock}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      LOG_JSON: ${LOG_JSON:-true}
+      RUN_MIGRATIONS: "true"
+      SEED_ON_START: ${SEED_ON_START:-true}
+      # Google sign-in (Consumer). Client ID is public; the secret stays empty
+      # unless the code-exchange flow is added later. Override via environment
+      # or a root .env file - never commit real secrets.
+      OAUTH_ENABLED: ${OAUTH_ENABLED:-true}
+      OAUTH_GOOGLE_CLIENT_ID: ${OAUTH_GOOGLE_CLIENT_ID:-975876715761-qd6dd3vhjj3f8qom90ijmrm0qkq6g3p2.apps.googleusercontent.com}
+      OAUTH_GOOGLE_CLIENT_SECRET: ${OAUTH_GOOGLE_CLIENT_SECRET:-}
+      OAUTH_REDIRECT_URL: ${OAUTH_REDIRECT_URL:-http://localhost:3000/oauth/callback}
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - backend_uploads:/app/uploads
+      - backend_reports:/app/reports
+      # Trained artefacts (e.g. freshness_cnn.keras + sidecar) served read-only.
+      - ./backend/app/ml/models:/app/app/ml/models:ro
+    networks: [ffm]
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ffm-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+    networks: [ffm]
+
+  # ---- optional: MQTT broker for the IoT sensor path ---------------------
+  # Enable with: docker compose --profile mqtt up --build
+  # then set SENSOR_PROVIDER=mqtt and MQTT_BROKER_HOST=mqtt on the backend.
+  mqtt:
+    image: eclipse-mosquitto:2
+    container_name: ffm-mqtt
+    profiles: [mqtt]
+    restart: unless-stopped
+    ports:
+      - "${MQTT_PORT:-1883}:1883"
+      - "9001:9001"
+    volumes:
+      - ./docker/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mqtt_data:/mosquitto/data
+    networks: [ffm]
+
+networks:
+  ffm:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  backend_uploads:
+  backend_reports:
+  mqtt_data:

@@ -1,0 +1,84 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+ENV/
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# ---- Environment / secrets ----
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets.json
+
+# ---- Databases ----
+*.sqlite3
+*.db
+*.sqlite
+
+# ---- Uploads & generated artefacts ----
+backend/uploads/*
+!backend/uploads/.gitkeep
+reports/*
+!reports/.gitkeep
+
+# ---- ML models & datasets (never commit large binaries) ----
+backend/app/ml/models/*
+!backend/app/ml/models/.gitkeep
+!backend/app/ml/models/README.md
+ml/artifacts/
+ml/datasets/*
+!ml/datasets/README.md
+!ml/datasets/.gitkeep
+*.pt
+*.pth
+*.onnx
+*.h5
+*.keras
+*.joblib
+*.pkl
+*.weights
+
+# ---- Node / frontend ----
+node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/coverage/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ---- Editors / OS ----
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---- Misc ----
+_spec.txt
+logs/
+*.log
+
+# ---- showcase launcher runtime artefacts ----
+.showcase-state.json
+.showcase-*.log
+_sc*.log

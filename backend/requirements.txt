@@ -1,0 +1,48 @@
+# ---------------------------------------------------------------------------
+# Core runtime requirements for the AI Food Freshness Monitoring Platform API.
+# Pinned versions for reproducible installs.
+# Deep-learning extras (PyTorch / TensorFlow / YOLO) live in requirements-ml.txt
+# so that the platform can run in DEMO_MODE on any machine.
+# ---------------------------------------------------------------------------
+
+# --- Web framework ---
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+python-multipart==0.0.20
+
+# --- Validation / settings ---
+pydantic==2.10.5
+pydantic-settings==2.7.1
+email-validator==2.2.0
+
+# --- Database ---
+SQLAlchemy==2.0.37
+alembic==1.14.1
+psycopg2-binary==2.9.10
+
+# --- Security / auth ---
+PyJWT==2.10.1
+bcrypt==4.2.1
+argon2-cffi==23.1.0
+google-auth==2.37.0
+
+# --- Imaging / numeric / classic ML (real, trainable baselines) ---
+numpy==2.2.1
+pandas==2.2.3
+Pillow==11.1.0
+opencv-python-headless==4.11.0.86
+scikit-learn==1.6.1
+scipy==1.15.1
+joblib==1.4.2
+
+# --- Reporting ---
+reportlab==4.2.5
+openpyxl==3.1.5
+
+# --- Utilities ---
+python-dotenv==1.0.1
+httpx==0.28.1
+
+# --- Testing ---
+pytest==8.3.4
+pytest-cov==6.0.0

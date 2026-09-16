@@ -1,0 +1,236 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master, develop]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: '3.12'
+  NODE_VERSION: '22'
+
+jobs:
+  # =====================================================================
+  # Backend: unit + integration tests against SQLite, then the same suite's
+  # schema verified against a real PostgreSQL service.
+  # =====================================================================
+  backend:
+    name: Backend tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: freshness_test
+          POSTGRES_USER: freshness
+          POSTGRES_PASSWORD: ci_password
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U freshness -d freshness_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install OpenCV runtime libraries
+        run: sudo apt-get update && sudo apt-get install -y libgl1 libglib2.0-0
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Verify the application imports and the OpenAPI schema builds
+        env:
+          PYTHONPATH: .
+        run: |
+          python -c "
+          from app.main import app
+          schema = app.openapi()
+          print(f'OpenAPI paths: {len(schema[\"paths\"])}')
+          assert len(schema['paths']) > 80, 'unexpectedly few routes'
+          from app.models import Base
+          print(f'Tables: {len(Base.metadata.tables)}')
+          assert len(Base.metadata.tables) >= 19, 'missing tables'
+          "
+
+      - name: Run the test suite
+        env:
+          PYTHONPATH: .
+          ENVIRONMENT: testing
+          DEMO_MODE: 'true'
+          RATE_LIMIT_ENABLED: 'false'
+          JWT_SECRET_KEY: ci-only-secret
+        run: pytest -q --cov=app --cov-report=term-missing --cov-report=xml
+
+      - name: Verify Alembic migrations against PostgreSQL
+        env:
+          PYTHONPATH: .
+          DATABASE_URL: postgresql+psycopg2://freshness:ci_password@localhost:5432/freshness_test
+        run: |
+          alembic upgrade head
+          # `alembic check` fails if the models have drifted from the migrations.
+          alembic check
+          alembic downgrade base
+          alembic upgrade head
+
+      - name: Seed and smoke-test against PostgreSQL
+        env:
+          PYTHONPATH: .
+          DATABASE_URL: postgresql+psycopg2://freshness:ci_password@localhost:5432/freshness_test
+          DEMO_MODE: 'true'
+          RATE_LIMIT_ENABLED: 'false'
+          JWT_SECRET_KEY: ci-only-secret
+        run: |
+          python -m app.seed --reset
+          python scripts/e2e_smoke.py
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: backend/coverage.xml
+          if-no-files-found: ignore
+
+  # =====================================================================
+  # Frontend: lint, unit tests, production build.
+  # =====================================================================
+  frontend:
+    name: Frontend build & tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm run test
+
+      - name: Build
+        run: npm run build
+
+      - name: Upload the build output
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+          retention-days: 7
+
+  # =====================================================================
+  # Docker: both images must build, and the full stack must come up healthy.
+  # =====================================================================
+  docker:
+    name: Docker build & stack smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [backend, frontend]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build the backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          push: false
+          load: true
+          tags: ffm-backend:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build the frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          push: false
+          load: true
+          tags: ffm-frontend:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Bring up the stack
+        env:
+          JWT_SECRET_KEY: ci-compose-secret
+          SEED_ON_START: 'true'
+        run: docker compose up -d --wait --wait-timeout 240
+
+      - name: Verify the API is healthy
+        run: |
+          set -euo pipefail
+          echo "--- /health ---"
+          curl -fsS http://localhost:8000/health | tee /tmp/health.json
+          grep -q '"status":"healthy"' /tmp/health.json
+          grep -q '"database":"connected"' /tmp/health.json
+          echo "--- /api/v1/meta ---"
+          curl -fsS http://localhost:8000/api/v1/meta >/dev/null
+          echo "--- /docs ---"
+          curl -fsS http://localhost:8000/docs >/dev/null
+
+      - name: Verify login works against the seeded data
+        run: |
+          set -euo pipefail
+          TOKEN=$(curl -fsS -X POST http://localhost:8000/api/v1/auth/login \
+            -H 'Content-Type: application/json' \
+            -d '{"username":"admin@freshness.example.com","password":"Demo@1234"}' \
+            | python3 -c 'import json,sys; print(json.load(sys.stdin)["tokens"]["access_token"])')
+          curl -fsS http://localhost:8000/api/v1/analytics/dashboard \
+            -H "Authorization: Bearer $TOKEN" >/dev/null
+          echo "authenticated dashboard request OK"
+
+      - name: Verify the frontend is served
+        run: |
+          set -euo pipefail
+          curl -fsS http://localhost:3000/ | grep -qi 'freshness'
+          # nginx must proxy the API on the same origin.
+          curl -fsS http://localhost:3000/health >/dev/null
+          echo "frontend and API proxy OK"
+
+      - name: Dump logs on failure
+        if: failure()
+        run: docker compose logs --tail 200
+
+      - name: Tear down
+        if: always()
+        run: docker compose down -v
