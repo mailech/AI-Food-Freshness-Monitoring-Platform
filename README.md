@@ -1,492 +1,146 @@
-# AI-Powered Food Freshness Monitoring Platform
+# Food Freshness Monitoring Platform
+
+An AI-powered full-stack platform for monitoring food freshness, estimating shelf life, tracking storage conditions, managing inventory, and reducing food waste.
 
 ## 📌 Project Overview
 
-The **AI-Powered Food Freshness Monitoring Platform** is an intelligent web-based application designed to help users monitor food freshness, identify spoilage, manage food inventory, track storage conditions, receive timely alerts, and generate detailed reports.
+The Food Freshness Monitoring Platform uses Artificial Intelligence, Computer Vision, and environmental data to help users monitor the quality and freshness of food products.
 
-The platform combines **Artificial Intelligence, Machine Learning, web development, and database technologies** to provide an integrated solution for food quality monitoring and food waste reduction.
-
-Users can upload food images for AI-based freshness analysis, monitor storage conditions, manage inventory and expiry information, receive alerts, and view analytical reports through a simple and user-friendly interface.
-
----
+The platform analyzes food images and storage conditions to provide freshness assessments, quality scores, spoilage information, shelf-life estimates, storage recommendations, alerts, and inventory insights.
 
 ## 🎯 Objectives
 
-The main objectives of the project are:
-
-- To provide AI-based food freshness analysis.
-- To identify whether food is fresh or spoiled.
-- To generate an overall freshness score.
-- To estimate the remaining shelf life of food.
-- To monitor food storage conditions.
-- To manage food inventory and expiry information.
-- To generate timely freshness, storage, and expiry alerts.
-- To provide recommendations for better food handling and storage.
-- To generate detailed analytical reports.
-- To support food waste reduction through timely decision-making.
-
----
+- Detect and classify food freshness using AI.
+- Identify potentially spoiled food products.
+- Calculate freshness and quality scores.
+- Estimate remaining shelf life.
+- Monitor temperature and humidity conditions.
+- Provide storage optimization recommendations.
+- Track food inventory and expiry dates.
+- Generate freshness, inventory, storage, and waste reports.
+- Reduce food waste through timely alerts and inventory rotation.
 
 ## ✨ Key Features
 
-### 🔐 1. User Authentication
+### 🤖 AI Freshness Analysis
+- Image-based food freshness assessment.
+- Food quality classification.
+- Spoilage detection.
+- AI confidence score.
+- Freshness score calculation.
 
-The platform provides secure authentication and access management features:
+### 📅 Shelf-Life Monitoring
+- Estimated remaining shelf life.
+- Expiry monitoring.
+- Near-expiry identification.
+- Shelf-life alerts.
+- Food consumption recommendations.
 
-- User registration
-- User login
-- Password hashing
-- JWT-based authentication
-- Google OAuth authentication
-- Role-based access control
+### 🌡️ Storage Monitoring
+- Temperature monitoring.
+- Humidity monitoring.
+- Storage compliance score.
+- Storage condition status.
+- Storage optimization recommendations.
 
----
+### 📦 Inventory Management
+- Add and manage food inventory.
+- Track quantity and batch numbers.
+- Monitor purchase and expiry dates.
+- Identify expired products.
+- Identify products approaching expiry.
+- Inventory priority management.
 
-### 🤖 2. AI-Based Food Freshness Analysis
+### 🔔 Alerts & Notifications
+- Freshness alerts.
+- Shelf-life warnings.
+- Spoilage notifications.
+- Storage condition alerts.
+- Inventory expiry alerts.
 
-Users can upload a food image through the dashboard for AI-based analysis.
+### 📊 Reports & Analytics
+- Freshness Report.
+- Shelf-Life Report.
+- Inventory Quality Report.
+- Storage Compliance Report.
+- Waste Reduction Report.
+- Inventory analytics.
+- Waste insights.
 
-The system provides:
+## 👥 User Roles
 
-- Food identification
-- Freshness status
-- AI confidence
-- Freshness score
-- Estimated shelf life
-- Food handling recommendation
+The platform provides role-based dashboards for different users.
 
-This helps users make quick and informed decisions about food quality.
+### 👤 Consumer
+- Food freshness analysis.
+- Shelf-life information.
+- Storage monitoring.
+- Personal food inventory.
+- Freshness reports.
+- Alerts and recommendations.
 
----
+### 🏪 Retail Manager
+- Inventory management.
+- Batch management.
+- Freshness analysis.
+- Shelf-life monitoring.
+- Storage monitoring.
+- Analytics.
+- Waste insights.
+- Recommendations.
+- Reports and alerts.
 
-### 📊 3. Freshness Scoring
+### 📦 Warehouse Operator
+- Warehouse inventory monitoring.
+- Storage condition monitoring.
+- Inventory health overview.
+- Expiry-based priority tracking.
+- Freshness assessment monitoring.
+- Warehouse alerts.
+- Storage recommendations.
 
-The platform generates an overall freshness score on a scale of **0 to 100**.
+### 🔍 Food Quality Inspector
+- Food quality and freshness monitoring.
+- Freshness assessment.
+- Quality inspection workflow.
 
-The score provides a simple indication of the current quality condition of the analyzed food.
+### 🛡️ Administrator
+- Platform analytics.
+- Inventory monitoring.
+- Freshness monitoring.
+- Shelf-life monitoring.
+- Storage monitoring.
+- Alerts.
+- Reports.
+- System monitoring.
+- User and role management.
 
----
+## 🧠 Freshness Scoring
 
-### 📅 4. Shelf-Life Estimation
+The platform uses a weighted freshness score based on multiple factors:
 
-The system provides an estimated remaining shelf life for analyzed food.
+- Visual Freshness: 40%
+- Storage Conditions: 25%
+- Shelf Life: 20%
+- Product Age: 15%
 
-This helps users understand when food should preferably be consumed and supports better food management.
+This provides a combined quality assessment rather than relying only on image analysis.
 
----
-
-### 🌡️ 5. Storage Monitoring
-
-Users can enter and monitor important storage conditions such as:
-
-- Temperature
-- Humidity
-
-The system evaluates the entered conditions and classifies the overall storage condition as:
-
-- **Good**
-- **Warning**
-- **Critical**
-
-This helps users identify unsuitable storage conditions that may affect food quality.
-
----
-
-### 📦 6. Inventory Management
-
-Users can maintain their food inventory by recording:
-
-- Food name
-- Category
-- Quantity
-- Batch number
-- Purchase date
-- Expiry date
-
-The inventory system also identifies food items based on expiry status:
-
-- Good
-- Expiring Soon
-- Expired
-
----
-
-### 🚨 7. Dynamic Alerts
-
-The platform automatically generates alerts based on important food and storage conditions.
-
-Alerts can be generated for:
-
-- Spoiled food
-- Low freshness conditions
-- Critical storage conditions
-- Expired food items
-- Food items approaching expiry
-
-This enables users to take timely action.
-
----
-
-### 📈 8. Dashboard Analytics
-
-The dashboard provides a centralized view of food freshness monitoring.
-
-It displays:
-
-- Images uploaded
-- Fresh food detected
-- Spoiled food detected
-- Model accuracy
-- Recent prediction history
-- Latest food analysis results
-- Storage information
-
----
-
-### 📑 9. Reports and Analytics
-
-The platform provides multiple reports for monitoring and analysis:
-
-- **Freshness Report**
-- **Shelf-Life Report**
-- **Inventory Quality Report**
-- **Storage Compliance Report**
-- **Waste Reduction Report**
-
-Freshness reports can be exported in:
-
-- PDF format
-- Excel format
-
----
-
-## 🔄 Application Workflow
+## 🏗️ System Workflow
 
 ```text
-User Registration / Login
-          ↓
-       Dashboard
-          ↓
-   Upload Food Image
-          ↓
-    AI-Based Analysis
-          ↓
- Freshness Assessment
-          ↓
-   Freshness Score
-          ↓
- Shelf-Life Estimation
-          ↓
-Storage Condition Analysis
-          ↓
- Recommendations & Alerts
-          ↓
- Inventory Management
-          ↓
- Reports & Analytics
-```
-
----
-
-## 🛠️ Technologies Used
-
-### Frontend
-
-- **React.js** – User interface development
-- **Vite** – Frontend development and build tool
-- **JavaScript** – Application logic
-- **HTML5** – Web page structure
-- **CSS3** – User interface styling
-
-### Backend
-
-- **Python** – Backend and AI development
-- **FastAPI** – REST API development
-- **SQLAlchemy** – Database interaction
-- **JWT** – Secure user authentication
-- **Google OAuth** – Social authentication
-- **Starlette Sessions** – Session management
-
-### Database
-
-- **PostgreSQL** – User and inventory data management
-
-### Artificial Intelligence & Machine Learning
-
-- **TensorFlow**
-- **Keras**
-- **NumPy**
-- **Pandas**
-- **Scikit-learn**
-
-These technologies are used for image-based food analysis, data processing, and AI-related functionality.
-
-### Reporting & Data Export
-
-- **jsPDF** – PDF report generation
-- **SheetJS (XLSX)** – Excel report generation
-
-### Development & Testing Tools
-
-- **Visual Studio Code**
-- **Git**
-- **GitHub**
-- **Postman**
-
----
-
-## 📁 Project Structure
-
-```text
-AI-Food-Freshness-Monitoring-Platform/
-│
-├── backend/
-│   ├── database/
-│   │
-│   ├── models/
-│   │   ├── food.py
-│   │   └── user.py
-│   │
-│   ├── routes/
-│   │   ├── auth.py
-│   │   ├── food.py
-│   │   └── prediction.py
-│   │
-│   ├── security.py
-│   └── main.py
-│
-├── ml/
-│   ├── train_model.py
-│   └── test_v3.py
-│
-├── public/
-│
-├── src/
-│   ├── pages/
-│   │   ├── Alerts.jsx
-│   │   ├── Dashboard.jsx
-│   │   ├── FreshnessReport.jsx
-│   │   ├── Inventory.jsx
-│   │   ├── InventoryQualityReport.jsx
-│   │   ├── Login.jsx
-│   │   ├── Register.jsx
-│   │   ├── Reports.jsx
-│   │   ├── ShelfLifeReport.jsx
-│   │   ├── StorageComplianceReport.jsx
-│   │   ├── StorageMonitoring.jsx
-│   │   └── WasteReductionReport.jsx
-│   │
-│   ├── App.jsx
-│   ├── App.css
-│   └── OAuthSuccess.jsx
-│
-├── index.html
-├── package.json
-├── package-lock.json
-├── vite.config.js
-└── README.md
-```
-
-> Large datasets and trained model files are excluded from the GitHub repository using `.gitignore`.
-
----
-
-## 📋 Main Application Modules
-
-| Module | Description |
-|---|---|
-| Authentication | User registration, login and secure access |
-| Dashboard | Centralized food freshness monitoring |
-| AI Analysis | Food image analysis and freshness prediction |
-| Freshness Scoring | Overall food quality score |
-| Shelf-Life | Estimated remaining shelf life |
-| Storage Monitoring | Temperature and humidity monitoring |
-| Inventory | Food item and expiry management |
-| Alerts | Freshness, storage and expiry alerts |
-| Reports | Food, inventory, storage and waste reports |
-| Export | PDF and Excel report generation |
-
----
-
-## 🔒 Security Features
-
-The platform includes security mechanisms such as:
-
-- Password hashing
-- JWT-based authentication
-- Protected API endpoints
-- Role-based access control
-- OAuth authentication
-- Authenticated inventory access
-- Secure handling of user information
-
-> Database credentials, authentication secrets, and other sensitive configuration values should be stored securely and should not be committed to the repository.
-
----
-
-## 🚀 How to Run the Project
-
-### 1. Clone the Repository
-
-```bash
-git clone https://github.com/mailech/AI-Food-Freshness-Monitoring-Platform.git
-```
-
-Switch to the project branch:
-
-```bash
-git checkout rihana
-```
-
----
-
-### 2. Install Frontend Dependencies
-
-From the project root:
-
-```bash
-npm install
-```
-
----
-
-### 3. Start the Backend
-
-Open a terminal and navigate to the backend directory:
-
-```bash
-cd backend
-```
-
-Start the FastAPI server:
-
-```bash
-python -m uvicorn main:app --reload
-```
-
-The backend will be available at:
-
-```text
-http://127.0.0.1:8000
-```
-
----
-
-### 4. Start the Frontend
-
-From the project root, run:
-
-```bash
-npm run dev
-```
-
-The frontend will be available at:
-
-```text
-http://localhost:5175
-```
-
----
-
-### 5. Database Configuration
-
-The application uses **PostgreSQL** for database operations.
-
-Before starting the backend:
-
-- Create the required PostgreSQL database.
-- Configure the local database connection.
-- Keep database credentials in local configuration.
-- Do not upload passwords or sensitive credentials to GitHub.
-
----
-
-## 📊 System Capabilities
-
-The platform provides an integrated workflow covering:
-
-```text
-Authentication
-      ↓
-Food Image Analysis
-      ↓
-Freshness Assessment
-      ↓
+Food Image
+    ↓
+AI / Computer Vision Analysis
+    ↓
+Freshness Classification
+    ↓
 Freshness Score
-      ↓
+    ↓
 Shelf-Life Estimation
-      ↓
-Storage Monitoring
-      ↓
-Inventory Management
-      ↓
-Dynamic Alerts
-      ↓
-Reports & Analytics
-```
-
-This integration allows users to monitor food quality and make better decisions from a single platform.
-
----
-
-## 💡 Benefits
-
-The system helps users to:
-
-- Identify food spoilage quickly.
-- Monitor food quality efficiently.
-- Make better food consumption decisions.
-- Track food storage conditions.
-- Manage food inventory and expiry dates.
-- Receive timely alerts.
-- Monitor food quality through reports.
-- Reduce avoidable food wastage.
-- Improve overall food management.
-
----
-
-## 🔮 Future Enhancements
-
-The platform can be further enhanced with:
-
-- IoT-based temperature and humidity monitoring
-- Real-time sensor integration
-- Advanced spoilage detection
-- Mold and bruising detection
-- Support for additional food categories
-- Advanced machine learning-based shelf-life prediction
-- Real-time analytics
-- Role-specific dashboards
-- Inventory editing and deletion
-- Automated email and SMS notifications
-- Docker-based deployment
-- Cloud deployment
-- Real-time monitoring and notifications
-
-
----
-
-## 🎓 Project Information
-
-This project was developed as part of the **Infosys Springboard Internship**.
-
-The project demonstrates the practical application of:
-
-- Artificial Intelligence
-- Machine Learning
-- Web Development
-- Backend API Development
-- Database Management
-- Authentication and Authorization
-- Data Processing
-- Reporting and Analytics
-
----
-
-## 📌 Conclusion
-
-The **AI-Powered Food Freshness Monitoring Platform** provides an integrated solution for monitoring food freshness, storage conditions, inventory, expiry information, alerts, and analytical reports.
-
-By combining intelligent food analysis with practical food management features, the platform helps users monitor food quality, take timely action, improve food management, and contribute towards reducing food wastage.
-
----
+    ↓
+Storage Condition Analysis
+    ↓
+Recommendations & Alerts
+    ↓
+Dashboards / Reports
