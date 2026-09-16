@@ -1,146 +1,118 @@
-# Food Freshness Monitoring Platform
-
-An AI-powered full-stack platform for monitoring food freshness, estimating shelf life, tracking storage conditions, managing inventory, and reducing food waste.
+# AI-Powered Food Freshness Monitoring Platform
 
 ## 📌 Project Overview
 
-The Food Freshness Monitoring Platform uses Artificial Intelligence, Computer Vision, and environmental data to help users monitor the quality and freshness of food products.
+The **AI-Powered Food Freshness Monitoring Platform** is an intelligent full-stack web application designed to monitor food freshness, identify spoilage, estimate shelf life, manage food inventory, monitor storage conditions, generate recommendations, provide timely alerts, and generate analytical reports.
 
-The platform analyzes food images and storage conditions to provide freshness assessments, quality scores, spoilage information, shelf-life estimates, storage recommendations, alerts, and inventory insights.
+The platform combines **Artificial Intelligence, Computer Vision, Machine Learning, environmental condition monitoring, inventory management, and web technologies** to provide an integrated solution for food quality monitoring and food waste reduction.
 
-## 🎯 Objectives
+Users can upload food images for AI-based freshness analysis, monitor freshness scores and shelf-life information, track storage conditions, manage inventory and batches, receive alerts, view recommendations, and analyze food-quality information through role-specific dashboards.
 
-- Detect and classify food freshness using AI.
-- Identify potentially spoiled food products.
-- Calculate freshness and quality scores.
-- Estimate remaining shelf life.
-- Monitor temperature and humidity conditions.
-- Provide storage optimization recommendations.
-- Track food inventory and expiry dates.
-- Generate freshness, inventory, storage, and waste reports.
-- Reduce food waste through timely alerts and inventory rotation.
+The system follows a **role-based architecture** and provides separate dashboards for:
 
-## ✨ Key Features
+- Consumer
+- Retail Manager
+- Warehouse Operator
+- Food Quality Inspector
+- Administrator
 
-### 🤖 AI Freshness Analysis
-- Image-based food freshness assessment.
-- Food quality classification.
-- Spoilage detection.
-- AI confidence score.
-- Freshness score calculation.
+---
 
-### 📅 Shelf-Life Monitoring
-- Estimated remaining shelf life.
-- Expiry monitoring.
-- Near-expiry identification.
-- Shelf-life alerts.
-- Food consumption recommendations.
+# 🎯 Objectives
 
-### 🌡️ Storage Monitoring
-- Temperature monitoring.
-- Humidity monitoring.
-- Storage compliance score.
-- Storage condition status.
-- Storage optimization recommendations.
+The main objectives of the project are:
 
-### 📦 Inventory Management
-- Add and manage food inventory.
-- Track quantity and batch numbers.
-- Monitor purchase and expiry dates.
-- Identify expired products.
-- Identify products approaching expiry.
-- Inventory priority management.
+- To provide AI-based food freshness analysis.
+- To identify fresh, acceptable, near-spoilage, and spoiled food conditions.
+- To generate an overall freshness score.
+- To estimate the remaining shelf life of food products.
+- To monitor food storage conditions such as temperature and humidity.
+- To manage food inventory and batch information.
+- To monitor product expiry dates.
+- To identify expired and near-expiry food products.
+- To generate timely freshness, storage, and expiry alerts.
+- To provide storage and inventory recommendations.
+- To provide role-specific dashboards.
+- To generate detailed freshness, shelf-life, inventory, storage, and waste reports.
+- To support better inventory rotation and food management.
+- To contribute towards reducing avoidable food waste.
 
-### 🔔 Alerts & Notifications
-- Freshness alerts.
-- Shelf-life warnings.
-- Spoilage notifications.
-- Storage condition alerts.
-- Inventory expiry alerts.
+---
 
-### 📊 Reports & Analytics
-- Freshness Report.
-- Shelf-Life Report.
-- Inventory Quality Report.
-- Storage Compliance Report.
-- Waste Reduction Report.
-- Inventory analytics.
-- Waste insights.
+# ✨ Key Features
 
-## 👥 User Roles
+## 🔐 1. User Authentication & Authorization
 
-The platform provides role-based dashboards for different users.
+The platform provides authentication and role-based access control.
 
-### 👤 Consumer
-- Food freshness analysis.
-- Shelf-life information.
-- Storage monitoring.
-- Personal food inventory.
-- Freshness reports.
-- Alerts and recommendations.
+Features include:
 
-### 🏪 Retail Manager
-- Inventory management.
-- Batch management.
-- Freshness analysis.
-- Shelf-life monitoring.
-- Storage monitoring.
-- Analytics.
-- Waste insights.
-- Recommendations.
-- Reports and alerts.
+- User registration
+- User login
+- Password hashing
+- JWT-based authentication
+- Google OAuth authentication
+- Protected API endpoints
+- Role-based dashboard access
+- User profile management
+- Secure logout
 
-### 📦 Warehouse Operator
-- Warehouse inventory monitoring.
-- Storage condition monitoring.
-- Inventory health overview.
-- Expiry-based priority tracking.
-- Freshness assessment monitoring.
-- Warehouse alerts.
-- Storage recommendations.
+### Supported Roles
 
-### 🔍 Food Quality Inspector
-- Food quality and freshness monitoring.
-- Freshness assessment.
-- Quality inspection workflow.
+- Consumer
+- Retail Manager
+- Warehouse Operator
+- Food Quality Inspector
+- Administrator
 
-### 🛡️ Administrator
-- Platform analytics.
-- Inventory monitoring.
-- Freshness monitoring.
-- Shelf-life monitoring.
-- Storage monitoring.
-- Alerts.
-- Reports.
-- System monitoring.
-- User and role management.
+---
 
-## 🧠 Freshness Scoring
+# 🤖 2. AI-Based Food Freshness Analysis
 
-The platform uses a weighted freshness score based on multiple factors:
+Users can upload food images through the Food Analysis module.
 
-- Visual Freshness: 40%
-- Storage Conditions: 25%
-- Shelf Life: 20%
-- Product Age: 15%
+The system performs AI-based analysis and provides information such as:
 
-This provides a combined quality assessment rather than relying only on image analysis.
+- Food type
+- Freshness status
+- AI confidence
+- Freshness score
+- Estimated shelf life
+- Food handling recommendation
 
-## 🏗️ System Workflow
+The freshness analysis helps users identify the current quality condition of food and take appropriate action.
+
+### Freshness Classification
+
+The platform supports freshness categories such as:
+
+- **Fresh**
+- **Good**
+- **Acceptable**
+- **Near Spoilage**
+- **Spoiled**
+
+---
+
+# 📊 3. Weighted Freshness Score
+
+The platform generates an overall freshness score on a scale of **0 to 100**.
+
+The freshness score combines multiple factors instead of relying only on the visual appearance of the food.
+
+| Factor | Weight |
+|---|---:|
+| Visual Freshness | 40% |
+| Storage Conditions | 25% |
+| Shelf Life | 20% |
+| Product Age | 15% |
+| **Total** | **100%** |
+
+### Freshness Score Formula
 
 ```text
-Food Image
-    ↓
-AI / Computer Vision Analysis
-    ↓
-Freshness Classification
-    ↓
-Freshness Score
-    ↓
-Shelf-Life Estimation
-    ↓
-Storage Condition Analysis
-    ↓
-Recommendations & Alerts
-    ↓
-Dashboards / Reports
+Freshness Score =
+    (Visual Freshness × 0.40)
+  + (Storage Score × 0.25)
+  + (Shelf-Life Score × 0.20)
+  + (Product Age Score × 0.15)
