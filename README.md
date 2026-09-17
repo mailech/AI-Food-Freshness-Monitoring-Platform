@@ -1,76 +1,65 @@
-# AI-Food-Freshness-Monitoring-Platform# 🍎
+# FoodFresh AI — Fixed Full-Stack Project
 
-An AI-powered computer vision platform designed to analyze food quality, detect spoilage indicators (such as mold, surface texture degradation, and discoloration), estimate remaining shelf-life, and provide intelligent storage and consumption recommendations to reduce food waste.
+## Included roles
+- Consumer
+- Retail Manager
+- Food Quality Inspector
+- Administrator
+- Warehouse Operator
 
----
+## Authentication
+There is one login page for every role. Registration also lets the user select a role. The Administrator additionally has a Users page for creating/editing accounts and roles.
 
-## 📌 Features & Modules Implemented
+## Fixed functionality
+- JWT authentication compatible with PyJWT 2.10+
+- PostgreSQL persistence
+- Inventory create/edit
+- Storage readings create + history
+- AI freshness analysis create + history
+- Quality inspection create + saved AI score + history
+- Inventory freshness/status updated after analysis or inspection
+- AI Analysis navigation for operational roles
+- Role-based backend permissions
 
-1. **User Authentication & Role-Based Access Control (RBAC)**
-   - Registration, login with JWT authentication
-   - Roles supported: `Consumer`, `RetailManager`, `WarehouseOperator`, `FoodQualityInspector`, `Administrator`
-   - User profile management
-2. **Food Inventory Management**
-   - Food item registration & batch management
-   - Categorization (Fruits, Vegetables, Dairy, Meat & Poultry, Seafood, Bakery, Packaged Foods, Beverages)
-   - Expiry tracking & inventory stats
-3. **Food Image Analysis Engine**
-   - Image upload & processing
-   - Color analysis (HSV/RGB histograms, discoloration detection)
-   - Texture analysis (Entropy, edge density, smoothness)
-   - Spoilage indicators: Mold detection, Bruising detection, Damage detection
-4. **Freshness Assessment & Scoring Engine**
-   - Weighted scoring model: Visual Condition (40%), Storage Conditions (25%), Shelf-Life Prediction (20%), Product Age (15%)
-   - Freshness categories: `Fresh`, `Good`, `Acceptable`, `Near Spoilage`, `Spoiled`
-   - Quality confidence scoring & risk level assignment
-5. **Shelf-Life Prediction Module**
-   - Remaining shelf-life estimation based on storage decay curves
-   - Expiry forecasting & storage impact analysis
-6. **Storage Condition Monitoring**
-   - Temperature & humidity tracking
-   - Storage compliance validation & recommendations
-7. **Recommendation Engine**
-   - Storage & consumption guidelines
-   - Inventory rotation (FIFO) & waste reduction strategies
-8. **Dashboard & Analytics**
-   - Role-adaptive dashboards for Consumers, Retail Managers, Warehouse Operators, and Admins
-   - Interactive charts (Recharts) for trends & distributions
-9. **Notification & Alert System**
-   - Real-time alerts for freshness drops, shelf-life warnings, and storage non-compliance
-10. **Reports & Export System**
-    - Freshness & inventory quality reports
-    - PDF export (ReportLab) & Excel export (OpenPyXL)
+## Demo accounts
+All use password `Password@123`:
 
----
+| Role | Email |
+|---|---|
+| Consumer | consumer@foodfresh.local |
+| Retail Manager | manager@foodfresh.local |
+| Food Quality Inspector | inspector@foodfresh.local |
+| Administrator | admin@foodfresh.local |
+| Warehouse Operator | warehouse@foodfresh.local |
 
-## 🛠️ Technology Stack
+## Windows setup
+1. Create `backend/.env` from `backend/.env.example` and set your PostgreSQL password and a long JWT secret.
+2. From the project root run:
 
-- **Backend**: Python, FastAPI, Uvicorn, SQLAlchemy (SQLite), JWT (python-jose), Pillow, NumPy, ReportLab, OpenPyXL
-- **Frontend**: React 19, Vite, React Router v7, Recharts, Axios, Custom Dark Glassmorphism CSS Design System
-
----
-
-## 🚀 Getting Started
-
-### 1. Backend Setup
-```bash
-cd backend
-python -m venv venv
-# On Windows:
-venv\Scripts\activate
-# On Linux/macOS:
-source venv/bin/activate
-
-pip install -r requirements.txt
-python -m uvicorn app:app --reload --port 8000
+```powershell
+.\start_windows.bat
 ```
-- API Base: `http://127.0.0.1:8000`
-- Interactive Docs (Swagger): `http://127.0.0.1:8000/docs`
 
-### 2. Frontend Setup
-```bash
-cd frontend
-npm install
-npm run dev
+3. Open `http://127.0.0.1:5000`.
+
+If PowerShell is currently inside `backend`, first run:
+
+```powershell
+cd ..
+.\start_windows.bat
 ```
-- React Frontend: `http://127.0.0.1:5173`
+
+## Database
+`start_windows.bat` runs `setup_db.py` and `seed.py`. The schema creates the `analysis_history` table in addition to inventory, storage, inspections, alerts and users.
+
+## Final reporting and alert data
+- Reports now include KPI cards, freshness-status bars, category bars, storage-condition trend graphs, inspection-score trend graphs, and plain-language management summaries.
+- Seed data now populates inventory, storage readings, quality inspections, AI analysis history, and role-specific alerts so the dashboards are not empty on first run.
+- Warehouse Operator now also has Reports access.
+- Run `python seed.py` after `python setup_db.py` to add the sample operational data. The seed is safe to rerun and avoids duplicating the seeded records.
+
+### Alert recovery for existing databases
+If the database was created with an older version of the project, opening an Alerts page now automatically ensures the role-specific demo alerts exist. You can also run `python seed.py` from `backend` to populate missing demo records.
+
+### Important environment note
+The backend uses the single `DATABASE_URL` variable. Do not replace it with separate `DB_HOST` / `DB_PASSWORD` variables unless you also change `backend/db.py`.

@@ -1,20 +1,6 @@
-# Node / Frontend
-node_modules/
-dist/
-.env.local
-
-# Python / Backend
+backend/.env
+backend/venv/
 __pycache__/
 *.pyc
-*.pyo
-venv/
-.venv/
-env/
-*.db
-uploads/
-.pytest_cache/
-
-# IDE / System
 .vscode/
 .idea/
-.DS_Store
