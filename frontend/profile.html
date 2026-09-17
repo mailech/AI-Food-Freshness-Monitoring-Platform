@@ -398,6 +398,9 @@
           <li class="nav-item">
             <a href="reports.html"><i class="fa-regular fa-file-lines"></i> Reports</a>
           </li>
+          <li class="nav-item">
+  <a href="recommendations.html"><i class="fa-solid fa-lightbulb"></i> Recommendations</a>
+</li>
           <li class="nav-item active">
             <a href="profile.html"><i class="fa-regular fa-user"></i> Profile</a>
           </li>
@@ -435,8 +438,12 @@
 
           <div class="stats-list">
             <div class="stat-row">
+              <span>Account Role:</span>
+              <strong id="profileRole" style="color: #22c55e;">Consumer</strong>
+            </div>
+            <div class="stat-row">
               <span>Member Since:</span>
-              <strong>August 2026</strong>
+              <strong id="memberSince">Loading...</strong>
             </div>
             <div class="stat-row">
               <span>Total Scans:</span>
@@ -470,6 +477,14 @@
                 <div class="input-wrapper">
                   <i class="fa-regular fa-envelope"></i>
                   <input type="email" id="inputEmail" required />
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="inputRole">Role</label>
+                <div class="input-wrapper">
+                  <i class="fa-solid fa-user-shield"></i>
+                  <input type="text" id="inputRole" readonly style="opacity: 0.8; cursor: not-allowed;" />
                 </div>
               </div>
 

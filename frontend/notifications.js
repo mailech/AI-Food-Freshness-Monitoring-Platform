@@ -39,17 +39,22 @@ async function loadAndProcessNotifications() {
   let foodItems = [];
 
   try {
-    const token = localStorage.getItem('freshcheck_token');
-    const response = await fetch('http://127.0.0.1:5000/api/food', {
-      headers: { Authorization: `Bearer ${token}` }
+    const token = localStorage.getItem('freshcheck_token') || sessionStorage.getItem('freshcheck_token');
+    const response = await fetch('http://127.0.0.1:5000/api/dashboard', {
+      headers: { 
+        'Authorization': token ? `Bearer ${token}` : '',
+        'Content-Type': 'application/json'
+      }
     });
 
     if (response.ok) {
-      foodItems = await response.json();
+      const data = await response.json();
+      foodItems = data.items || data.food_items || [];
     } else {
       foodItems = JSON.parse(localStorage.getItem('foodItems') || '[]');
     }
   } catch (err) {
+    console.warn("Backend connection failed, falling back to local storage:", err);
     foodItems = JSON.parse(localStorage.getItem('foodItems') || '[]');
   }
 
@@ -67,15 +72,32 @@ function generateNotificationsFromFood(items) {
   today.setHours(0, 0, 0, 0);
 
   items.forEach((item) => {
-    const itemName = item.name || item.food_name || 'Food Item';
+    const itemName = item.food_name || item.name || 'Food Item';
     const firstLetter = itemName.charAt(0).toUpperCase();
+    const status = (item.status || 'Fresh').toString().trim().toLowerCase();
+    const isSpoiled = status === 'spoiled' || status === 'rotten';
+
+    // 1. SPOILED/ROTTEN STATUS -> Alert (Red)
+    if (isSpoiled) {
+      notifications.push({
+        id: item.id || Math.random(),
+        title: `${itemName} is spoiled!`,
+        subtitle: 'Expired or rotten condition detected. Please discard safely.',
+        time: 'Action required',
+        type: 'alerts',
+        iconText: firstLetter,
+        badgeClass: 'badge-alert'
+      });
+      return;
+    }
+
     const expDateStr = item.expiry_date || item.expiryDate;
 
-    if (!expDateStr) {
+    if (!expDateStr || expDateStr === 'N/A') {
       notifications.push({
         id: item.id || Math.random(),
         title: `${itemName} status added`,
-        subtitle: `Freshness level: ${item.freshness || 'Good'}`,
+        subtitle: `Freshness status: ${item.status || 'Fresh'}`,
         time: 'Recently',
         type: 'information',
         iconText: firstLetter,
@@ -91,7 +113,7 @@ function generateNotificationsFromFood(items) {
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
     if (diffDays < 0) {
-      // EXPIRED -> Alert (Red)
+      // EXPIRED BY DATE -> Alert (Red)
       notifications.push({
         id: item.id || Math.random(),
         title: `${itemName} has expired!`,
@@ -101,7 +123,7 @@ function generateNotificationsFromFood(items) {
         iconText: firstLetter,
         badgeClass: 'badge-alert'
       });
-    } else if (diffDays <= 3) {
+    } else if (diffDays <= 3 || status.includes('expir') || status.includes('warning')) {
       // NEAR EXPIRY -> Warning (Orange)
       const dayText = diffDays === 0 ? 'today' : diffDays === 1 ? 'tomorrow' : `in ${diffDays} days`;
       notifications.push({

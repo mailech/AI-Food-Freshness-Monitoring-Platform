@@ -3,3 +3,4 @@ Flask-CORS
 tensorflow
 numpy
 Pillow
+reportlab

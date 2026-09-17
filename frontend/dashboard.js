@@ -1,11 +1,14 @@
-  
-
-
 document.addEventListener("DOMContentLoaded", async () => {
   const token = localStorage.getItem("freshcheck_token") || sessionStorage.getItem("freshcheck_token");
+
   // Load User Profile Info from LocalStorage
-  const userName = localStorage.getItem("userName") || "Sayantika Mahanta";
-  const userEmail = localStorage.getItem("userEmail") || "sayantikamahanta02@gmail.com";
+  const userName = localStorage.getItem("freshCheck_userName") || 
+                   JSON.parse(localStorage.getItem("currentUser") || "{}").fullname || 
+                   "User Name";
+
+  const userEmail = localStorage.getItem("freshCheck_userContact") || 
+                    JSON.parse(localStorage.getItem("currentUser") || "{}").email || 
+                    "user@example.com";
 
   const welcomeNameElem = document.getElementById("welcomeName");
   const welcomeSubtextElem = document.getElementById("welcomeSubtext");
@@ -32,10 +35,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 async function fetchDashboardData(token) {
-  const newUserView = document.getElementById("newUserView");
-  const existingUserView = document.getElementById("existingUserView");
-  const welcomeSubtext = document.getElementById("welcomeSubtext");
-
   try {
     const response = await fetch("http://127.0.0.1:5000/api/dashboard", {
       method: "GET",
@@ -58,12 +57,12 @@ async function fetchDashboardData(token) {
       renderEmptyState();
     }
   } catch (error) {
-    console.warn("Backend API not reachable, checking fallback:", error);
+    console.warn("Backend API not reachable:", error);
     renderEmptyState();
   }
 }
 
-function renderDashboardData(items, summary) {
+function renderDashboardData(items) {
   const newUserView = document.getElementById("newUserView");
   const existingUserView = document.getElementById("existingUserView");
   const tableBody = document.getElementById("dashboardTableBody");
@@ -73,38 +72,68 @@ function renderDashboardData(items, summary) {
   if (existingUserView) existingUserView.classList.remove("hidden");
   if (welcomeSubtext) welcomeSubtext.textContent = "Here is your live food freshness overview.";
 
-  // Calculate Counts
-  let freshCount = summary?.fresh_count ?? items.filter(i => (i.status || '').toLowerCase() === 'fresh').length;
-  let expiringCount = summary?.expiring_count ?? items.filter(i => (i.status || '').toLowerCase().includes('expir')).length;
-  let spoiledCount = summary?.spoiled_count ?? items.filter(i => (i.status || '').toLowerCase() === 'spoiled').length;
+  // Top Card Counters
+  let freshCount = 0;
+  let expiringCount = 0;
+  let spoiledCount = 0;
 
-  document.getElementById("freshCount").textContent = freshCount;
-  document.getElementById("expiringCount").textContent = expiringCount || document.getElementById("warningCount")?.textContent || 0;
-  document.getElementById("spoiledCount").textContent = spoiledCount;
+  items.forEach(item => {
+    const rawStatus = (item.status || '').toString().trim().toLowerCase();
+    if (rawStatus === 'spoiled' || rawStatus === 'rotten') {
+      spoiledCount++;
+    } else if (rawStatus.includes('expir') || rawStatus.includes('warning')) {
+      expiringCount++;
+    } else {
+      freshCount++;
+    }
+  });
 
-  // Render Table
+  const freshCountElem = document.getElementById("freshCount");
+  const expiringCountElem = document.getElementById("expiringCount");
+  const spoiledCountElem = document.getElementById("spoiledCount");
+
+  if (freshCountElem) freshCountElem.textContent = freshCount;
+  if (expiringCountElem) expiringCountElem.textContent = expiringCount;
+  if (spoiledCountElem) spoiledCountElem.textContent = spoiledCount;
+
+  // Render Table Rows
   if (tableBody) {
     tableBody.innerHTML = items.map(item => {
+      const currentStatus = item.status ? item.status.toString().trim() : 'Fresh';
+      const statusLower = currentStatus.toLowerCase();
+      const isSpoiled = statusLower === 'spoiled' || statusLower === 'rotten';
+
       let statusClass = 'fresh';
-      const statusLower = (item.status || 'Fresh').toLowerCase();
-      if (statusLower.includes('expir') || statusLower.includes('warning')) statusClass = 'warning';
-      if (statusLower.includes('spoil')) statusClass = 'spoiled';
+      if (isSpoiled) {
+        statusClass = 'spoiled';
+      } else if (statusLower.includes('expir') || statusLower.includes('warning')) {
+        statusClass = 'warning';
+      }
+
+      // 1. Expiry Date & Shelf Life Logic Fix
+      const scannedDate = item.scanned_date || item.created_at || 'N/A';
+      const expiryDateDisplay = isSpoiled ? scannedDate : (item.expiry_date || 'N/A');
+      const shelfLifeDisplay = isSpoiled ? '0 Days' : (item.shelf_life_days !== undefined ? item.shelf_life_days + ' Days' : '5 Days');
+
+      // 2. AI Confidence Dynamic Percentage Fix
+      let confidenceVal = "95%"; // Default fallback
+      if (item.ai_confidence !== undefined && item.ai_confidence !== null) {
+        let conf = parseFloat(item.ai_confidence);
+        confidenceVal = conf <= 1 ? Math.round(conf * 100) + '%' : Math.round(conf) + '%';
+      } else if (item.confidence !== undefined && item.confidence !== null) {
+        let conf = parseFloat(item.confidence);
+        confidenceVal = conf <= 1 ? Math.round(conf * 100) + '%' : Math.round(conf) + '%';
+      }
 
       return `
         <tr>
           <td><strong>${item.food_name || item.name || 'Food Item'}</strong></td>
           <td>${item.category || 'General'}</td>
-          <td>${item.scanned_date || item.created_at || 'Today'}</td>
-          <td>${item.expiry_date || 'N/A'}</td>
-          <td>${
-              item.ai_confidence !== undefined
-             ? Math.round(item.ai_confidence * 100) + '%'
-             : (item.confidence !== undefined
-             ? Math.round(item.confidence * 100) + '%'
-             : '95%')
-             }</td>
-          <td>${item.shelf_life_days ? item.shelf_life_days + ' Days' : '5 Days'}</td>
-          <td><span class="status-badge ${statusClass}">${item.status || 'Fresh'}</span></td>
+          <td>${scannedDate}</td>
+          <td>${expiryDateDisplay}</td>
+          <td>${confidenceVal}</td>
+          <td>${shelfLifeDisplay}</td>
+          <td><span class="status-badge ${statusClass}">${currentStatus}</span></td>
         </tr>
       `;
     }).join('');
@@ -120,7 +149,11 @@ function renderEmptyState() {
   if (existingUserView) existingUserView.classList.add("hidden");
   if (welcomeSubtext) welcomeSubtext.textContent = "Welcome! Add your first item to start tracking.";
 
-  document.getElementById("freshCount").textContent = "0";
-  document.getElementById("expiringCount").textContent = "0";
-  document.getElementById("spoiledCount").textContent = "0";
+  const freshCount = document.getElementById("freshCount");
+  const expiringCount = document.getElementById("expiringCount");
+  const spoiledCount = document.getElementById("spoiledCount");
+
+  if (freshCount) freshCount.textContent = "0";
+  if (expiringCount) expiringCount.textContent = "0";
+  if (spoiledCount) spoiledCount.textContent = "0";
 }

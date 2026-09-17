@@ -3,13 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>FreshCheck - Notifications</title>
-  <!-- Google Fonts & FontAwesome Icons -->
+  <title>FreshCheck - Recommendations</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 
   <style>
-    /* Reset & Base Styles */
     * {
       margin: 0;
       padding: 0;
@@ -18,7 +16,7 @@
     }
 
     body {
-      background: linear-gradient(rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0.75)),
+      background: linear-gradient(rgba(0, 0, 0, 0.65), rgba(0, 0, 0, 0.65)),
                   url('https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=1920&q=80') center/cover fixed no-repeat;
       min-height: 100vh;
       color: #ffffff;
@@ -26,14 +24,13 @@
       flex-direction: column;
     }
 
-    /* Layout Structure */
     .dashboard-layout {
       display: flex;
       flex: 1;
       min-height: calc(100vh - 54px);
     }
 
-    /* Sidebar Navigation */
+    /* Sidebar */
     aside {
       width: 250px;
       background: rgba(15, 23, 42, 0.75);
@@ -58,10 +55,7 @@
       padding-left: 8px;
     }
 
-    .logo i {
-      color: #22c55e;
-      font-size: 1.4rem;
-    }
+    .logo i { color: #22c55e; font-size: 1.4rem; }
 
     .nav-menu {
       list-style: none;
@@ -95,11 +89,7 @@
       box-shadow: 0 4px 12px rgba(21, 128, 61, 0.3);
     }
 
-    .nav-item a i {
-      font-size: 1.05rem;
-      width: 20px;
-      text-align: center;
-    }
+    .nav-item a i { font-size: 1.05rem; width: 20px; text-align: center; }
 
     .badge-count {
       background-color: #ef4444;
@@ -111,7 +101,6 @@
       margin-left: auto;
     }
 
-    /* User Profile Footer */
     .user-profile {
       display: flex;
       align-items: center;
@@ -130,191 +119,138 @@
       align-items: center;
       justify-content: center;
       font-weight: 700;
-      font-size: 0.95rem;
-      text-transform: uppercase;
     }
 
-    .user-info h4 {
-      font-size: 0.88rem;
-      font-weight: 600;
-      color: #ffffff;
-    }
+    .user-info h4 { font-size: 0.88rem; color: #ffffff; }
+    .user-info p { font-size: 0.74rem; color: #9ca3af; }
 
-    .user-info p {
-      font-size: 0.74rem;
-      color: #9ca3af;
-    }
-
-    /* Main View Area */
+    /* Main Container */
     main {
       flex: 1;
       padding: 30px 40px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
       overflow-y: auto;
     }
 
-    /* Breadcrumbs & Page Header */
-    .page-header {
-      margin-bottom: 24px;
-    }
-
-    .breadcrumb {
-      font-size: 0.85rem;
-      color: #9ca3af;
-      margin-bottom: 6px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .breadcrumb a {
-      color: #9ca3af;
-      text-decoration: none;
-    }
-
-    .breadcrumb a:hover {
-      color: #22c55e;
-    }
-
-    .page-title {
-      font-size: 1.75rem;
-      font-weight: 700;
-    }
-
-    /* Glass Container Card */
-    .glass-card {
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
+    /* Glassmorphism Card Modal Container */
+    .glass-modal {
+      width: 100%;
+      max-width: 920px;
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
       border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 18px;
+      border-radius: 20px;
       padding: 24px;
-      max-width: 900px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
     }
 
-    /* Category Filter Tabs */
-    .notification-tabs {
+    /* Filter Pills */
+    .filter-pills {
       display: flex;
-      gap: 12px;
-      margin-bottom: 24px;
+      gap: 10px;
+      margin-bottom: 20px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-      padding-bottom: 12px;
+      padding-bottom: 16px;
     }
 
-    .tab-btn {
-      background: rgba(255, 255, 255, 0.05);
+    .pill {
+      background: rgba(255, 255, 255, 0.08);
       border: 1px solid rgba(255, 255, 255, 0.15);
       color: #d1d5db;
-      padding: 8px 20px;
+      padding: 6px 18px;
       border-radius: 20px;
-      font-size: 0.88rem;
+      font-size: 0.85rem;
       font-weight: 500;
       cursor: pointer;
       transition: all 0.2s ease;
     }
 
-    .tab-btn:hover {
+    .pill:hover {
       background: rgba(255, 255, 255, 0.15);
       color: #ffffff;
     }
 
-    .tab-btn.active {
+    .pill.active {
       background: #22c55e;
-      color: #0f172a;
+      color: #ffffff;
       border-color: #22c55e;
       font-weight: 600;
     }
 
-    /* Notification List */
-    .notification-list {
+    /* List Container */
+    .item-list {
       display: flex;
       flex-direction: column;
     }
 
-    .notification-item {
+    /* Individual List Row */
+    .item-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 18px 12px;
+      padding: 16px 8px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.08);
       transition: background 0.2s;
-      border-radius: 10px;
     }
 
-    .notification-item:hover {
-      background: rgba(255, 255, 255, 0.03);
-    }
-
-    .notification-item:last-child {
+    .item-row:last-child {
       border-bottom: none;
     }
 
-    .notification-content {
+    .item-row:hover {
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .item-left {
       display: flex;
       align-items: center;
       gap: 16px;
     }
 
-    /* Color Badges matching design */
-    .icon-badge {
-      width: 44px;
-      height: 44px;
+    /* Round Circle Avatars */
+    .circle-avatar {
+      width: 42px;
+      height: 42px;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.1rem;
       font-weight: 700;
+      font-size: 1.1rem;
+      color: #ffffff;
       flex-shrink: 0;
     }
 
-    /* Category Specific Badge Styling */
-    .badge-warning {
-      background-color: #f59e0b;
-      color: #ffffff;
-    }
+    .circle-avatar.fresh { background: #22c55e; }
+    .circle-avatar.warning { background: #f59e0b; }
+    .circle-avatar.alert { background: #ef4444; }
 
-    .badge-alert {
-      background-color: #dc2626;
-      color: #ffffff;
-    }
-
-    .badge-info {
-      background-color: #16a34a;
-      color: #ffffff;
-    }
-
-    .notification-text h4 {
+    .item-details h4 {
       font-size: 0.98rem;
       font-weight: 600;
       color: #ffffff;
-      margin-bottom: 4px;
+      text-transform: lowercase;
     }
 
-    .notification-text p {
-      font-size: 0.85rem;
-      color: #9ca3af;
+    .item-details h4::first-letter {
+      text-transform: uppercase;
     }
 
-    .notification-time {
+    .item-details p {
       font-size: 0.82rem;
       color: #9ca3af;
-      white-space: nowrap;
-      margin-left: 16px;
+      margin-top: 3px;
     }
 
-    .empty-state {
-      text-align: center;
-      padding: 40px 20px;
+    .item-right-status {
+      font-size: 0.88rem;
       color: #9ca3af;
+      font-weight: 500;
     }
 
-    .empty-state i {
-      font-size: 2.5rem;
-      margin-bottom: 12px;
-      color: #475569;
-    }
-
-    /* Footer */
     footer {
       background-color: #1a2a22;
       color: #9ca3af;
@@ -331,18 +267,16 @@
       gap: 8px;
     }
 
-    .footer-item i {
-      color: #22c55e;
-    }
+    .footer-item i { color: #22c55e; }
   </style>
 </head>
 <body>
 
   <div class="dashboard-layout">
-    <!-- Sidebar Navigation -->
+    <!-- Sidebar -->
     <aside>
-      <div>
-        <a href="Dashboard.html" class="logo">
+      <div class="sidebar-top">
+        <a href="index.html" class="logo">
           <i class="fa-solid fa-leaf"></i> FreshCheck
         </a>
 
@@ -359,18 +293,18 @@
           <li class="nav-item">
             <a href="analytics.html"><i class="fa-solid fa-chart-column"></i> Analytics</a>
           </li>
-          <li class="nav-item active">
+          <li class="nav-item">
             <a href="notifications.html">
               <i class="fa-regular fa-bell"></i> Notifications
-              <span class="badge-count" id="notificationBadge">0</span>
+              <span class="badge-count">1</span>
             </a>
           </li>
           <li class="nav-item">
             <a href="reports.html"><i class="fa-regular fa-file-lines"></i> Reports</a>
           </li>
-          <li class="nav-item">
-  <a href="recommendations.html"><i class="fa-solid fa-lightbulb"></i> Recommendations</a>
-</li>
+          <li class="nav-item active">
+            <a href="recommendations.html"><i class="fa-solid fa-lightbulb"></i> Recommendations</a>
+          </li>
           <li class="nav-item">
             <a href="profile.html"><i class="fa-regular fa-user"></i> Profile</a>
           </li>
@@ -382,54 +316,41 @@
           </li>
         </ul>
       </div>
-       
-      <!-- User Profile Card -->
+
       <div class="user-profile">
-        <div class="avatar" id="sideAvatar">U</div>
+        <div class="avatar" id="userAvatar">U</div>
         <div class="user-info">
-          <h4 id="sideName">User Name</h4>
-          <p id="sideEmail">user@example.com</p>
+          <h4 id="userName">User Name</h4>
+          <p id="userContact">user@example.com</p>
         </div>
       </div>
     </aside>
 
-    <!-- Main Content View -->
+    <!-- Main View -->
     <main>
-      <div class="page-header">
-        <div class="breadcrumb">
-          <a href="dashboard.html"><i class="fa-solid fa-house"></i> Dashboard</a>
-          <i class="fa-solid fa-chevron-right" style="font-size:0.65rem;"></i>
-          <span>Notifications</span>
-        </div>
-        <h1 class="page-title">Notifications</h1>
-      </div>
-
-      <!-- Notifications Card -->
-      <div class="glass-card">
-        <!-- Category Filter Tabs -->
-        <div class="notification-tabs">
-          <button class="tab-btn active" onclick="filterNotifications('all', this)">All</button>
-          <button class="tab-btn" onclick="filterNotifications('alerts', this)">Alerts</button>
-          <button class="tab-btn" onclick="filterNotifications('warnings', this)">Warnings</button>
-          <button class="tab-btn" onclick="filterNotifications('information', this)">Information</button>
+      <div class="glass-modal">
+        <!-- Filter Tabs -->
+        <div class="filter-pills">
+          <button class="pill active" onclick="filterItems('all', this)">All</button>
+          <button class="pill" onclick="filterItems('alerts', this)">Alerts</button>
+          <button class="pill" onclick="filterItems('warnings', this)">Warnings</button>
+          <button class="pill" onclick="filterItems('information', this)">Information</button>
         </div>
 
-        <!-- Notification List -->
-        <div class="notification-list" id="notificationContainer">
-          <!-- Dynamically Rendered -->
+        <!-- Recommendations Container List -->
+        <div class="item-list" id="recommendationsContainer">
+          <p style="color: #9ca3af; font-size: 0.88rem; padding: 10px;">Loading items...</p>
         </div>
       </div>
     </main>
   </div>
 
-  <!-- Footer -->
   <footer>
-    <div class="footer-item"><i class="fa-solid fa-shield-halved"></i> Trusted by Thousands</div>
-    <div class="footer-item"><i class="fa-solid fa-bullseye"></i> Accurate Predictions</div>
-    <div class="footer-item"><i class="fa-solid fa-heart"></i> Healthy Future</div>
+    <div class="footer-item"><i class="fa-solid fa-shield-halved"></i> <span>Trusted by Thousands</span></div>
+    <div class="footer-item"><i class="fa-solid fa-bullseye"></i> <span>Accurate Predictions</span></div>
+    <div class="footer-item"><i class="fa-solid fa-heart"></i> <span>Healthy Future</span></div>
   </footer>
-
-  <script src="auth-check.js"></script>
-  <script src="notifications.js"></script>
+<script src="auth-check.js"></script>
+  <script src="recommendations.js"></script>
 </body>
 </html>

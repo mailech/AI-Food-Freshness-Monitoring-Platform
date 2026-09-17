@@ -1,25 +1,21 @@
 /**
  * FreshCheck - Add Food Controller
- * Orchestrates image file uploads, prediction calls (/predict),
- * and record persistence (/api/food).
+ * Fixed duplicate variable declarations & improved UI state handle.
  */
 
 document.addEventListener("DOMContentLoaded", () => {
     const fileInput = document.getElementById("fileInput");
     const dropArea = document.getElementById("dropArea");
-    const imagePreviewContainer = document.getElementById("imagePreviewContainer");
-    const imagePreview = document.getElementById("imagePreview");
-    const fileNameDisplay = document.getElementById("fileNameDisplay");
     const scanButton = document.getElementById("scanButton");
     const purchaseDateInput = document.getElementById("purchaseDate");
 
-    // Initialize purchase date input to today in YYYY-MM-DD
+    // Set today's date by default
     if (purchaseDateInput && !purchaseDateInput.value) {
         const todayStr = new Date().toISOString().split("T")[0];
         purchaseDateInput.value = todayStr;
     }
 
-    // Drag & Drop handlers
+    // Drag and Drop Handling
     if (dropArea && fileInput) {
         ["dragenter", "dragover"].forEach(eventName => {
             dropArea.addEventListener(eventName, (e) => {
@@ -45,8 +41,10 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
 
-        dropArea.addEventListener("click", () => {
-            fileInput.click();
+        dropArea.addEventListener("click", (e) => {
+            if (e.target !== fileInput) {
+                fileInput.click();
+            }
         });
     }
 
@@ -82,15 +80,21 @@ function handleFileSelection(file) {
 async function handleAddFoodProcess(e) {
     if (e) e.preventDefault();
 
+    const token = localStorage.getItem("freshcheck_token");
+
+    if (!token) {
+        alert("Session expired or token missing. Please log in again.");
+        window.location.href = "signin.html";
+        return;
+    }
+
     const foodNameInput = document.getElementById("foodName");
     const foodCategorySelect = document.getElementById("foodCategory");
     const purchaseDateInput = document.getElementById("purchaseDate");
+    const expiryDateInput = document.getElementById("expiryDate");
     const fileInput = document.getElementById("fileInput");
     const scanButton = document.getElementById("scanButton");
-
     const aiResultContainer = document.getElementById("aiResult");
-    const aiPredictionText = document.getElementById("aiPredictionText");
-    const aiConfidenceText = document.getElementById("aiConfidenceText");
 
     const foodName = foodNameInput ? foodNameInput.value.trim() : "";
     const category = foodCategorySelect ? foodCategorySelect.value : "General";
@@ -108,7 +112,7 @@ async function handleAddFoodProcess(e) {
     }
 
     const selectedFile = fileInput.files[0];
-    const originalButtonText = scanButton ? scanButton.innerHTML : "Run AI Scan & Save";
+    const originalButtonText = scanButton ? scanButton.innerHTML : '<i class="fa-solid fa-robot"></i> Run AI Scan & Save';
 
     if (scanButton) {
         scanButton.disabled = true;
@@ -116,63 +120,78 @@ async function handleAddFoodProcess(e) {
     }
 
     try {
-        // STEP 1: AI Prediction Request
         const formData = new FormData();
         formData.append("image", selectedFile);
         formData.append("food_name", foodName);
         formData.append("category", category);
 
+        // 1. AI Predict Endpoint
         const predictResponse = await fetch("http://127.0.0.1:5000/predict", {
             method: "POST",
+            headers: {
+                "Authorization": `Bearer ${token}`
+            },
             body: formData
         });
 
+        if (predictResponse.status === 401) {
+            alert("Session expired! Please log in again.");
+            localStorage.removeItem("freshcheck_token");
+            window.location.href = "signin.html";
+            return;
+        }
+
         if (!predictResponse.ok) {
             const errData = await predictResponse.json().catch(() => ({}));
-            throw new Error(errData.error || `AI Scan failed with status ${predictResponse.status}`);
+            throw new Error(errData.message || errData.error || `AI Scan failed (${predictResponse.status})`);
         }
 
         const aiData = await predictResponse.json();
 
-        const predictedStatus = aiData.status || "Fresh";
+        // Extracted data from AI response
+        const currentStatus = aiData.status || (aiData.freshness_score < 50 ? "Spoiled" : "Fresh");
+        const freshnessScore = aiData.freshness_score !== undefined ? aiData.freshness_score : (aiData.ai_confidence || 95);
+        const spoilageScore = aiData.spoilage_score !== undefined ? aiData.spoilage_score : Math.round(100 - freshnessScore);
+        const recommendedTemp = aiData.recommended_temp || "1°C – 5°C";
+        const storageAdvice = aiData.storage_advice || "Store in a cool place.";
         const shelfLifeDays = parseInt(aiData.shelf_life_days, 10) || 5;
 
-        let rawConf = aiData.confidence !== undefined ? aiData.confidence : (aiData.ai_confidence !== undefined ? aiData.ai_confidence : 0.95);
-        let confNum = parseFloat(rawConf);
-        if (confNum > 1.0) {
-            confNum = confNum / 100.0;
-        } else if (isNaN(confNum) || confNum <= 0) {
-            confNum = 0.95;
-        }
-
-        const displayConfPct = `${Math.round(confNum * 100)}%`;
-
-        if (aiPredictionText) {
-            aiPredictionText.innerText = `Prediction: ${predictedStatus}`;
-        }
-        if (aiConfidenceText) {
-            aiConfidenceText.innerText = `Confidence: ${displayConfPct}`;
-        }
+        // Render AI UI Result Card
         if (aiResultContainer) {
-            aiResultContainer.style.display = "flex";
+            const statusColor = currentStatus === "Fresh" ? "#22c55e" : "#ef4444";
+            aiResultContainer.innerHTML = `
+                <h3 style="color: ${statusColor}; font-size: 1.05rem; margin-bottom: 10px;">
+                    <i class="fa-solid fa-robot"></i> AI Scan Result
+                </h3>
+                <p><strong>Status:</strong> <span style="color: ${statusColor}; font-weight: 600;">${currentStatus}</span></p>
+                <p><strong>Fresh Score:</strong> ${freshnessScore}%</p>
+                <p><strong>Spoiled Score:</strong> ${spoilageScore}%</p>
+                <p><strong>Recommended Temp:</strong> ${recommendedTemp}</p>
+                <p><strong>Storage Advice:</strong> ${storageAdvice}</p>
+            `;
+            aiResultContainer.style.display = "block";
             aiResultContainer.classList.remove("hidden");
         }
 
-        // STEP 2: Database Save Request
+        // 2. Database Save Payload
+        let confNum = parseFloat(aiData.confidence || (freshnessScore / 100.0));
+        if (confNum > 1.0) confNum = confNum / 100.0;
+
         const foodPayload = {
             food_name: foodName,
             category: category,
             scanned_date: scannedDate,
-            expiry_date: "",
-            shelf_life_days: shelfLifeDays,
-            status: predictedStatus,
+            expiry_date: expiryDateInput ? expiryDateInput.value : "",
+            shelf_life_days: currentStatus === "Spoiled" ? 0 : shelfLifeDays,
+            status: currentStatus,
             ai_confidence: confNum
         };
 
         const saveResponse = await fetch("http://127.0.0.1:5000/api/food", {
             method: "POST",
             headers: {
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
             },
             body: JSON.stringify(foodPayload)
         });
@@ -183,7 +202,6 @@ async function handleAddFoodProcess(e) {
         }
 
         alert("Food item successfully scanned and saved to database!");
-        window.location.href = "Dashboard.html";
 
     } catch (error) {
         console.error("Add Food process error:", error);

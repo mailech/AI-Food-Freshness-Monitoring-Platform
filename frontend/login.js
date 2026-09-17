@@ -21,8 +21,13 @@ document.addEventListener('DOMContentLoaded', () => {
           localStorage.setItem('freshcheck_token', data.token);
           localStorage.setItem('freshCheck_userName', data.user.fullname);
           localStorage.setItem('freshCheck_userContact', data.user.email);
-          alert('Login Successful!');
-          window.location.href = 'Dashboard.html';
+          localStorage.setItem('freshCheck_userRole', data.user.role || 'Consumer');
+          localStorage.setItem('currentUser', JSON.stringify(data.user));
+          localStorage.setItem('freshCheck_createdAt', data.user.created_at);
+
+         alert('Login Successful!');
+         window.location.href = 'Dashboard.html';
+        
         } else {
           alert(data.message || 'Login failed');
         }

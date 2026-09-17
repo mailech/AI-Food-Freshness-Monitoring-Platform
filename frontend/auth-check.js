@@ -1,3 +1,17 @@
+// Global Helper Function for Authenticated Fetch Requests
+function getAuthHeaders() {
+  const token = localStorage.getItem("freshcheck_token");
+  return {
+    "Content-Type": "application/json",
+    "Authorization": token ? `Bearer ${token}` : ""
+  };
+}
+
+// Function to get current stored user role
+function getUserRole() {
+  return localStorage.getItem("freshCheck_userRole") || "Consumer";
+}
+
 // Function to update sidebar profile across ALL HTML pages
 function syncUserProfile() {
   const sidebarUserName = document.getElementById("sidebarUserName");
@@ -10,15 +24,14 @@ function syncUserProfile() {
 
   // Check fallback JSON object if keys are empty
   let userObj = {};
-  try {
-    userObj = JSON.parse(localStorage.getItem("user") || "{}");
-  } catch (e) {
-    userObj = {};
-  }
+ try {
+  userObj = JSON.parse(localStorage.getItem("user") || "{}");
+} catch (e) {
+  userObj = {};
+}
 
-  const displayName = savedName || userObj.name || "User Name";
-  const displayEmail = savedEmail || userObj.email || "user@example.com";
-
+const displayName = savedName || userObj.name || "User Name";
+const displayEmail = savedEmail || userObj.email || "user@example.com";
   // Update DOM Elements if they exist on the current page
   if (sidebarUserName) sidebarUserName.innerText = displayName;
   if (sidebarUserEmail) sidebarUserEmail.innerText = displayEmail;
@@ -36,3 +49,18 @@ function syncUserProfile() {
 
 // Run synchronization as soon as any page DOM is loaded
 document.addEventListener("DOMContentLoaded", syncUserProfile);
+// Page Protection Check (Automatically redirects to signin if token is missing on protected pages)
+document.addEventListener("DOMContentLoaded", () => {
+  syncUserProfile();
+
+  const token = localStorage.getItem("freshcheck_token");
+  const currentPage = window.location.pathname.split("/").pop();
+  
+
+  const protectedPages = ["Dashboard.html", "add-food.html", "inventory.html", "analytics.html", "recommendations.html", "profile.html", "settings.html"];
+
+  if (protectedPages.includes(currentPage) && !token) {
+   
+    window.location.href = "signin.html.html";
+  }
+});

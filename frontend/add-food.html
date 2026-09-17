@@ -267,49 +267,7 @@
     }
 
     .upload-box input[type="file"] {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      opacity: 0;
-      cursor: pointer;
-    }
-
-    /* CAMERA */
-    .camera-box {
-      width: 100%;
-      height: 230px;
-      background: #0f172a;
-      border-radius: 14px;
-      overflow: hidden;
-      position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border: 1px solid rgba(255, 255, 255, 0.15);
-    }
-
-    video {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    .btn-camera {
-      margin-top: 12px;
-      width: 100%;
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      color: #ffffff;
-      padding: 10px;
-      border-radius: 10px;
-      font-weight: 600;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
+      display: none;
     }
 
     /* PREVIEW */
@@ -404,7 +362,7 @@
       border-color: #22c55e;
     }
 
-    /* AI RESULT */
+    /* AI RESULT CARD */
     .ai-result {
       display: none;
       margin-top: 20px;
@@ -413,18 +371,6 @@
       background: rgba(34, 197, 94, 0.15);
       border: 2px solid #22c55e;
       box-shadow: 0 4px 15px rgba(34, 197, 94, 0.2);
-    }
-
-    .ai-result h3 {
-      color: #22c55e;
-      font-size: 1rem;
-      margin-bottom: 8px;
-    }
-
-    .ai-result p {
-      font-size: 0.85rem;
-      color: #e5e7eb;
-      margin: 4px 0;
     }
 
     .btn-submit {
@@ -508,6 +454,7 @@
           <li class="nav-item"><a href="inventory.html"><i class="fa-solid fa-box-archive"></i> Inventory</a></li>
           <li class="nav-item"><a href="analytics.html"><i class="fa-solid fa-chart-column"></i> Analytics</a></li>
           <li class="nav-item"><a href="notifications.html"><i class="fa-regular fa-bell"></i> Notifications <span class="badge-count">1</span></a></li>
+          <li class="nav-item"><a href="recommendations.html"><i class="fa-solid fa-lightbulb"></i> Recommendations</a></li>
           <li class="nav-item"><a href="profile.html"><i class="fa-regular fa-user"></i> Profile</a></li>
           <li class="nav-item"><a href="settings.html"><i class="fa-solid fa-gear"></i> Settings</a></li>
           <li class="nav-item"><a href="logout.html"><i class="fa-solid fa-right-from-bracket"></i> Logout</a></li>
@@ -535,15 +482,6 @@
             <i class="fa-solid fa-camera"></i> Food Capture Method
           </h2>
 
-          <div class="method-tabs">
-            <button type="button" class="tab-btn active" id="tabUpload">
-              <i class="fa-solid fa-upload"></i> Upload Image
-            </button>
-            <button type="button" class="tab-btn" id="tabCamera">
-              <i class="fa-solid fa-video"></i> Live Camera
-            </button>
-          </div>
-
           <div id="uploadSection">
             <div class="upload-box" id="dropArea">
               <i class="fa-solid fa-cloud-arrow-up"></i>
@@ -553,23 +491,11 @@
             </div>
           </div>
 
-          <div id="cameraSection" class="hidden">
-            <div class="camera-box">
-              <video id="webcam" autoplay playsinline class="hidden"></video>
-              <canvas id="cameraCanvas" class="hidden"></canvas>
-              <p id="cameraPlaceholder" style="font-size:0.85rem;color:#9ca3af;">Click "Start Camera" to enable live scanner</p>
-            </div>
-            <button type="button" class="btn-camera" id="btnToggleCamera">
-              <i class="fa-solid fa-power-off"></i> Start Camera
-            </button>
-          </div>
-
-          <!-- FIXED IDS FOR IMAGE PREVIEW -->
           <div class="preview-container hidden" id="imagePreviewContainer">
             <img id="imagePreview" class="preview-thumb" src="" alt="Food Preview">
             <div class="preview-info">
               <p id="fileNameDisplay">Food_Scan.jpg</p>
-              <span><i class="fa-solid fa-circle-check"></i> Image Loaded</span>
+              <span><i class="fa-solid fa-circle-check"></i> Image Loaded Successfully</span>
             </div>
           </div>
         </div>
@@ -621,12 +547,9 @@
               </div>
             </div>
 
-            <!-- FIXED IDS FOR AI RESULTS -->
-            <div class="ai-result" id="aiResult">
-              <h3><i class="fa-solid fa-robot"></i> AI Scan Result</h3>
-              <p id="aiPredictionText">Prediction: Fresh</p>
-              <p id="aiConfidenceText" style="margin-top: 4px;">Confidence: 95%</p>
-            </div>
+            <!-- DYNAMIC AI SCAN RESULT CARD -->
+            <div class="ai-result" id="aiResult"></div>
+
             <button type="button" class="btn-submit" id="scanButton">
               <i class="fa-solid fa-robot"></i> Run AI Scan & Save
             </button>
@@ -641,37 +564,6 @@
     <div class="footer-item"><i class="fa-solid fa-bullseye"></i> Accurate Predictions</div>
     <div class="footer-item"><i class="fa-solid fa-heart"></i> Healthy Future</div>
   </footer>
-
-  <script>
-    // Tab switching & Camera Setup Helper
-    document.addEventListener("DOMContentLoaded", () => {
-      const tabUpload = document.getElementById("tabUpload");
-      const tabCamera = document.getElementById("tabCamera");
-      const uploadSection = document.getElementById("uploadSection");
-      const cameraSection = document.getElementById("cameraSection");
-      const purchaseDateInput = document.getElementById("purchaseDate");
-
-      if (purchaseDateInput && !purchaseDateInput.value) {
-        purchaseDateInput.value = new Date().toISOString().split('T')[0];
-      }
-
-      if (tabUpload && tabCamera) {
-        tabUpload.addEventListener("click", () => {
-          tabUpload.classList.add("active");
-          tabCamera.classList.remove("active");
-          uploadSection.classList.remove("hidden");
-          cameraSection.classList.add("hidden");
-        });
-
-        tabCamera.addEventListener("click", () => {
-          tabCamera.classList.add("active");
-          tabUpload.classList.remove("active");
-          cameraSection.classList.remove("hidden");
-          uploadSection.classList.add("hidden");
-        });
-      }
-    });
-  </script>
 
   <script src="auth-check.js"></script>
   <script src="add-food.js"></script>

@@ -1,72 +1,102 @@
-# AI-Food-Freshness-Monitoring-Platform
+🍎 FreshCheck -- AI Food Freshness Monitoring Platform
 
-# 🍎 FreshCheck – AI Food Freshness Monitoring Platform
+An AI-powered web platform for monitoring food freshness, shelf life,
+inventory, analytics, reports, notifications, and recommendations
+using Deep Learning and Computer Vision.
 
-> An AI-powered web platform for monitoring food freshness, shelf life, inventory, and food status using Deep Learning and Computer Vision.
+📌 Overview
 
----
+FreshCheck is an AI-based Food Freshness Monitoring Platform
+designed to help users monitor food freshness and shelf life through an
+integrated web application.
 
-## 📌 Overview
+The current version provides:
 
-**FreshCheck** is an AI-based Food Freshness Monitoring Platform developed to help users monitor the freshness and shelf life of fruits and vegetables.
+User registration and login
 
-The platform allows users to:
+JWT-based authentication
 
-- Create an account and log in securely
-- Upload food images
-- Run an AI-based freshness scan
-- Identify the food type and freshness status
-- View AI confidence
-- Calculate and monitor shelf life
-- Save food information in a database
-- Monitor food items through a dashboard
-- Manage inventory
-- View analytics and reports
-- Receive freshness-related notifications
-- Clear saved food data when required
+Role-based authorization support
 
-The application is deployed using **Docker**, with **PostgreSQL** as the primary database.
+Food image upload and AI freshness scanning
 
----
+Food type and freshness prediction
 
-# 🎯 Project Objectives
+AI confidence score
 
-The main objectives of FreshCheck are:
+Shelf-life and expiry-date tracking
 
-1. Detect food freshness using Artificial Intelligence.
-2. Reduce food waste by monitoring food condition.
-3. Provide an easy-to-use food inventory system.
-4. Track shelf life and expiry dates.
-5. Store food monitoring information in a database.
-6. Provide dashboard-based monitoring and analytics.
-7. Build a containerized and reproducible application using Docker.
+PostgreSQL-based food data storage
 
----
+Food inventory management
 
-# ✨ Main Features
+Dashboard monitoring
 
-## 🔐 User Authentication
+Analytics
 
-FreshCheck provides user authentication functionality.
+Freshness and expiry-related notifications
+
+Reports
+
+Food recommendations
+
+Profile and settings pages
+
+Food record deletion
+
+Docker-based deployment
+
+🎯 Project Objectives
+
+Detect food freshness using Artificial Intelligence.
+
+Monitor food condition and shelf life.
+
+Provide an easy-to-use food inventory system.
+
+Store food monitoring information in a database.
+
+Provide dashboard-based monitoring and analytics.
+
+Provide freshness-related notifications and recommendations.
+
+Build a containerized application using Docker.
+
+✨ Main Features
+
+🔐 Authentication & Authorization
+
+FreshCheck includes user authentication and protected API communication.
 
 Features include:
 
-- User Registration
-- User Login
-- JWT-based authentication
-- Password hashing
-- Protected API communication
-- User information storage
+User registration
 
----
+User login
 
-## 📷 Add Food
+JWT authentication
 
-Users can add food to the monitoring system by uploading a food image.
+Password hashing
 
-### Flow
+Bearer-token API authentication
 
-```text
+Token validation and expiration handling
+
+Role-based authorization support
+
+Protected frontend pages
+
+The authentication middleware is implemented in:
+
+backend/auth_middleware.py
+
+It provides a reusable token_required() decorator that can validate
+authenticated users and restrict selected routes by role.
+
+📷 Add Food & AI Scan
+
+Users can add food by uploading a food image.
+
 Select Food Image
        ↓
 Upload Image
@@ -82,191 +112,230 @@ Shelf-Life Information
 Save Food Item
        ↓
 PostgreSQL Database
-```
 
----
+🤖 AI Food Freshness Detection
 
-# 🤖 AI Food Freshness Detection
+FreshCheck uses a Deep Learning model for image-based food freshness
+classification.
 
-FreshCheck uses a Deep Learning model to analyze food images.
+Model:
 
-The model is stored as:
-
-```text
 ml/model/food_freshness_final.keras
-```
 
-The system predicts the food class and determines whether the food is fresh or rotten.
+Supported classes:
 
-### Supported Classes
-
-```text
 Fresh Apple
 Fresh Banana
 Fresh Orange
-
 Rotten Apple
 Rotten Banana
 Rotten Orange
-```
 
-The prediction also provides an AI confidence score.
+The prediction process returns the detected food/freshness class and an
+AI confidence score.
 
 Example:
 
-```text
 Food: Banana
 Status: Fresh
 AI Confidence: 95%
 Shelf Life: 5 Days
-```
 
----
+🧠 Machine Learning
 
-# 🧠 Machine Learning
+The ML component is located inside:
 
-The Machine Learning component is located inside:
-
-```text
 ml/
-```
-
-### ML Components
-
-```text
-ml/
-│
 ├── model/
 │   └── food_freshness_final.keras
-│
 ├── class_names.json
-│
 └── predict.py
-```
 
-### Model
+food_freshness_final.keras --- trained Keras model
 
-The trained model is stored in Keras format:
+class_names.json --- model class mapping
 
-```text
-food_freshness_final.keras
-```
+ml/predict.py --- prediction logic
 
-### Class Names
+The backend also contains prediction-related logic in:
 
-The mapping between model output and food classes is stored in:
+backend/predict.py
 
-```text
-class_names.json
-```
+📊 Dashboard
 
-### Prediction
+The Dashboard provides an overview of the monitored food data.
 
-The prediction logic is handled by:
+It can display information such as:
 
-```text
-ml/predict.py
-```
+Fresh items
 
----
+Expiring items
 
-# 🏗️ System Architecture
+Spoiled/rotten items
 
-```text
-                    ┌──────────────────────┐
-                    │        USER          │
-                    └──────────┬───────────┘
-                               │
-                               ▼
-                    ┌──────────────────────┐
-                    │      FRONTEND        │
-                    │ HTML / CSS / JS      │
-                    └──────────┬───────────┘
-                               │
-                         HTTP Requests
-                               │
-                               ▼
-                    ┌──────────────────────┐
-                    │       FLASK          │
-                    │       BACKEND        │
-                    └──────────┬───────────┘
-                               │
-                ┌──────────────┼──────────────┐
-                │              │              │
-                ▼              ▼              ▼
-        ┌──────────────┐ ┌────────────┐ ┌─────────────┐
-        │ AI / ML      │ │ PostgreSQL │ │   Uploads   │
-        │ TensorFlow   │ │ Database   │ │    Images   │
-        │ Keras        │ │            │ │             │
-        └──────────────┘ └────────────┘ └─────────────┘
-                │              │
-                └──────────────┘
-                       │
-                       ▼
-              ┌──────────────────┐
-              │ Dashboard /      │
-              │ Inventory /      │
-              │ Analytics /      │
-              │ Reports          │
-              └──────────────────┘
-```
+Food inventory
 
----
+AI confidence
 
-# 📁 Project Structure
+Shelf life
 
-```text
+Food status
+
+📦 Inventory
+
+The Inventory module displays saved food records and supports food
+inventory monitoring.
+
+Food records contain information such as:
+
+Food name
+
+Category
+
+Scanned date
+
+Expiry date
+
+Shelf life
+
+AI confidence
+
+Status
+
+📈 Analytics
+
+The Analytics module provides data-based insights from the stored food
+records and freshness information.
+
+🔔 Notifications
+
+The Notifications module provides freshness-related alerts and warning
+information for monitored food items.
+
+📄 Reports
+
+The Reports module provides report-oriented food monitoring information
+and retrieves report data from the backend.
+
+💡 Recommendations
+
+FreshCheck now includes a dedicated Recommendations module:
+
+frontend/recommendations.html
+frontend/recommendations.js
+
+Recommendations are retrieved from the authenticated backend endpoint:
+
+GET /api/recommendations
+
+The interface supports:
+
+All
+
+Alerts
+
+Warnings
+
+Information
+
+Recommendations can display freshness states such as:
+
+Fresh
+
+Warning
+
+Rotten
+
+👤 Profile & Settings
+
+The application includes:
+
+User profile
+
+Profile information
+
+Application settings
+
+Logout functionality
+
+🏗️ System Architecture
+
+                         ┌──────────────────────┐
+                         │        USER          │
+                         └──────────┬───────────┘
+                                    │
+                                    ▼
+                         ┌──────────────────────┐
+                         │      FRONTEND        │
+                         │   HTML / CSS / JS    │
+                         └──────────┬───────────┘
+                                    │
+                              HTTP / REST API
+                                    │
+                                    ▼
+                         ┌──────────────────────┐
+                         │   FLASK BACKEND      │
+                         │ Authentication/API   │
+                         └──────┬───────┬───────┘
+                                │       │
+                   ┌────────────┘       └─────────────┐
+                   ▼                                  ▼
+          ┌─────────────────┐                ┌─────────────────┐
+          │   AI / ML Model │                │   PostgreSQL    │
+          │ TensorFlow/Keras│                │    Database     │
+          └─────────────────┘                └─────────────────┘
+                   │                                  │
+                   └────────────────┬─────────────────┘
+                                    ▼
+                         ┌──────────────────────┐
+                         │ Dashboard / Inventory│
+                         │ Analytics / Reports  │
+                         │ Notifications /      │
+                         │ Recommendations      │
+                         └──────────────────────┘
+
+📁 Project Structure
+
 AI-Food-Freshness-Monitoring-Platform/
 │
 ├── backend/
-│   │
 │   ├── app.py
 │   ├── models.py
 │   ├── predict.py
+│   ├── auth_middleware.py
 │   ├── database.py
 │   ├── requirements.txt
-│   │
 │   ├── instance/
 │   │   └── freshcheck.db
-│   │
 │   └── uploads/
 │
 ├── frontend/
-│   │
-│   ├── add-food.html
-│   ├── add-food.js
-│   │
 │   ├── Dashboard.html
 │   ├── dashboard.js
-│   │
+│   ├── add-food.html
+│   ├── add-food.js
 │   ├── inventory.html
-│   ├── inventory.js
-│   │
 │   ├── analytics.html
-│   ├── analytics.js
-│   │
 │   ├── notifications.html
 │   ├── notifications.js
-│   │
 │   ├── reports.html
 │   ├── reports.js
-│   │
+│   ├── recommendations.html
+│   ├── recommendations.js
+│   ├── profile.html
+│   ├── profile.js
 │   ├── settings.html
 │   ├── settings.js
-│   │
-│   ├── login.html
 │   ├── login.js
-│   │
 │   ├── signup.html
 │   ├── signup.js
-│   │
+│   ├── forgotpass.html
+│   ├── logout.html
 │   └── auth-check.js
 │
 ├── ml/
-│   │
 │   ├── model/
 │   │   └── food_freshness_final.keras
-│   │
 │   ├── class_names.json
 │   └── predict.py
 │
@@ -277,207 +346,88 @@ AI-Food-Freshness-Monitoring-Platform/
 ├── .gitignore
 ├── .gitattributes
 └── README.md
-```
 
----
+🛠️ Technologies Used
 
-# 🖥️ Frontend
+Area                   Technology
 
-The frontend is built using:
+Frontend               HTML5
+Styling                CSS3
+Client-side            JavaScript
+Backend                Python
+Web Framework          Flask
+API                    REST API
+Authentication         JWT
+Password Security      Flask-Bcrypt
+ORM                    Flask-SQLAlchemy
+AI                     TensorFlow
+Deep Learning          Keras
+Image Processing       Pillow
+Numerical Processing   NumPy
+Database               PostgreSQL
+Previous Database      SQLite
+Web Server             Nginx
+Containerization       Docker
+Orchestration          Docker Compose
+Version Control        Git / GitHub
 
-- HTML5
-- CSS3
-- JavaScript
-- Font Awesome
-- Nginx
+🔌 API Endpoints
 
-The frontend provides the user interface for the complete application.
+Health Check
 
-## Main Frontend Pages
-
-### 🔐 Login
-
-Allows existing users to authenticate.
-
-### 📝 Signup
-
-Allows new users to create an account.
-
-### ➕ Add Food
-
-Allows users to:
-
-- Upload food images
-- Run AI scans
-- View prediction
-- View confidence
-- View shelf life
-- Save food items
-
-### 📊 Dashboard
-
-Displays an overview of monitored food.
-
-Dashboard information includes:
-
-- Fresh Items
-- Expiring Soon
-- Spoiled Items
-- Food Inventory
-- AI Confidence
-- Shelf Life
-- Food Status
-
-### 📦 Inventory
-
-Displays saved food items and allows inventory management.
-
-### 📈 Analytics
-
-Provides food monitoring insights and statistics.
-
-### 🔔 Notifications
-
-Provides freshness and expiry-related notifications.
-
-### 📄 Reports
-
-Provides food monitoring information in report form.
-
-### ⚙️ Settings
-
-Provides application settings and data management functionality.
-
----
-
-# ⚙️ Backend
-
-The backend is developed using **Python Flask**.
-
-Main backend file:
-
-```text
-backend/app.py
-```
-
-The backend is responsible for:
-
-- API endpoints
-- Authentication
-- Food item management
-- AI prediction requests
-- Database operations
-- Image uploads
-- Dashboard data
-- Delete operations
-- Clearing saved food data
-
----
-
-# 🔌 API Endpoints
-
-## Health Check
-
-```http
 GET /
-```
 
-Response:
+Returns:
 
-```text
 FreshCheck Backend is running
-```
 
----
+Authentication
 
-## AI Prediction
+POST /api/auth/register
+POST /api/auth/login
 
-```http
+Used for user registration and login.
+
+AI Prediction
+
 POST /predict
-```
+POST /api/predict
 
-Used to upload a food image and receive an AI prediction.
+Used to process an uploaded food image and return an AI prediction.
 
----
+Food Management
 
-## Get Food Items
-
-```http
-GET /api/food
-```
-
-Returns saved food items.
-
----
-
-## Add Food Item
-
-```http
 POST /api/food
-```
-
-Saves a food item in the database.
-
----
-
-## Delete Food Item
-
-```http
+GET /api/food
+GET /foods
 DELETE /api/food/<id>
-```
 
-Deletes an individual food item.
+Used to create, retrieve, and delete food records.
 
----
+Dashboard
 
-## Clear All Food Data
-
-```http
-DELETE /api/food/clear
-```
-
-Deletes all saved food items.
-
----
-
-## Dashboard
-
-```http
 GET /api/dashboard
-```
 
-Provides food monitoring information used by the dashboard.
+Provides data used by the Dashboard.
 
----
+Recommendations
 
-# 🗄️ Database
+GET /api/recommendations
 
-FreshCheck currently uses:
+Returns authenticated food recommendations.
 
-## PostgreSQL
+Reports
 
-PostgreSQL is the **primary database** in the Docker deployment.
+GET /api/reports/data
 
-The PostgreSQL database runs inside a Docker container.
+Returns report data for the Reports module.
 
-Database configuration:
+🗄️ Database
 
-```text
-Database: freshcheck
-Username: freshcheck
-Password: freshcheck123
-Port: 5432
-```
+The Docker deployment uses PostgreSQL as the primary database.
 
-> For production deployment, database credentials should be stored using environment variables or secrets instead of hardcoding them.
+The food data model includes fields such as:
 
----
-
-# 📋 Food Item Data
-
-The `food_item` table stores information such as:
-
-```text
 id
 food_name
 category
@@ -487,568 +437,323 @@ shelf_life_days
 ai_confidence
 status
 created_at
-```
 
 Example:
 
-```text
-ID: 15
-Food Name: cabbage
+Food Name: Banana
 Category: Fruits
 Status: Fresh
 AI Confidence: 0.95
 Shelf Life: 5 Days
-```
 
----
+🔄 Data Flow
 
-# 🔄 Database Flow
-
-```text
 User
  ↓
 Add Food
  ↓
-AI Scan
+Upload Image
  ↓
-Prediction Result
+AI Prediction
  ↓
-Food Information
+Freshness + Confidence
+ ↓
+Shelf-Life Calculation
  ↓
 Flask Backend
- ↓
-SQLAlchemy
  ↓
 PostgreSQL
  ↓
 Dashboard / Inventory
-```
+ ↓
+Analytics / Reports
+ ↓
+Notifications / Recommendations
 
----
+🐳 Docker
 
-# 🐳 Docker
+FreshCheck is containerized using Docker and Docker Compose.
 
-FreshCheck uses Docker to run the application components independently.
+Main Docker files:
 
-The project contains:
-
-```text
 Dockerfile.backend
 Dockerfile.frontend
 docker-compose.yml
 nginx.conf
-```
 
-## Docker Services
+Docker Services
 
-### Backend
+Frontend
+  └── Nginx
+      Port: 8080
 
-```text
-freshcheck-backend
-```
+Backend
+  └── Flask
+      Port: 5000
 
-Runs Flask on:
+Database
+  └── PostgreSQL
+      Port: 5432
 
-```text
-5000
-```
-
-### Frontend
-
-```text
-freshcheck-frontend
-```
-
-Runs Nginx on:
-
-```text
-8080
-```
-
-### Database
-
-```text
-freshcheck-database
-```
-
-Runs PostgreSQL on:
-
-```text
-5432
-```
-
----
-
-# 🐳 Docker Architecture
-
-```text
-                    Docker Compose
-                          │
-          ┌───────────────┼───────────────┐
-          │               │               │
-          ▼               ▼               ▼
-   ┌────────────┐  ┌────────────┐  ┌────────────┐
-   │ Frontend   │  │  Backend   │  │ PostgreSQL │
-   │   Nginx    │  │   Flask    │  │            │
-   │   :8080    │  │   :5000    │  │   :5432    │
-   └────────────┘  └─────┬──────┘  └─────▲──────┘
-                          │               │
-                          └───────────────┘
-```
-
----
-
-# 💾 PostgreSQL Persistence
-
-PostgreSQL data is stored using a Docker volume:
-
-```text
-postgres_data
-```
-
-The volume allows database data to survive container recreation.
-
-Example:
-
-```text
-docker compose down
-       ↓
-Containers removed
-       ↓
-PostgreSQL volume remains
-       ↓
-docker compose up -d
-       ↓
-Database data remains
-```
-
-### ⚠️ Important
-
-Do not use:
-
-```bash
-docker compose down -v
-```
-
-if you want to preserve PostgreSQL data.
-
-The `-v` option removes the Docker volume.
-
----
-
-# 🚀 Installation & Setup
-
-## 1. Clone Repository
-
-```bash
-git clone https://github.com/mailech/AI-Food-Freshness-Monitoring-Platform.git
-```
-
----
-
-## 2. Enter Project Directory
-
-```bash
-cd AI-Food-Freshness-Monitoring-Platform
-```
-
----
-
-## 3. Start the Application
+Start the Application
 
 Make sure Docker Desktop is running.
 
-Then:
-
-```bash
 docker compose up -d --build
-```
 
----
+Check Containers
 
-## 4. Check Containers
-
-```bash
 docker compose ps
-```
 
-Expected services:
+Stop the Application
 
-```text
-freshcheck-backend
-freshcheck-frontend
-freshcheck-database
-```
-
----
-
-# 🌐 Access the Application
-
-## Frontend
-
-```text
-http://127.0.0.1:8080
-```
-
-## Backend
-
-```text
-http://127.0.0.1:5000
-```
-
----
-
-# 🧪 Database Verification
-
-## Check PostgreSQL Tables
-
-```bash
-docker compose exec database psql -U freshcheck -d freshcheck -c "\dt"
-```
-
-Expected tables include:
-
-```text
-food_item
-user
-```
-
----
-
-## View Food Items
-
-```bash
-docker compose exec database psql -U freshcheck -d freshcheck -c "SELECT * FROM food_item;"
-```
-
----
-
-## Count Food Items
-
-```bash
-docker compose exec database psql -U freshcheck -d freshcheck -c "SELECT COUNT(*) FROM food_item;"
-```
-
----
-
-# 🔁 Restart Test
-
-The application can be restarted using:
-
-```bash
 docker compose down
-```
 
-Then:
+Avoid docker compose down -v when you want to preserve the
+PostgreSQL Docker volume.
 
-```bash
-docker compose up -d
-```
+🌐 Local Access
 
-The PostgreSQL data remains available because the database uses a persistent Docker volume.
+Frontend:
 
----
+http://127.0.0.1:8080
 
-# 🗃️ SQLite Backup / Migration
+Backend:
 
-Before PostgreSQL was introduced, FreshCheck used SQLite.
+http://127.0.0.1:5000
 
-The previous SQLite database is located at:
+🚀 Installation & Setup
 
-```text
-backend/instance/freshcheck.db
-```
+1. Clone the Repository
 
-The project contains a migration script:
+git clone https://github.com/mailech/AI-Food-Freshness-Monitoring-Platform.git
 
-```text
-backend/database.py
-```
+2. Enter the Project
 
-This script was used to migrate existing SQLite food records into PostgreSQL.
+cd AI-Food-Freshness-Monitoring-Platform
 
-### ⚠️ Migration Warning
+3. Start with Docker
 
-`database.py` is a **one-time migration script**.
+docker compose up -d --build
 
-Do not execute it repeatedly because it can create duplicate records in PostgreSQL.
+4. Verify
 
----
+docker compose ps
 
-# 🔐 Authentication Flow
+Then open:
 
-```text
+http://127.0.0.1:8080
+
+🔐 Authentication Flow
+
 User
  ↓
-Signup
+Signup / Login
  ↓
 Flask Backend
  ↓
-User Database
- ↓
-Login
+Credential Verification
  ↓
 JWT Token
  ↓
-Browser Local Storage
+Browser Storage
  ↓
-Authenticated API Requests
-```
+Authenticated API Request
+ ↓
+JWT Middleware
+ ↓
+User / Role Validation
+ ↓
+Protected API Access
 
-The frontend uses the authentication token when communicating with protected backend APIs.
+The frontend sends the JWT token using the
+Authorization: Bearer <token> header when calling protected APIs.
 
----
+🔒 Security
 
-# 📷 Food Monitoring Flow
+The current application includes:
 
-The complete user workflow is:
+JWT authentication
 
-```text
-1. User Login
-       ↓
-2. Add Food
-       ↓
-3. Upload Image
-       ↓
-4. Run AI Scan
-       ↓
-5. AI Model Processes Image
-       ↓
-6. Food Class Predicted
-       ↓
-7. Fresh / Rotten Status
-       ↓
-8. AI Confidence
-       ↓
-9. Shelf Life
-       ↓
-10. Save Food
-       ↓
-11. PostgreSQL
-       ↓
-12. Dashboard
-       ↓
-13. Inventory / Analytics / Reports
-```
+Password hashing
 
----
+Protected API requests
 
-# 📊 Example Prediction
+Token validation
 
-```text
---------------------------------
-        AI FOOD SCAN
---------------------------------
+Token expiration handling
 
-Food Name       : Cabbage
-Category        : Vegetables
-Status          : Fresh
-AI Confidence   : 95%
-Shelf Life      : 5 Days
---------------------------------
-```
+Role-based authorization support
 
----
+CORS configuration
 
-# 🧩 Technologies
+For production deployment, additional measures should be considered,
+including:
 
-| Area | Technology |
-|---|---|
-| Frontend | HTML5 |
-| Styling | CSS3 |
-| Client-side | JavaScript |
-| Backend | Python |
-| Web Framework | Flask |
-| API | REST API |
-| Authentication | JWT |
-| Password Security | Flask-Bcrypt |
-| ORM | Flask-SQLAlchemy |
-| AI | TensorFlow |
-| Deep Learning | Keras |
-| Image Processing | Pillow |
-| Numerical Processing | NumPy |
-| Database | PostgreSQL |
-| Previous Database | SQLite |
-| Web Server | Nginx |
-| Containerization | Docker |
-| Orchestration | Docker Compose |
-| Version Control | Git |
-| Repository | GitHub |
+Environment-based secrets
 
----
+Strong database credentials
 
-# 🔧 Development Tools
+HTTPS
 
-The project can be developed and managed using:
+Secure JWT configuration
 
-- Visual Studio Code
-- PowerShell
-- Git
-- GitHub
-- Docker Desktop
-- PostgreSQL
-- Python
+Production WSGI server
 
----
+Input validation
 
-# 🛡️ Security Considerations
+File-upload validation
 
-The project currently uses:
+Rate limiting
 
-- JWT authentication
-- Password hashing
-- Protected API requests
-- CORS configuration
-- Docker-based service isolation
+🧪 Database Verification
 
-For production deployment, additional security improvements should be implemented, such as:
+Example PostgreSQL commands:
 
-- Environment variables for secrets
-- Strong database passwords
-- HTTPS
-- Secure JWT configuration
-- Production WSGI server
-- Input validation
-- File upload validation
-- Rate limiting
+docker compose exec database psql -U freshcheck -d freshcheck -c "\dt"
 
----
+View food records:
 
-# ☁️ Deployment
+docker compose exec database psql -U freshcheck -d freshcheck -c "SELECT * FROM food_item;"
 
-The project is currently containerized using Docker.
+Count food records:
 
-The Docker architecture makes it possible to deploy the application to cloud platforms such as:
+docker compose exec database psql -U freshcheck -d freshcheck -c "SELECT COUNT(*) FROM food_item;"
 
-- AWS
-- Microsoft Azure
-- Google Cloud
-- Other Docker-compatible hosting platforms
+📈 Future Improvements
 
-A future production deployment can use:
+Possible future improvements include:
 
-```text
-Internet
-   ↓
-Cloud Server
-   ↓
-Nginx
-   ↓
-Frontend
-   ↓
-Flask Backend
-   ↓
+More food categories
+
+Improved Deep Learning accuracy
+
+More accurate shelf-life prediction
+
+Improved storage-condition recommendations
+
+Sensor and IoT integration
+
+Temperature and humidity monitoring
+
+Real-time camera-based freshness detection
+
+Cloud deployment
+
+Mobile application
+
+Advanced analytics
+
+More detailed role permissions
+
+🎓 Project Learning Outcomes
+
+This project provides practical experience with:
+
+Programming
+
+Python
+
+JavaScript
+
+HTML
+
+CSS
+
+SQL
+
+Backend
+
+Flask
+
+REST APIs
+
+JWT authentication
+
+Role-based authorization
+
+SQLAlchemy
+
+Database integration
+
+AI / ML
+
+Image classification
+
+Deep Learning
+
+TensorFlow
+
+Keras
+
+Image preprocessing
+
+Model prediction
+
+Confidence scores
+
+Database
+
 PostgreSQL
-```
 
----
+SQLite
 
-# 📈 Future Improvements
+SQL
 
-Future versions of FreshCheck may include:
+Database migration
 
-- 📱 Mobile application
-- 🌡️ Temperature sensor integration
-- 💧 Humidity monitoring
-- 📡 IoT integration
-- MQTT-based sensor communication
-- ☁️ Cloud deployment
-- 🔔 Real-time notifications
-- 📊 Advanced analytics
-- 🧠 Improved Deep Learning models
-- 📅 More accurate shelf-life prediction
-- 👥 Multi-user inventory management
-- 🏪 Smart food storage monitoring
-- 📷 Real-time camera-based freshness detection
+DevOps
 
----
+Docker
 
-# 🎓 Project Learning Outcomes
+Docker Compose
 
-Through this project, the following technologies and concepts were applied:
+Docker volumes
 
-### Programming
+Nginx
 
-- Python
-- JavaScript
-- HTML
-- CSS
-- SQL
+Container networking
 
-### Backend Development
+Software Development
 
-- Flask
-- REST APIs
-- Authentication
-- Database integration
-- SQLAlchemy
+Git
 
-### AI / ML
+GitHub
 
-- Image classification
-- Deep Learning
-- TensorFlow
-- Keras
-- Model prediction
-- Confidence scores
+Branch management
 
-### Database
+Debugging
 
-- PostgreSQL
-- SQLite
-- SQL
-- Database migration
+API testing
 
-### DevOps
+Full-stack integration
 
-- Docker
-- Docker Compose
-- Docker volumes
-- Nginx
-- Container networking
+👩‍💻 Author
 
-### Software Development
+Sayantika Mahanta
 
-- Git
-- GitHub
-- Branch management
-- Version control
-- Debugging
-- API testing
-
----
-
-# 👩‍💻 Author
-
-## Sayantika Mahanta
-
-BCA Student  
+BCA Student
 Aspiring Data Analyst / Data Scientist
 
 GitHub:
+https://github.com/Sayantikamahanta02
 
-**https://github.com/Sayantikamahanta02**
+📌 Project Repository
 
----
-
-# 📌 Project Repository
-
-**AI-Food-Freshness-Monitoring-Platform**
+AI-Food-Freshness-Monitoring-Platform
 
 GitHub:
+https://github.com/mailech/AI-Food-Freshness-Monitoring-Platform
 
-**https://github.com/mailech/AI-Food-Freshness-Monitoring-Platform**
+⭐ Project Summary
 
----
+FreshCheck combines:
 
-# ⭐ Project Summary
-
-**FreshCheck** combines:
-
-```text
 Frontend
    +
 Flask Backend
+   +
+JWT Authentication
    +
 Deep Learning
    +
@@ -1057,15 +762,13 @@ PostgreSQL
 Docker
    +
 Nginx
-```
 
-to create an end-to-end **AI Food Freshness Monitoring Platform**.
+to create an end-to-end AI Food Freshness Monitoring Platform.
 
-The system demonstrates how Artificial Intelligence can be integrated with a web application and database to provide practical food freshness and inventory monitoring.
+The system demonstrates how Artificial Intelligence, web development,
+authentication, database management, and containerization can be
+integrated into a practical food freshness monitoring application.
 
----
-
-## ❤️ Thank You
+❤️ Thank You
 
 Thank you for visiting the FreshCheck project.
-
