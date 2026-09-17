@@ -13,6 +13,7 @@ from app.models.enums import AlertCategory
 from app.models.food_batch import FoodBatch
 from app.schemas.alerts import AlertPriority
 from app.services.alerts import persist_automatic_alert
+from app.services.storage import evaluate_compliance, rule_for_batch
 from app.services.freshness_scoring import (
     COMPLETE,
     HUMIDITY_ABOVE_RANGE_SCORE,
@@ -98,6 +99,18 @@ def _freshness_candidate(db: Session, batch: FoodBatch) -> dict | None:
 
 def _storage_candidate(db: Session, batch: FoodBatch) -> dict | None:
     condition = _latest_storage_condition(db, batch.id)
+    rule = rule_for_batch(db, batch)
+    rule_compliance = evaluate_compliance(condition, rule)
+    rule_violations = [item["condition"] for item in rule_compliance["conditions"] if item["status"] == "Needs Attention"]
+    if rule_violations:
+        context = _batch_context(batch)
+        return {
+            "category": AlertCategory.STORAGE,
+            "priority": AlertPriority.MEDIUM,
+            "title": "Storage condition alert",
+            "message": f"Storage conditions need attention for {context}: " + ", ".join(rule_violations) + " are outside the configured range.",
+            "condition_key": "storage:rules:" + "|".join(sorted(name.lower().replace(" ", "_") for name in rule_violations)),
+        }
     prediction = _latest_shelf_life_prediction(db, batch.id)
     temperature_f, humidity, source = _storage_inputs(condition, prediction)
     if temperature_f is None or humidity is None:

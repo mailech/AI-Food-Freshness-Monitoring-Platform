@@ -7,13 +7,14 @@ from app.db.session import get_db
 from app.models.enums import UserRole
 from app.models.storage_condition import StorageCondition
 from app.models.user import User
-from app.schemas.storage import StorageConditionCreate, StorageConditionResponse
-from app.services.storage import delete_condition, get_batch, get_condition, latest_condition, list_conditions, record_condition
+from app.schemas.storage import (StorageConditionCreate, StorageConditionResponse, StorageComplianceResponse, StorageOptimizationResponse, StorageRuleCreate, StorageRuleResponse, StorageRuleUpdate)
+from app.services.storage import (create_rule, delete_condition, delete_rule, evaluate_compliance, get_batch, get_condition, get_rule, latest_condition, list_conditions, list_rules, optimize_storage, record_condition, rule_for_batch, update_rule)
 from app.services.automatic_alerts import evaluate_automatic_alerts
 from app.services.automatic_recommendations import evaluate_automatic_recommendations
 router=APIRouter(prefix='/storage',tags=['storage'])
-OperationalUser=Annotated[User,Depends(require_roles(UserRole.CONSUMER,UserRole.RETAIL_MANAGER,UserRole.WAREHOUSE_OPERATOR,UserRole.FOOD_QUALITY_INSPECTOR,UserRole.ADMINISTRATOR))]
+OperationalUser=Annotated[User,Depends(require_roles(UserRole.WAREHOUSE_OPERATOR,UserRole.ADMINISTRATOR))]
 AuthenticatedUser=Annotated[User,Depends(get_current_user)]
+Administrator=Annotated[User,Depends(require_roles(UserRole.ADMINISTRATOR))]
 def _batch(db:Session, ident:int)->None:
     if get_batch(db,ident) is None: raise HTTPException(status_code=404,detail='Food batch not found.')
 def _condition(db:Session,ident:int)->StorageCondition:
@@ -39,5 +40,31 @@ def read_latest(food_batch_id:int,db:Annotated[Session,Depends(get_db)],_:Authen
     _batch(db,food_batch_id); value=latest_condition(db,food_batch_id)
     if value is None: raise HTTPException(status_code=404,detail='No storage conditions have been recorded for this batch.')
     return value
+@router.get('/rules', response_model=list[StorageRuleResponse])
+def read_rules(db:Annotated[Session,Depends(get_db)],_:AuthenticatedUser): return list_rules(db)
+@router.post('/rules', response_model=StorageRuleResponse, status_code=status.HTTP_201_CREATED)
+def add_rule(payload:StorageRuleCreate, db:Annotated[Session,Depends(get_db)],_:Administrator):
+    if any(rule.category == payload.category for rule in list_rules(db)): raise HTTPException(status_code=409, detail='A storage rule already exists for this category.')
+    return create_rule(db, payload)
+@router.put('/rules/{rule_id}', response_model=StorageRuleResponse)
+def edit_rule(rule_id:int, payload:StorageRuleUpdate, db:Annotated[Session,Depends(get_db)],_:Administrator):
+    rule=get_rule(db, rule_id)
+    if rule is None: raise HTTPException(status_code=404,detail='Storage rule not found.')
+    return update_rule(db, rule, payload)
+@router.delete('/rules/{rule_id}', status_code=status.HTTP_204_NO_CONTENT)
+def remove_rule(rule_id:int, db:Annotated[Session,Depends(get_db)],_:Administrator):
+    rule=get_rule(db, rule_id)
+    if rule is None: raise HTTPException(status_code=404,detail='Storage rule not found.')
+    delete_rule(db, rule); return Response(status_code=204)
+@router.get('/batches/{food_batch_id}/compliance', response_model=StorageComplianceResponse)
+def read_compliance(food_batch_id:int, db:Annotated[Session,Depends(get_db)],_:AuthenticatedUser):
+    batch=get_batch(db, food_batch_id)
+    if batch is None: raise HTTPException(status_code=404,detail='Food batch not found.')
+    result=evaluate_compliance(latest_condition(db, food_batch_id), rule_for_batch(db, batch)); result['rule']=rule_for_batch(db, batch); return result
+@router.get('/batches/{food_batch_id}/optimization', response_model=StorageOptimizationResponse)
+def read_optimization(food_batch_id:int, db:Annotated[Session,Depends(get_db)],_:AuthenticatedUser):
+    batch=get_batch(db, food_batch_id)
+    if batch is None: raise HTTPException(status_code=404,detail='Food batch not found.')
+    return optimize_storage(latest_condition(db, food_batch_id), rule_for_batch(db, batch))
 @router.delete('/conditions/{condition_id}',status_code=status.HTTP_204_NO_CONTENT)
 def remove_condition(condition_id:int,db:Annotated[Session,Depends(get_db)],_:OperationalUser)->Response: delete_condition(db,_condition(db,condition_id)); return Response(status_code=204)

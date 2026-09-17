@@ -1,0 +1,3 @@
+.storage-rule-form { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--line); }
+.range-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.range-inputs input { min-width: 0; }

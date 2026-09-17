@@ -19,7 +19,7 @@ from app.services.automatic_recommendations import evaluate_automatic_recommenda
 
 router = APIRouter(prefix="/shelf-life", tags=["shelf-life"])
 OperationalUser = Annotated[User, Depends(require_roles(UserRole.RETAIL_MANAGER, UserRole.WAREHOUSE_OPERATOR, UserRole.FOOD_QUALITY_INSPECTOR, UserRole.ADMINISTRATOR))]
-PredictionCreator = Annotated[User, Depends(require_roles(UserRole.CONSUMER, UserRole.RETAIL_MANAGER, UserRole.WAREHOUSE_OPERATOR, UserRole.FOOD_QUALITY_INSPECTOR, UserRole.ADMINISTRATOR))]
+PredictionCreator = Annotated[User, Depends(require_roles(UserRole.RETAIL_MANAGER, UserRole.WAREHOUSE_OPERATOR, UserRole.FOOD_QUALITY_INSPECTOR, UserRole.ADMINISTRATOR))]
 AuthenticatedUser = Annotated[User, Depends(get_current_user)]
 
 

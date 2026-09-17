@@ -16,6 +16,7 @@ from app.models import (  # noqa: F401
     Report,
     ShelfLifePrediction,
     StorageCondition,
+    StorageRule,
     User,
 )
 

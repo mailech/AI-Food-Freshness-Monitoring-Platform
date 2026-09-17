@@ -9,6 +9,7 @@ from app.models.recommendation import Recommendation
 from app.models.report import Report
 from app.models.shelf_life_prediction import ShelfLifePrediction
 from app.models.storage_condition import StorageCondition
+from app.models.storage_rule import StorageRule
 from app.models.user import User
 
 __all__ = [
@@ -21,5 +22,6 @@ __all__ = [
     "Report",
     "ShelfLifePrediction",
     "StorageCondition",
+    "StorageRule",
     "User",
 ]

@@ -15,9 +15,11 @@ import './App.css'
 import './Analysis.css'
 import './ShelfLife.css'
 import './Storage.css'
+import './StorageRules.css'
 import './Recommendations.css'
 import './Alerts.css'
 import './Dashboard.css'
+import './FreshnessScoring.css'
 
 const allPages = [
   ['dashboard', 'Dashboard', '▦'], ['inventory', 'Inventory', '□'],
@@ -26,8 +28,8 @@ const allPages = [
 ]
 const toSession = user => ({ ...user, identity: user.name })
 const allowedFor = role => {
-  if (role === 'Consumer') return ['dashboard', 'inventory', 'analysis', 'scoring', 'shelfLife', 'storage', 'alerts', 'recommendations', 'reports', 'profile']
-  if (role === 'Food Quality Inspector') return ['dashboard', 'inventory', 'analysis', 'scoring', 'shelfLife', 'storage', 'alerts', 'recommendations', 'reports', 'profile']
+  if (role === 'Consumer') return ['dashboard', 'inventory', 'analysis', 'scoring', 'shelfLife', 'storage', 'alerts', 'recommendations', 'profile']
+  if (role === 'Food Quality Inspector') return ['dashboard', 'analysis', 'scoring', 'shelfLife', 'storage', 'alerts', 'recommendations', 'reports', 'profile']
   return allPages.map(([id]) => id)
 }
 
@@ -273,13 +275,7 @@ const modelProbabilities = analysis => analysis.analysis_result?.all_class_proba
 const classifierSupportsProduct = productName => /apple|banana|orange/i.test(productName || '')
 const classifierScopeMessage = 'This image model supports apples, bananas, and oranges only. For other products, including strawberries, its raw class output must not be interpreted as the selected product’s freshness assessment.'
 const analysisDate = value => new Date(value).toLocaleString()
-const SCORING_WEIGHT_LABELS = [
-  ['Visual freshness', '40%'],
-  ['Storage conditions', '25%'],
-  ['Shelf-life', '20%'],
-  ['Product age', '15%'],
-]
-const canCreateFreshnessScore = role => ['Consumer', 'Retail Manager', 'Warehouse Operator', 'Food Quality Inspector', 'Administrator'].includes(role)
+const canCreateFreshnessScore = role => ['Retail Manager', 'Warehouse Operator', 'Food Quality Inspector', 'Administrator'].includes(role)
 const canDeleteFreshnessScore = role => ['Retail Manager', 'Warehouse Operator', 'Food Quality Inspector', 'Administrator'].includes(role)
 const scoringError = error => {
   if (!(error instanceof ApiError)) return 'Unable to complete the freshness scoring request.'
@@ -401,38 +397,33 @@ function AnalysisPage({ role, onUnauthorized }) {
     })
     setResult(analysis)
 
-    // 2. Get the latest storage data already saved for this batch
-    const storage = await storageApi.getLatestCondition(foodBatchId)
-
-    // 3. Automatically run the shelf-life ML model using stored inputs
-    if (
-      storage &&
-      storage.storage_duration != null &&
-      storage.door_opens_count != null &&
-      storage.temperature != null &&
-      storage.humidity != null
-    ) {
-      const temperatureF =
-        Number(storage.temperature) * 9 / 5 + 32
-
-      await shelfLifeApi.predict({
-        food_batch_id: Number(foodBatchId),
-        dwell_hours: Number(storage.storage_duration),
-        mean_temp_F: temperatureF,
-        mean_rh_pct: Number(storage.humidity),
-        door_opens_count: Number(storage.door_opens_count),
-        freshness_analysis_id: analysis.id,
-      })
+    if (canCreateFreshnessScore(role)) {
+      // Operational roles may continue the existing analysis flow with stored
+      // conditions and a composite score. Consumers only receive the image result.
+      const storage = await storageApi.getLatestCondition(foodBatchId)
+      if (
+        storage &&
+        storage.storage_duration != null &&
+        storage.door_opens_count != null &&
+        storage.temperature != null &&
+        storage.humidity != null
+      ) {
+        const temperatureF = Number(storage.temperature) * 9 / 5 + 32
+        await shelfLifeApi.predict({
+          food_batch_id: Number(foodBatchId),
+          dwell_hours: Number(storage.storage_duration),
+          mean_temp_F: temperatureF,
+          mean_rh_pct: Number(storage.humidity),
+          door_opens_count: Number(storage.door_opens_count),
+          freshness_analysis_id: analysis.id,
+        })
+      }
+      await freshnessScoringApi.createScore(foodBatchId)
+      const scores = await freshnessScoringApi.getBatchScores(foodBatchId)
+      setCompositeScore(preferredScoreRecord(scores))
     }
 
-    // 4. Automatically create/update the composite freshness score
-    await freshnessScoringApi.createScore(foodBatchId)
-
-    // 5. Load the newly generated score
-    const scores = await freshnessScoringApi.getBatchScores(foodBatchId)
-    setCompositeScore(preferredScoreRecord(scores))
-
-    // 6. Refresh analysis history
+    // Refresh analysis history for every role.
     await loadHistory(foodBatchId)
   } catch (error) {
     handleError(error)
@@ -451,8 +442,8 @@ function AnalysisPage({ role, onUnauthorized }) {
     {result && hasCompositeScore && <section className="analysis-results"><div className="result-grid"><article className="result-score"><span>Composite Freshness Score</span><b>{`${scoringValue(compositeScore.freshness_score)}/100`}</b></article><article className="result-stat"><span>Visual Freshness</span><b>{`${scoringValue(compositeScore.visual_freshness_score)}/100 (${scoringWeight(compositeScore.visual_weight)})`}</b></article><article className="result-stat"><span>Storage Condition</span><b>{`${scoringValue(compositeScore.storage_condition_score)}/100 (${scoringWeight(compositeScore.storage_weight)})`}</b></article><article className="result-stat"><span>Shelf-life</span><b>{`${scoringValue(compositeScore.shelf_life_score)}/100 (${scoringWeight(compositeScore.shelf_life_weight)})`}</b></article><article className="result-stat"><span>Product Age</span><b>{`${scoringValue(compositeScore.product_age_score)}/100 (${scoringWeight(compositeScore.product_age_weight)})`}</b></article></div></section>}
     <div className="analysis-note">Upload a clear, well-lit food image to support a complete freshness assessment. The trained image model supports apples, bananas, and oranges only.</div>
     <div className="analysis-workspace">
-      <Panel title="Food image" text="Upload a clear image for a visual freshness assessment."><div className={'upload-zone ' + (image ? 'has-image' : '')} onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); selectImage(event.dataTransfer.files[0]) }}>{image ? <div className="image-preview"><img src={image.preview} alt="Selected food preview" /><div><b>{image.name}</b><small>Image selected and ready for assessment.</small><div><label className="link change-image" htmlFor="food-image">Change image</label><button className="link delete" onClick={() => { setImage(null); setResult(null); setValidationMessage('') }}>Remove image</button></div></div></div> : <><i>↑</i><b>Drag and drop a food image here</b><small>Supported formats: JPG, PNG and WEBP</small><label className="button secondary" htmlFor="food-image">Choose Image</label></>}<input id="food-image" type="file" accept="image/jpeg,image/png,image/webp" onClick={event => { event.currentTarget.value = '' }} onChange={event => selectImage(event.target.files[0])} /></div>{uploadError && <p className="upload-error">{uploadError}</p>}</Panel>
-      <Panel title="Food information" text="Select the real inventory batch for this analysis."><div className="analysis-fields"><FormField label="Food batch"><select value={foodBatchId} onChange={selectBatch}><option value="">Select an inventory batch</option>{batches.map(batch => <option key={batch.id} value={batch.id}>{batch.food_item.name} · {batch.batch_number}</option>)}</select></FormField><FormField label="Food/Product Name"><input value={productName} readOnly placeholder="Selected from the batch" /></FormField><FormField label="Category"><input value={foodCategory} readOnly /></FormField></div>{foodBatchId && !classifierSupportsProduct(productName) && <p className="upload-error">{classifierScopeMessage}</p>}<button className="button primary analyze-button" disabled={!canCreate || loading || !image || !foodBatchId} onClick={analyze}>{loading ? 'Uploading…' : 'Analyze Freshness'}</button>{validationMessage ? <p className="upload-error">{validationMessage}</p> : (!image || !foodBatchId) && <small className="button-hint">Select an inventory batch and image to begin.</small>}</Panel>
+      {canCreate && <Panel title="Food image" text="Upload a clear image for a visual freshness assessment."><div className={'upload-zone ' + (image ? 'has-image' : '')} onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); selectImage(event.dataTransfer.files[0]) }}>{image ? <div className="image-preview"><img src={image.preview} alt="Selected food preview" /><div><b>{image.name}</b><small>Image selected and ready for assessment.</small><div><label className="link change-image" htmlFor="food-image">Change image</label><button className="link delete" onClick={() => { setImage(null); setResult(null); setValidationMessage('') }}>Remove image</button></div></div></div> : <><i>↑</i><b>Drag and drop a food image here</b><small>Supported formats: JPG, PNG and WEBP</small><label className="button secondary" htmlFor="food-image">Choose Image</label></>}<input id="food-image" type="file" accept="image/jpeg,image/png,image/webp" onClick={event => { event.currentTarget.value = '' }} onChange={event => selectImage(event.target.files[0])} /></div>{uploadError && <p className="upload-error">{uploadError}</p>}</Panel>}
+      <Panel title="Food information" text="Select the real inventory batch for this analysis."><div className="analysis-fields"><FormField label="Food batch"><select value={foodBatchId} onChange={selectBatch}><option value="">Select an inventory batch</option>{batches.map(batch => <option key={batch.id} value={batch.id}>{batch.food_item.name} · {batch.batch_number}</option>)}</select></FormField><FormField label="Food/Product Name"><input value={productName} readOnly placeholder="Selected from the batch" /></FormField><FormField label="Category"><input value={foodCategory} readOnly /></FormField></div>{foodBatchId && !classifierSupportsProduct(productName) && <p className="upload-error">{classifierScopeMessage}</p>}{canCreate && <button className="button primary analyze-button" disabled={loading || !image || !foodBatchId} onClick={analyze}>{loading ? 'Uploading…' : 'Analyze Freshness'}</button>}{validationMessage ? <p className="upload-error">{validationMessage}</p> : canCreate && (!image || !foodBatchId) && <small className="button-hint">Select an inventory batch and image to begin.</small>}</Panel>
     </div>
     {result && <section className="analysis-results"><div className="analysis-results-heading"><div><small>FRESHNESS ASSESSMENT</small><h2>Freshness Assessment</h2><p>Product: {productName}</p></div><button className="button secondary" onClick={reset}>New Analysis</button></div>{!result.analysis_result?.model_scope?.supported && <div className="analysis-summary"><b>Model scope notice</b><p>{result.analysis_result?.model_scope?.message || classifierScopeMessage}</p></div>}{analysisStatus(result) === 'pending_model_integration' ? <div className="analysis-summary"><b>Analysis pending model integration</b><p>{result.analysis_result?.message || 'The image was stored and the analysis record was created. A trained freshness model is not configured yet.'}</p></div> : <><div className="result-grid"><article className="result-score"><span>Raw trained-model class</span><b>{modelPrediction(result)}</b></article><article className="result-stat"><span>Model confidence</span><b>{modelConfidence(result)}</b></article><article className="result-stat"><span>Composite Freshness Score</span><b>{compositeScoreDisplay}</b></article></div><div className="analysis-summary"><b>Class probabilities</b>{Object.entries(modelProbabilities(result)).length ? <p>{Object.entries(modelProbabilities(result)).map(([label, value]) => `${label}: ${typeof value === 'number' ? `${(value * 100).toFixed(2)}%` : 'Not available'}`).join(' · ')}</p> : <p>Class probabilities are not available for this analysis.</p>}</div></>}</section>}
     <Panel title="Analysis history" text={foodBatchId ? 'Persisted analyses for the selected inventory batch.' : 'Select an inventory batch to view persisted analyses.'}><div className="analysis-history">{historyLoading ? <p className="button-hint">Loading analysis history…</p> : history.length ? history.map(entry => <div className="history-row" key={entry.id}><div><b>Analysis #{entry.id}</b><small>{analysisDate(entry.analyzed_at)}</small></div><strong>{analysisStatus(entry) === 'pending_model_integration' ? 'Pending' : modelConfidence(entry)}</strong><em className="badge warning">{analysisStatus(entry) === 'pending_model_integration' ? 'Model pending' : modelPrediction(entry)}</em>{canDelete && <button className="link delete" disabled={loading} onClick={() => removeAnalysis(entry.id)}>Delete</button>}</div>) : <p className="button-hint">No persisted analyses for this batch.</p>}</div></Panel>
@@ -539,14 +530,13 @@ function FreshnessScoring({ role, onUnauthorized }) {
     ['Product Age', result.product_age_score, result.product_age_weight],
   ] : []
   return <>
-    <Title title="Freshness Scoring" text="Create a composite freshness-score evaluation for a real inventory batch. Component scores are stored by the backend and are not calculated in the browser." />
-    <div className="scoring-note">Documented model weights: Visual freshness 40% · Storage conditions 25% · Shelf-life 20% · Product age 15%. The overall score is returned by the API when component values exist.</div>
+    <Title title="Freshness Scoring" text="Overall freshness evaluation for the selected food batch." />
     {message && <p className="inventory-note" role="status">{message}</p>}
     {error && <p className="error inventory-note" role="alert">{error}</p>}
     <div className="scoring-workspace">
-      <Panel title="Food batch" text="Select a real inventory batch. Scores are created for this batch only.">
+      <Panel title="Food Batch" text="Select an inventory batch to view its freshness evaluation.">
         <div className="scoring-fields">
-          <FormField label="Food batch">
+          <FormField label="Food Batch">
             <select required value={foodBatchId} onChange={selectBatch} disabled={batchesLoading}>
               <option value="">{batchesLoading ? 'Loading inventory batches…' : batches.length ? 'Select an inventory batch' : 'No inventory batches available'}</option>
               {batches.map(batch => <option key={batch.id} value={batch.id}>{batch.food_item.name} · {batch.batch_number}</option>)}
@@ -555,14 +545,11 @@ function FreshnessScoring({ role, onUnauthorized }) {
           <FormField label="Food/Product Name"><input value={selectedBatch?.food_item?.name || ''} readOnly placeholder="Selected from the batch" /></FormField>
           <FormField label="Category"><input value={selectedBatch?.food_item?.category || ''} readOnly placeholder="Selected from the batch" /></FormField>
         </div>
-        <div className="scoring-actions">
-          <button className="button primary" disabled={!canCreate || busy || !foodBatchId || batchesLoading} onClick={createScore}>{loading ? 'Saving…' : 'Generate Score'}</button>
-        </div>
-        {!canCreate && <small className="button-hint">Your role can view score history but cannot create or delete scores.</small>}
-        {canCreate && !foodBatchId && <small className="button-hint">Select an inventory batch to create a score record.</small>}
-      </Panel>
-      <Panel title="Scoring model" text="Explanatory weights used by the backend scoring model.">
-        {SCORING_WEIGHT_LABELS.map(item => <div className="signal" key={item[0]}><span>{item[0]}</span><b>{item[1]} weight</b></div>)}
+        {canCreate && <div className="scoring-actions">
+          <button className="button primary" disabled={busy || !foodBatchId || batchesLoading} onClick={createScore}>{loading ? 'Calculating…' : 'Calculate Freshness Score'}</button>
+        </div>}
+        {!canCreate && <small className="button-hint">Select a batch to view its available freshness score and history.</small>}
+        {canCreate && !foodBatchId && <small className="button-hint">Select an inventory batch to calculate its freshness score.</small>}
       </Panel>
     </div>
     {result && <section className="scoring-results">
@@ -574,22 +561,21 @@ function FreshnessScoring({ role, onUnauthorized }) {
         </div>
         <button className="button secondary" onClick={reset}>New Score</button>
       </div>
-      {pending && <div className="analysis-summary"><b>Composite score unavailable</b><p>Every weighted component must come from real data. This batch does not yet have scoreable storage conditions and shelf-life output, so no composite score is shown.</p></div>}
+      {pending && <div className="analysis-summary"><b>Freshness score unavailable</b><p>This batch needs more recorded information before a freshness score can be displayed.</p></div>}
       <div className="scoring-grid">
-        <article className="scoring-highlight"><span>Composite Freshness Score</span><b>{pending ? 'Score unavailable' : `${scoringValue(result.freshness_score)}/100`}</b><small>{pending ? 'Storage thresholds and a calibrated shelf-life unit are required; no score is invented.' : 'Returned by the scoring API'}</small></article>
-        <article className="scoring-stat"><span>Status</span><b>{result.status || 'Not available'}</b><small>Backend evaluation status</small></article>
-        <article className="scoring-stat"><span>Created</span><b>{result.created_at ? analysisDate(result.created_at) : 'Not available'}</b><small>Recorded timestamp</small></article>
+        <article className="scoring-highlight"><span>Composite Freshness Score</span><b>{pending ? 'Score unavailable' : `${scoringValue(result.freshness_score)}/100`}</b><small>{pending ? 'More information is needed to complete this evaluation.' : 'Latest evaluation'}</small></article>
+        <article className="scoring-stat"><span>Evaluation Status</span><b>{result.status || 'Not available'}</b><small>Current score status</small></article>
+        <article className="scoring-stat"><span>Updated</span><b>{result.created_at ? analysisDate(result.created_at) : 'Not available'}</b><small>Evaluation date and time</small></article>
       </div>
       <div className="scoring-components">
-        {components.map(item => <div className="signal" key={item[0]}><span>{item[0]}</span><b>{item[1] == null ? 'Score unavailable' : `${scoringValue(item[1])}/100`} ({scoringWeight(item[2])})</b></div>)}
+        {components.map(item => <div className="signal" key={item[0]}><span>{item[0]}</span><b>{item[1] == null ? 'Score unavailable' : `${scoringValue(item[1])}/100`}</b></div>)}
       </div>
       <div className="scoring-components">
         <div className="signal"><span>Spoilage Probability</span><b>{result.spoilage_probability == null ? 'Not available' : `${(Number(result.spoilage_probability) * 100).toFixed(2)}%`}</b></div>
-        <div className="signal"><span>Estimated Shelf-life</span><b>{result.shelf_life_raw_prediction == null ? 'Not available' : `${scoringValue(result.shelf_life_raw_prediction)} (${result.shelf_life_unit_status || 'unit not established'})`}</b></div>
+        <div className="signal"><span>Estimated Shelf-life</span><b>{result.shelf_life_raw_prediction == null ? 'Not available' : scoringValue(result.shelf_life_raw_prediction)}</b></div>
         <div className="signal"><span>Temperature</span><b>{result.storage_temperature == null ? 'Not available' : `${scoringValue(result.storage_temperature)} °F`}</b></div>
         <div className="signal"><span>Humidity</span><b>{result.storage_humidity == null ? 'Not available' : `${scoringValue(result.storage_humidity)}%`}</b></div>
         <div className="signal"><span>Packaging</span><b>{result.packaging || 'Not available'}</b></div>
-        <div className="signal"><span>Storage data source</span><b>{result.storage_source || 'Not available'}</b></div>
       </div>
       <div className="scoring-components"><div className="signal"><span>Smart Recommendations</span><b>{recommendations.length ? recommendations.map(item => item.message).join(' · ') : 'No recommendations recorded for this batch.'}</b></div></div>
     </section>}
@@ -609,7 +595,7 @@ function FreshnessScoring({ role, onUnauthorized }) {
   </>
 }
 const emptyShelfLifeForm = () => ({ foodBatchId: '', dwellHours: '', meanTempF: '', meanRhPct: '', doorOpensCount: '' })
-const canCreateShelfLifePrediction = role => ['Consumer', 'Retail Manager', 'Warehouse Operator', 'Food Quality Inspector', 'Administrator'].includes(role)
+const canCreateShelfLifePrediction = role => ['Retail Manager', 'Warehouse Operator', 'Food Quality Inspector', 'Administrator'].includes(role)
 const canDeleteShelfLifePrediction = role => ['Retail Manager', 'Warehouse Operator', 'Food Quality Inspector', 'Administrator'].includes(role)
 const predictionStatus = entry => entry.prediction_result?.status || (entry.remaining_days != null || entry.predicted_expiry_date ? 'complete' : 'pending_model_integration')
 const isPendingPrediction = entry => predictionStatus(entry) === 'pending_model_integration'
@@ -623,7 +609,9 @@ const shelfLifeError = error => {
 const rawShelfLifePrediction = entry => entry?.prediction_result?.raw_prediction
 const shelfLifeOutputDisplay = entry => {
   const value = rawShelfLifePrediction(entry)
-  return isPendingPrediction(entry) || typeof value !== 'number' ? 'Not available' : String(value)
+  return isPendingPrediction(entry) || typeof value !== 'number'
+    ? 'Not available'
+    : new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(value)
 }
 const conditionReading = (value, suffix) => (value == null || value === '' ? 'Not available' : `${value}${suffix}`)
 const validateShelfLifeForm = form => {
@@ -643,7 +631,7 @@ const validateShelfLifeForm = form => {
   return ''
 }
 const emptyStorageForm = () => ({ foodBatchId: '', temperature: '', humidity: '', airCirculation: '', lightLevel: '', duration: '', doorOpensCount: '' })
-const canManageStorage = role => ['Retail Manager', 'Warehouse Operator', 'Administrator'].includes(role)
+const canManageStorage = role => ['Warehouse Operator', 'Administrator'].includes(role)
 const HOURS_PER_DAY = 24
 const MAX_STORAGE_DURATION_HOURS = 8760
 const MAX_STORAGE_DURATION_DAYS = MAX_STORAGE_DURATION_HOURS / HOURS_PER_DAY
@@ -1085,12 +1073,20 @@ function StorageMonitoring({ role, onUnauthorized }) {
   const [batchesLoading, setBatchesLoading] = useState(true)
   const [latest, setLatest] = useState(null)
   const [history, setHistory] = useState([])
+  const [compliance, setCompliance] = useState(null)
+  const [optimization, setOptimization] = useState(null)
+  const [rules, setRules] = useState([])
+  const [ruleDraft, setRuleDraft] = useState({ category: 'Fruits', temperature_min: '', temperature_max: '', humidity_min: '', humidity_max: '', air_circulation_min: '', air_circulation_max: '', light_level_min: '', light_level_max: '' })
+  const [editingRuleId, setEditingRuleId] = useState(null)
+  const [storageAlerts, setStorageAlerts] = useState([])
+  const [storageRecommendations, setStorageRecommendations] = useState([])
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const editable = canManageStorage(role)
+  const canManageRules = role === 'Administrator'
   const selectedBatch = batches.find(entry => String(entry.id) === String(form.foodBatchId))
   const complete = Boolean(form.foodBatchId && form.temperature !== '' && form.humidity !== '' && form.airCirculation !== '' && form.lightLevel !== '' && form.duration !== '' && form.doorOpensCount !== '')
   const handleError = caught => {
@@ -1099,18 +1095,22 @@ function StorageMonitoring({ role, onUnauthorized }) {
     return false
   }
   const loadConditions = async batchId => {
-    if (!batchId) { setLatest(null); setHistory([]); return }
+    if (!batchId) { setLatest(null); setHistory([]); setCompliance(null); setOptimization(null); setStorageAlerts([]); setStorageRecommendations([]); return }
     setLoading(true); setError('')
     try {
       const records = await storageApi.getBatchConditions(batchId)
       setHistory(records)
+      const [complianceResult, optimizationResult] = await Promise.all([storageApi.getCompliance(batchId), storageApi.getOptimization(batchId)])
+      setCompliance(complianceResult); setOptimization(optimizationResult)
+      const [alertResult, recommendationResult] = await Promise.all([alertsApi.getAlerts({ food_batch_id: batchId }), recommendationsApi.getBatchRecommendations(batchId)])
+      setStorageAlerts(alertResult.filter(item => item.category === 'Storage')); setStorageRecommendations(recommendationResult.filter(item => item.recommendation_type === 'Storage'))
       try { setLatest(await storageApi.getLatestCondition(batchId)) }
       catch (latestError) {
         if (isEmptyLatest(latestError)) setLatest(null)
         else throw latestError
       }
     } catch (requestError) {
-      setLatest(null); setHistory([])
+      setLatest(null); setHistory([]); setCompliance(null); setOptimization(null); setStorageAlerts([]); setStorageRecommendations([])
       handleError(requestError)
     } finally { setLoading(false) }
   }
@@ -1118,6 +1118,8 @@ function StorageMonitoring({ role, onUnauthorized }) {
     setBatchesLoading(true)
     inventoryApi.getBatches().then(setBatches).catch(handleError).finally(() => setBatchesLoading(false))
   }, [])
+  useEffect(() => { storageApi.getRules().then(setRules).catch(handleError) }, [])
+  const loadRules = async () => { try { setRules(await storageApi.getRules()) } catch (requestError) { handleError(requestError) } }
   const update = key => event => { setForm(current => ({ ...current, [key]: event.target.value })); setError(''); setMessage('') }
   const selectBatch = event => {
     const batchId = event.target.value
@@ -1157,6 +1159,14 @@ function StorageMonitoring({ role, onUnauthorized }) {
     } catch (requestError) { handleError(requestError) }
     finally { setDeleting(false) }
   }
+  const updateRule = key => event => setRuleDraft(current => ({ ...current, [key]: event.target.value }))
+  const saveRule = async event => {
+    event.preventDefault()
+    const payload = Object.fromEntries(Object.entries(ruleDraft).map(([key, value]) => [key, key === 'category' ? value : value === '' ? null : Number(value)]))
+    try { setSubmitting(true); setError(''); if (editingRuleId) await storageApi.updateRule(editingRuleId, Object.fromEntries(Object.entries(payload).filter(([key]) => key !== 'category'))); else await storageApi.createRule(payload); setRuleDraft({ category: 'Fruits', temperature_min: '', temperature_max: '', humidity_min: '', humidity_max: '', air_circulation_min: '', air_circulation_max: '', light_level_min: '', light_level_max: '' }); setEditingRuleId(null); await loadRules(); if (form.foodBatchId) await loadConditions(form.foodBatchId); setMessage('Storage rule saved.') } catch (requestError) { handleError(requestError) } finally { setSubmitting(false) }
+  }
+  const beginEditRule = rule => { setEditingRuleId(rule.id); setRuleDraft(Object.fromEntries(Object.keys(ruleDraft).map(key => [key, rule[key] ?? '']))) }
+  const removeRule = async ruleId => { try { setDeleting(true); await storageApi.deleteRule(ruleId); await loadRules(); if (form.foodBatchId) await loadConditions(form.foodBatchId); setMessage('Storage rule deleted.') } catch (requestError) { handleError(requestError) } finally { setDeleting(false) } }
   const details = latest ? [
     ['Temperature', storageReading(latest.temperature, '°C')],
     ['Humidity', storageReading(latest.humidity, '%')],
@@ -1176,7 +1186,7 @@ function StorageMonitoring({ role, onUnauthorized }) {
     ['Recorded at', latest?.recorded_at ? analysisDate(latest.recorded_at) : 'Not available', 'Backend timestamp'],
   ]
   return <>
-    <Title title="Storage Monitoring" text="Monitor recorded storage conditions for a real inventory batch. Compliance and optimization remain unknown until backend rules are configured." />
+    <Title title="Storage Monitoring" text="Monitor recorded storage conditions and keep each batch within its configured ranges." />
     {message && <p className="inventory-note" role="status">{message}</p>}
     {error && <p className="error inventory-note" role="alert">{error}</p>}
     <Panel title="Food batch" text="Select a real inventory batch to load persisted storage records.">
@@ -1192,10 +1202,10 @@ function StorageMonitoring({ role, onUnauthorized }) {
       </div>
     </Panel>
     <section className="storage-overview">
-      <article className="storage-status unknown">
+      <article className={'storage-status ' + (compliance?.overall_status === 'Compliant' ? 'success' : compliance?.overall_status === 'Needs Attention' ? 'warning' : 'danger')}>
         <small>OVERALL STORAGE CONDITION</small>
-        <b>unknown</b>
-        <span>No configured storage thresholds exist for this batch category.</span>
+        <b>{loading ? 'Loading…' : compliance?.overall_status || 'No Data'}</b>
+        <span>{compliance?.message || 'Select a batch to view its storage status.'}</span>
       </article>
       <div className="storage-metrics">{metrics.map(metric => <article className="storage-metric" key={metric[0]}><small>{metric[0]}</small><b>{loading ? 'Loading…' : metric[1]}</b><span>{metric[2]}</span></article>)}</div>
     </section>
@@ -1203,44 +1213,53 @@ function StorageMonitoring({ role, onUnauthorized }) {
       <Panel title="Storage condition details" text={form.foodBatchId ? (loading ? 'Loading latest storage record…' : latest ? `Latest persisted record #${latest.id}.` : 'No storage conditions have been recorded for this batch.') : 'Select an inventory batch to view recorded conditions.'}>
         {loading ? <p className="button-hint">Loading latest storage record…</p> : latest ? <div className="storage-details">{details.map(detail => <div className="storage-detail" key={detail[0]}><div><b>{detail[0]}</b><small>{detail[1]}</small></div></div>)}</div> : <p className="button-hint">{form.foodBatchId ? 'No storage conditions have been recorded for this batch.' : 'Select an inventory batch to view recorded conditions.'}</p>}
       </Panel>
-      <Panel title="Storage compliance" text="Compliance is returned as unknown until storage thresholds are configured.">
+      <Panel title="Storage Compliance" text="Latest readings compared with the configured storage rules.">
         <div className="compliance-list">
-          <div><span>Temperature</span><b>unknown</b></div>
-          <div><span>Humidity</span><b>unknown</b></div>
-          <div><span>Air circulation</span><b>unknown</b></div>
-          <div><span>Light level</span><b>unknown</b></div>
+          {compliance?.conditions?.length ? compliance.conditions.map(item => <div key={item.condition}><span>{item.condition}</span><b>{item.status}</b></div>) : <p className="button-hint">{form.foodBatchId ? 'No storage data recorded.' : 'Select an inventory batch to view compliance.'}</p>}
         </div>
-        <div className="compliance-status unknown"><span>Storage Compliance</span><b>unknown</b></div>
-        <p className="button-hint">No configured storage thresholds exist for this batch category.</p>
+        {compliance && <><div className={'compliance-status ' + (compliance.overall_status === 'Compliant' ? 'success' : compliance.overall_status === 'Needs Attention' ? 'warning' : 'danger')}><span>Overall Status</span><b>{compliance.overall_status}</b></div><p className="button-hint">{compliance.message}</p></>}
       </Panel>
     </div>
-    <Panel title="Update storage conditions" text="Submit a new storage-condition record. Air circulation and light level are numeric values required by the API.">
+    {editable && <Panel title="Update storage conditions" text="Submit a new storage-condition record. Air circulation and light level are numeric values required by the API.">
       <form className="storage-form" onSubmit={submitConditions}>
-        <FormField label="Temperature (°C)"><input required type="number" step="0.1" min="-50" max="100" value={form.temperature} onChange={update('temperature')} disabled={!editable} placeholder="e.g. 4" /></FormField>
-        <FormField label="Humidity (%)"><input required type="number" step="0.1" min="0" max="100" value={form.humidity} onChange={update('humidity')} disabled={!editable} placeholder="e.g. 65" /></FormField>
-        <FormField label="Air circulation"><input required type="number" step="0.1" min="0" max="10000" value={form.airCirculation} onChange={update('airCirculation')} disabled={!editable} placeholder="0 to 10000" /></FormField>
-        <FormField label="Light level"><input required type="number" step="0.1" min="0" max="1000000" value={form.lightLevel} onChange={update('lightLevel')} disabled={!editable} placeholder="0 to 1000000" /></FormField>
-        <FormField label="Storage Duration (days)"><input required type="number" min="0" max={MAX_STORAGE_DURATION_DAYS} step="1" value={form.duration} onChange={update('duration')} disabled={!editable} placeholder="e.g. 3" /></FormField>
-        <FormField label="Door Opens Count"><input required type="number" min="0" max="10000" step="1" value={form.doorOpensCount} onChange={update('doorOpensCount')} disabled={!editable} placeholder="e.g. 5" /></FormField>
+        <FormField label="Temperature (°C)"><input required type="number" step="0.1" min="-50" max="100" value={form.temperature} onChange={update('temperature')} placeholder="e.g. 4" /></FormField>
+        <FormField label="Humidity (%)"><input required type="number" step="0.1" min="0" max="100" value={form.humidity} onChange={update('humidity')} placeholder="e.g. 65" /></FormField>
+        <FormField label="Air circulation"><input required type="number" step="0.1" min="0" max="10000" value={form.airCirculation} onChange={update('airCirculation')} placeholder="0 to 10000" /></FormField>
+        <FormField label="Light level"><input required type="number" step="0.1" min="0" max="1000000" value={form.lightLevel} onChange={update('lightLevel')} placeholder="0 to 1000000" /></FormField>
+        <FormField label="Storage Duration (days)"><input required type="number" min="0" max={MAX_STORAGE_DURATION_DAYS} step="1" value={form.duration} onChange={update('duration')} placeholder="e.g. 3" /></FormField>
+        <FormField label="Door Opens Count"><input required type="number" min="0" max="10000" step="1" value={form.doorOpensCount} onChange={update('doorOpensCount')} placeholder="e.g. 5" /></FormField>
         <div className="storage-update">
-          <button className="button primary" disabled={!editable || submitting || deleting || !complete || batchesLoading}>{submitting ? 'Saving…' : 'Update Conditions'}</button>
+          <button className="button primary" disabled={submitting || deleting || !complete || batchesLoading}>{submitting ? 'Saving…' : 'Update Conditions'}</button>
         </div>
       </form>
-      {!editable && <small className="button-hint">Your role can view storage records but cannot create or delete them.</small>}
-      {editable && !complete && <small className="button-hint">Select an inventory batch and complete the required storage fields to continue.</small>}
-      {editable && complete && <small className="button-hint">Duration is entered in days and saved as hours so it can be used as shelf-life dwell time.</small>}
+      {!complete && <small className="button-hint">Select an inventory batch and complete the required storage fields to continue.</small>}
+      {complete && <small className="button-hint">Duration is entered in days and saved as hours so it can be used as shelf-life dwell time.</small>}
     </Panel>
+    }
     <div className="storage-main-grid">
-      <Panel title="Storage optimization" text="Optimization is pending until backend rules are configured.">
+      <Panel title="Storage Optimization" text="Recommended actions based on the latest recorded conditions.">
         <div className="storage-impact-copy">
-          <b>pending_optimization_rules</b>
-          <p>No storage optimization rules are configured.</p>
+          <b>{optimization?.status || 'No Data'}</b>
+          <p>{optimization?.message || 'Select an inventory batch to view storage guidance.'}</p>
+          {optimization?.recommendations?.map(item => <p key={item}>• {item}</p>)}
+          {storageRecommendations.map(item => <p key={item.id}>• {item.message}</p>)}
         </div>
       </Panel>
-      <Panel title="Storage alerts" text="This page does not generate storage alerts locally.">
-        <div className="storage-alerts"><div className="storage-alert clear"><i>✓</i><span>No storage alerts are returned by the storage API.</span></div></div>
+      <Panel title="Storage Alerts" text="Automatic alerts associated with the selected batch.">
+        <div className="storage-alerts">{storageAlerts.length ? storageAlerts.map(item => <div className="storage-alert" key={item.id}><i>!</i><span>{item.message}</span></div>) : <div className="storage-alert clear"><i>✓</i><span>{form.foodBatchId ? 'No active storage alerts for this batch.' : 'Select a batch to view storage alerts.'}</span></div>}</div>
       </Panel>
     </div>
+    <Panel title="Storage Rules" text="Configured operating ranges by food category.">
+      {rules.length ? <div className="storage-details">{rules.map(rule => <div className="storage-detail" key={rule.id}><div><b>{rule.category}</b><small>Temperature {rule.temperature_min ?? '—'} to {rule.temperature_max ?? '—'} °C · Humidity {rule.humidity_min ?? '—'} to {rule.humidity_max ?? '—'}%</small></div>{canManageRules && <div><button className="link" disabled={submitting || deleting} onClick={() => beginEditRule(rule)}>Edit</button><button className="link delete" disabled={submitting || deleting} onClick={() => removeRule(rule.id)}>Delete</button></div>}</div>)}</div> : <p className="button-hint">No storage rule has been configured for this category.</p>}
+      {canManageRules && <form className="storage-form storage-rule-form" onSubmit={saveRule}>
+        <FormField label="Category"><select value={ruleDraft.category} disabled={Boolean(editingRuleId)} onChange={updateRule('category')}>{FOOD_CATEGORIES.map(category => <option key={category}>{category}</option>)}</select></FormField>
+        <FormField label="Temperature range (°C)"><div className="range-inputs"><input type="number" step="0.1" value={ruleDraft.temperature_min} onChange={updateRule('temperature_min')} placeholder="Minimum" /><input type="number" step="0.1" value={ruleDraft.temperature_max} onChange={updateRule('temperature_max')} placeholder="Maximum" /></div></FormField>
+        <FormField label="Humidity range (%)"><div className="range-inputs"><input type="number" step="0.1" value={ruleDraft.humidity_min} onChange={updateRule('humidity_min')} placeholder="Minimum" /><input type="number" step="0.1" value={ruleDraft.humidity_max} onChange={updateRule('humidity_max')} placeholder="Maximum" /></div></FormField>
+        <FormField label="Air circulation range"><div className="range-inputs"><input type="number" step="0.1" value={ruleDraft.air_circulation_min} onChange={updateRule('air_circulation_min')} placeholder="Minimum" /><input type="number" step="0.1" value={ruleDraft.air_circulation_max} onChange={updateRule('air_circulation_max')} placeholder="Maximum" /></div></FormField>
+        <FormField label="Light level range"><div className="range-inputs"><input type="number" step="0.1" value={ruleDraft.light_level_min} onChange={updateRule('light_level_min')} placeholder="Minimum" /><input type="number" step="0.1" value={ruleDraft.light_level_max} onChange={updateRule('light_level_max')} placeholder="Maximum" /></div></FormField>
+        <div className="storage-update"><button className="button primary" disabled={submitting || deleting}>{submitting ? 'Saving…' : editingRuleId ? 'Save Rule' : 'Add Rule'}</button>{editingRuleId && <button className="button secondary" type="button" onClick={() => { setEditingRuleId(null); setRuleDraft({ category: 'Fruits', temperature_min: '', temperature_max: '', humidity_min: '', humidity_max: '', air_circulation_min: '', air_circulation_max: '', light_level_min: '', light_level_max: '' }) }}>Cancel</button>}</div>
+      </form>}
+    </Panel>
     <Panel title="Storage history" text={form.foodBatchId ? 'Persisted storage-condition records for the selected inventory batch.' : 'Select an inventory batch to view persisted storage records.'}>
       <div className="storage-history">
         {loading ? <p className="button-hint">Loading storage history…</p> : history.length ? history.map(entry => <div className="history-row" key={entry.id}>
@@ -1324,12 +1343,12 @@ function ShelfLife({ role, onUnauthorized }) {
   }
   const reset = () => { setPrediction(null); setValidationMessage(''); setMessage('') }
   return <>
-    <Title title="Shelf-Life Prediction" text="Run the trained shelf-life model using recorded dwell time, temperature, humidity, and door openings." />
+    <Title title="Shelf-Life Prediction" text="Estimate remaining shelf-life using the recorded storage conditions." />
     {message && <p className="shelf-life-message" role="status">{message}</p>}
     <div className="shelf-life-layout">
-      <Panel title="Product information" text="Select a real inventory batch and enter the model's required dwell-time input.">
+      <Panel title="Product Information" text="Select an inventory batch and enter its recorded storage details.">
         <div className="shelf-life-fields">
-          <FormField label="Food batch">
+          <FormField label="Food Batch">
             <select required value={form.foodBatchId} onChange={selectBatch} disabled={batchesLoading}>
               <option value="">{batchesLoading ? 'Loading inventory batches…' : batches.length ? 'Select an inventory batch' : 'No inventory batches available'}</option>
               {batches.map(batch => <option key={batch.id} value={batch.id}>{batch.food_item.name} · {batch.batch_number}</option>)}
@@ -1337,22 +1356,23 @@ function ShelfLife({ role, onUnauthorized }) {
           </FormField>
           <FormField label="Food/Product Name"><input value={productName} readOnly placeholder="Selected from the batch" /></FormField>
           <FormField label="Product Category"><input value={foodCategory} readOnly placeholder="Selected from the batch" /></FormField>
-          <FormField label="Dwell Hours"><input required type="number" min="0" max="8760" step="1" value={form.dwellHours} onChange={update('dwellHours')} placeholder="e.g. 24" /></FormField>
+          {canCreate && <FormField label="Dwell Time (hours)"><input required type="number" min="0" max="8760" step="1" value={form.dwellHours} onChange={update('dwellHours')} placeholder="e.g. 24" /></FormField>}
         </div>
       </Panel>
-      <Panel title="Model inputs" text="Enter the four verified inputs expected by the trained shelf-life model.">
+      {canCreate && <Panel title="Prediction Details" text="Enter the recorded storage conditions for this batch.">
         <div className="shelf-life-fields">
-          <FormField label="Mean Temperature (°F)"><input required type="number" step="0.1" min="-40" max="140" value={form.meanTempF} onChange={update('meanTempF')} placeholder="e.g. 40" /></FormField>
-          <FormField label="Mean Relative Humidity (%)"><input required type="number" step="0.1" min="0" max="100" value={form.meanRhPct} onChange={update('meanRhPct')} placeholder="e.g. 70" /></FormField>
-          <FormField label="Door Opens Count"><input required type="number" step="1" min="0" max="10000" value={form.doorOpensCount} onChange={update('doorOpensCount')} placeholder="e.g. 5" /></FormField>
+          <FormField label="Temperature (°F)"><input required type="number" step="0.1" min="-40" max="140" value={form.meanTempF} onChange={update('meanTempF')} placeholder="e.g. 40" /></FormField>
+          <FormField label="Humidity (%)"><input required type="number" step="0.1" min="0" max="100" value={form.meanRhPct} onChange={update('meanRhPct')} placeholder="e.g. 70" /></FormField>
+          <FormField label="Door Openings"><input required type="number" step="1" min="0" max="10000" value={form.doorOpensCount} onChange={update('doorOpensCount')} placeholder="e.g. 5" /></FormField>
         </div>
       </Panel>
+      }
     </div>
-    <div className="predict-actions">
+    {canCreate && <div className="predict-actions">
       <button className="button primary" disabled={!canCreate || busy || !complete || batchesLoading} onClick={predict}>{creating ? 'Saving…' : 'Predict Shelf Life'}</button>
-      {!canCreate && <small className="button-hint">Your role can view prediction history but cannot create or delete predictions.</small>}
       {validationMessage ? <p className="upload-error">{validationMessage}</p> : canCreate && !complete && <small className="button-hint">Select an inventory batch and complete the required storage fields to continue.</small>}
     </div>
+    }
     {prediction && <section className="prediction-results">
       <div className="prediction-heading">
         <div>
@@ -1362,23 +1382,23 @@ function ShelfLife({ role, onUnauthorized }) {
         </div>
         <button className="button secondary" onClick={reset}>New Prediction</button>
       </div>
-      {pending && <div className="prediction-summary"><b>Prediction pending model integration</b><p>{prediction.prediction_result?.message || 'The prediction record was created. A trained shelf-life model is not configured yet.'}</p></div>}
+      {pending && <div className="prediction-summary"><b>Prediction unavailable</b><p>This prediction is not available yet.</p></div>}
       <div className="prediction-grid">
-        <article className="prediction-highlight"><span>Raw shelf-life model output</span><b>{shelfLifeOutputDisplay(prediction)}</b><small>{pending ? 'Unavailable until a trained model is configured' : 'Returned without a fabricated unit'}</small></article>
-        <article className="prediction-stat"><span>Output unit</span><b>{prediction.prediction_result?.unit_status || 'Not available'}</b><small>The artifact does not establish a unit.</small></article>
-        <article className="prediction-stat"><span>Prediction source</span><b>{prediction.prediction_result?.prediction_source === 'trained_ml_model' ? 'Trained ML model' : 'Not available'}</b><small>{prediction.prediction_result?.model || 'Model metadata unavailable'}</small></article>
+        <article className="prediction-highlight"><span>Estimated Shelf-Life</span><b>{shelfLifeOutputDisplay(prediction)}</b><small>{pending ? 'Not available yet' : 'Latest prediction'}</small></article>
+        <article className="prediction-stat"><span>Prediction Status</span><b>{pending ? 'Pending' : 'Available'}</b><small>Current prediction status</small></article>
+        <article className="prediction-stat"><span>Prediction Source</span><b>{pending ? 'Not available' : 'Machine Learning Prediction'}</b><small>Based on recorded storage conditions</small></article>
       </div>
       <div className="storage-impact">
         <div>
-          <small>MODEL INPUTS</small>
-          <h3>Recorded inference inputs</h3>
-          <p>{pending ? 'Model inputs are unavailable until a trained model is configured.' : (prediction.prediction_result?.message || 'Not available')}</p>
+          <small>PREDICTION DETAILS</small>
+          <h3>Recorded Conditions</h3>
+          <p>Storage conditions recorded for this prediction.</p>
         </div>
         <div className="storage-readings">
-          <span>Dwell hours<b>{prediction.prediction_result?.model_inputs?.dwell_hours ?? 'Not available'}</b></span>
-          <span>Mean temperature<b>{conditionReading(prediction.prediction_result?.model_inputs?.mean_temp_F, '°F')}</b></span>
-          <span>Mean RH<b>{conditionReading(prediction.prediction_result?.model_inputs?.mean_rh_pct, '%')}</b></span>
-          <span>Door opens<b>{prediction.prediction_result?.model_inputs?.door_opens_count ?? 'Not available'}</b></span>
+          <span>Dwell Time<b>{conditionReading(prediction.prediction_result?.model_inputs?.dwell_hours, ' hours')}</b></span>
+          <span>Temperature<b>{conditionReading(prediction.prediction_result?.model_inputs?.mean_temp_F, '°F')}</b></span>
+          <span>Humidity<b>{conditionReading(prediction.prediction_result?.model_inputs?.mean_rh_pct, '%')}</b></span>
+          <span>Door Openings<b>{prediction.prediction_result?.model_inputs?.door_opens_count ?? 'Not available'}</b></span>
         </div>
       </div>
     </section>}
@@ -1389,7 +1409,7 @@ function ShelfLife({ role, onUnauthorized }) {
           return <div className="history-row" key={entry.id}>
             <div><b>Prediction #{entry.id}</b><small>{analysisDate(entry.predicted_at)}</small></div>
             <strong>{pendingEntry ? 'Pending' : shelfLifeOutputDisplay(entry)}</strong>
-            <em className={'badge ' + (pendingEntry ? 'warning' : 'success')}>{pendingEntry ? 'Model pending' : 'Unit not established'}</em>
+            <em className={'badge ' + (pendingEntry ? 'warning' : 'success')}>{pendingEntry ? 'Pending' : 'Available'}</em>
             {canDelete && <button className="link delete" disabled={busy} onClick={() => removePrediction(entry.id)}>Delete</button>}
           </div>
         }) : <p className="button-hint">{form.foodBatchId ? 'No persisted predictions for this batch.' : 'Select an inventory batch to view persisted predictions.'}</p>}

@@ -38,7 +38,6 @@ ScoreCreator = Annotated[
     User,
     Depends(
         require_roles(
-            UserRole.CONSUMER,
             UserRole.RETAIL_MANAGER,
             UserRole.WAREHOUSE_OPERATOR,
             UserRole.FOOD_QUALITY_INSPECTOR,

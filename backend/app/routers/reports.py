@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status as http_
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
-from app.core.security import get_current_user
+from app.core.security import require_roles
 from app.db.session import get_db
 from app.models.enums import ReportType, UserRole
 from app.models.report import Report
@@ -17,7 +17,12 @@ from app.services.reports import delete_report, generate_report, get_report, lis
 from app.services.report_exports import export_report
 
 router = APIRouter(prefix="/reports", tags=["reports"])
-AuthenticatedUser = Annotated[User, Depends(get_current_user)]
+ReportUser = Annotated[User, Depends(require_roles(
+    UserRole.RETAIL_MANAGER,
+    UserRole.WAREHOUSE_OPERATOR,
+    UserRole.FOOD_QUALITY_INSPECTOR,
+    UserRole.ADMINISTRATOR,
+))]
 DatabaseSession = Annotated[Session, Depends(get_db)]
 
 
@@ -37,7 +42,7 @@ def reports_health() -> dict[str, str]:
 
 
 @router.post("/", response_model=ReportResponse, status_code=http_status.HTTP_201_CREATED)
-def create_report(payload: ReportCreate, db: DatabaseSession, current_user: AuthenticatedUser) -> Report:
+def create_report(payload: ReportCreate, db: DatabaseSession, current_user: ReportUser) -> Report:
     """Generate and persist an immutable snapshot from existing project records."""
     return generate_report(db, user_id=current_user.id, payload=payload)
 
@@ -45,7 +50,7 @@ def create_report(payload: ReportCreate, db: DatabaseSession, current_user: Auth
 @router.get("/", response_model=list[ReportResponse])
 def read_reports(
     db: DatabaseSession,
-    current_user: AuthenticatedUser,
+    current_user: ReportUser,
     report_type: ReportType | None = None,
     date_from: date | None = None,
     date_to: date | None = None,
@@ -63,7 +68,7 @@ def read_reports(
 
 
 @router.get("/history", response_model=list[ReportResponse])
-def read_report_history(db: DatabaseSession, current_user: AuthenticatedUser) -> list[Report]:
+def read_report_history(db: DatabaseSession, current_user: ReportUser) -> list[Report]:
     """Return the authenticated user's complete report history, newest first."""
     return list_reports(db, user_id=current_user.id)
 
@@ -83,24 +88,24 @@ def _export_response(report: Report, db: Session, export_format: str) -> FileRes
 
 
 @router.get("/{report_id}/export/pdf")
-def export_report_pdf(report_id: int, db: DatabaseSession, current_user: AuthenticatedUser) -> FileResponse:
+def export_report_pdf(report_id: int, db: DatabaseSession, current_user: ReportUser) -> FileResponse:
     """Download a PDF rendered solely from an existing report snapshot."""
     return _export_response(_report_or_404(db, report_id, current_user), db, "pdf")
 
 
 @router.get("/{report_id}/export/excel")
-def export_report_excel(report_id: int, db: DatabaseSession, current_user: AuthenticatedUser) -> FileResponse:
+def export_report_excel(report_id: int, db: DatabaseSession, current_user: ReportUser) -> FileResponse:
     """Download an Excel workbook rendered solely from an existing report snapshot."""
     return _export_response(_report_or_404(db, report_id, current_user), db, "excel")
 
 
 @router.get("/{report_id}", response_model=ReportResponse)
-def read_report(report_id: int, db: DatabaseSession, current_user: AuthenticatedUser) -> Report:
+def read_report(report_id: int, db: DatabaseSession, current_user: ReportUser) -> Report:
     return _report_or_404(db, report_id, current_user)
 
 
 @router.delete("/{report_id}", status_code=http_status.HTTP_200_OK)
-def remove_report(report_id: int, db: DatabaseSession, current_user: AuthenticatedUser) -> Response:
+def remove_report(report_id: int, db: DatabaseSession, current_user: ReportUser) -> Response:
     """Delete only the owned report snapshot; source records are never changed."""
     delete_report(db, _report_or_404(db, report_id, current_user))
     return Response(status_code=http_status.HTTP_200_OK)
