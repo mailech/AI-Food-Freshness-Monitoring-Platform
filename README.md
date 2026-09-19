@@ -1,35 +1,168 @@
 # AI Food Freshness Monitoring Platform
 
-This repository contains the Infosys internship project for monitoring food freshness, storage conditions, and shelf life.
+An AI-powered web application developed as part of the Infosys internship project for monitoring food freshness, shelf life, storage conditions, alerts, recommendations, and reports.
 
-## Current submission scope
+## Features
 
-The project includes a React/Vite frontend, FastAPI/PostgreSQL backend, authentication and role-based access control, inventory, storage, recommendations, alerts, reports/export, freshness analysis, and freshness-score workflows.
+- Authentication and Role-Based Access Control
+- Inventory and food-batch management
+- AI-based food freshness analysis
+- Shelf-life prediction
+- Composite freshness scoring
+- Storage condition monitoring
+- Storage compliance and configurable storage rules
+- Automatic alerts and recommendations
+- Reports and export
+- PostgreSQL database integration
 
-The trained image classifier at `ml/artifacts/final_food_freshness_model.keras` is integrated into Freshness Analysis. It is byte-identical to `best_frozen_model.keras`; the verified class order is `freshapples`, `rottenapples`, `freshbanana`, `rottenbanana`, `freshoranges`, and `rottenoranges`. It does not support strawberries or other products; the application presents its output as a raw model class in those cases.
+## User Roles
 
-The trained shelf-life pipeline at `ml/artifacts/shelf_life_model.joblib` is integrated using `dwell_hours`, `mean_temp_F`, `mean_rh_pct`, and `door_opens_count`. Its raw numeric output is stored and displayed with `unit not established`; the application does not invent a time unit. Composite freshness is calculated only when all four real 0–100 components are available: visual (40%), storage (25%), shelf-life (20%), and product age (15%). The visual component maps a supported model's `fresh*`/`rotten*` class to 100/0 without using model confidence; product age is the remaining proportion of the recorded purchase-to-expiry interval. Storage readings have no configured category thresholds and shelf-life output has no established unit, so either missing interpretation yields the explicit `score_unavailable` state rather than a fabricated composite.
+| Role | Main Responsibility |
+|---|---|
+| Consumer | Food image freshness analysis |
+| Retail Manager | Inventory and retail operations |
+| Warehouse Operator | Storage and warehouse operations |
+| Food Quality Inspector | Food quality and inspection |
+| Administrator | System configuration and administration |
 
-### Composite scoring prototype policy
+The Administrator role is intentionally hidden from the normal login-role dropdown.
 
-The deployed prototype replaces the earlier unavailable-only behavior. It calculates `0.40 * visual + 0.25 * storage + 0.20 * shelf-life + 0.15 * product age`. Visual maps supported `fresh*`/`rotten*` classes to 100/0 without using confidence. Product age is the remaining proportion of the recorded purchase-to-expiry interval. The demo fruit-storage policy uses Fahrenheit temperature scores of <=40: 100, 41-45: 90, 46-50: 75, 51-60: 50, and >60: 20; humidity scores of 90-95: 100, 85-89: 90, 75-84: 75, 60-74: 60, <60: 40, and >95: 70. Storage is `0.60 * temperature + 0.40 * humidity`; Storage Monitoring Celsius readings are converted to Fahrenheit, otherwise recorded Fahrenheit shelf-life model inputs are an explicitly labelled fallback.
+## Technology Stack
 
-The shelf-life artifact does not establish a unit, so raw output remains labelled `unit not established` and is never displayed as days. Its component uses configurable prototype normalization `100 * (raw_output - 0) / 30`, clamped to 0-100. The temperature/humidity thresholds and 0-30 range are prototype demo policy, not claims about the model target unit, and can later be replaced by category-specific validated policy.
+- **Frontend:** React.js, Vite, JavaScript, CSS
+- **Backend:** Python, FastAPI, SQLAlchemy, Alembic
+- **Database:** PostgreSQL
+- **Machine Learning:** TensorFlow, Scikit-learn, OpenCV, NumPy, Pandas
 
-## Run the frontend
+## AI Freshness Analysis
 
-```powershell
-Set-Location frontend
-npm run dev
-```
+The trained image classification model supports:
 
-## Run the backend
+- Fresh Apple
+- Rotten Apple
+- Fresh Banana
+- Rotten Banana
+- Fresh Orange
+- Rotten Orange
 
-```powershell
-Set-Location backend
-.\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8003
-```
+### Model
 
-The backend health check is available at `http://127.0.0.1:8003/health`. The frontend uses that URL by default through `VITE_API_BASE_URL`; see `frontend/.env.example` to override it.
+ml/artifacts/final_food_freshness_model.keras
+freshapples
+rottenapples
+freshbanana
+rottenbanana
+freshoranges
+rottenoranges
+Other food types are outside the current trained model scope.
 
-Copy `backend/.env.example` to `backend/.env`, configure PostgreSQL and a JWT secret, then apply the Alembic migrations before running the backend. Install backend dependencies with `pip install -r requirements.txt`; TensorFlow and Pillow are required for image inference.
+**Shelf-Life Prediction**
+
+The shelf-life model uses:
+
+Storage duration
+Mean temperature
+Mean relative humidity
+Door-opening count
+
+###Model
+ml/artifacts/shelf_life_model.joblib
+The application does not assign an unsupported time unit to the model output.
+**Freshness Scoring**
+
+The composite freshness score uses:
+| Component          | Weight |
+| ------------------ | -----: |
+| Visual Freshness   |    40% |
+| Storage Conditions |    25% |
+| Shelf-Life         |    20% |
+| Product Age        |    15% |
+
+
+Storage Monitoring
+
+The system monitors:
+
+Temperature
+Humidity
+Air circulation
+Light level
+Storage duration
+Door openings
+
+It provides storage compliance, alerts, recommendations, and storage history.
+
+Configurable storage rules are available for:
+
+Fruits
+Vegetables
+Dairy
+Meat & Poultry
+Seafood
+Bakery
+Packaged Foods
+Beverages
+
+The configured storage thresholds are project-specific prototype policies and are not universal food-safety standards.
+
+**Reports and Export**
+
+Authorized users can generate reports containing relevant inventory, freshness, storage, and quality information.
+
+Supported exports:
+
+PDF
+CSV/Excel-compatible export
+
+**Project Structure**
+Food_Monitoring_Final/
+│
+├── backend/
+│   ├── app/
+│   ├── alembic/
+│   ├── uploads/
+│   └── requirements.txt
+│
+├── frontend/
+│   ├── src/
+│   └── package.json
+│
+├── ml/
+│   └── artifacts/
+│
+└── README.md
+
+**Setup
+Prerequisites**
+
+**Install the following:**
+
+Python 3.13
+Node.js
+npm
+PostgreSQL
+Backend Setup
+
+**From the project root:**
+cd backend
+py -3.13 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+
+**Configure the PostgreSQL database connection and JWT settings in:**
+backend/.env
+
+**Database Setup**
+After configuring backend/.env, run:
+cd backend
+.\.venv\Scripts\Activate.ps1
+alembic upgrade head
+
+**FRONTEND SETUP**
+cd frontend
+npm install
+
+**BACKEND SETUP**
+cd backend
+.\.venv\Scripts\Activate.ps1
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8001
