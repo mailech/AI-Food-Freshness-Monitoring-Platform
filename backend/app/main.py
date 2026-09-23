@@ -4,6 +4,7 @@ from pathlib import Path
 from pydantic import BaseModel
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi import Depends, HTTPException, status
+from app.mqtt_sensor import start_mqtt, get_sensor_data
 from app.auth import (
     ALLOWED_ROLES,
     load_users,
@@ -34,7 +35,8 @@ from app.freshness_engine import (
     calculate_storage_score,
     calculate_product_age_score,
     calculate_shelf_life_score,
-    analyze_visual_condition
+    analyze_visual_condition,
+    calculate_adjusted_shelf_life,
 )
 
 
@@ -53,11 +55,12 @@ EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
 # =========================================================
 
 app = FastAPI(
+    
     title="Food Freshness Monitoring Platform",
     description="AI-powered food freshness monitoring and shelf-life prediction platform",
     version="1.0.0"
 )
-
+mqtt_client = start_mqtt()
 # =========================================================
 # JWT AUTHENTICATION
 # =========================================================
@@ -408,61 +411,7 @@ def get_me(current_user: dict = Depends(get_current_user)):
         "user": current_user
     }
 
-    token = credentials.credentials
-
-    user_data = verify_token(token)
-
-    if not user_data:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token."
-        )
-
-    user = find_user(
-        user_data["email"]
-    )
-
-    if not user:
-        raise HTTPException(
-            status_code=404,
-            detail="User not found."
-        )
-
-    return {
-        "success": True,
-        "user": {
-            "name": user["name"],
-            "email": user["email"],
-            "role": user["role"]
-        }
-    }
-
-    user_data = verify_token(token)
-
-    if not user_data:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token."
-        )
-
-    user = find_user(
-        user_data["email"]
-    )
-
-    if not user:
-        raise HTTPException(
-            status_code=404,
-            detail="User not found."
-        )
-
-    return {
-        "success": True,
-        "user": {
-            "name": user["name"],
-            "email": user["email"],
-            "role": user["role"]
-        }
-    }
+    
 # =========================================================
 # HOME
 # =========================================================
@@ -1397,25 +1346,17 @@ async def analyze_food(
     #
     # =====================================================
 
-    remaining_days = max(
-
-        expected_days
-        - product_age_days
-        - storage_duration,
-
-        0
-
+    remaining_days = calculate_adjusted_shelf_life(
+    expected_days=expected_days,
+    visual_score=visual_score,
+    temperature=temperature,
+    humidity=humidity,
+    packaging=packaging,
+    storage_duration=storage_duration,
+    product_age_days=product_age_days
     )
-
-
-    # =====================================================
-    # ROTTEN FOOD
-    # =====================================================
-
     if freshness == "Rotten":
-
         remaining_days = 0
-
 
     # =====================================================
     # SHELF LIFE SCORE
@@ -1727,4 +1668,24 @@ async def analyze_food(
         "result":
             result
 
+    }
+# =========================================================
+# MQTT SENSOR DATA
+# =========================================================
+
+@app.get("/sensor/{storage_id}")
+def get_storage_sensor(storage_id: str):
+    data = get_sensor_data(storage_id)
+
+    if data is None:
+        return {
+            "success": False,
+            "message": "No sensor data available",
+            "storage_id": storage_id
+        }
+
+    return {
+        "success": True,
+        "storage_id": storage_id,
+        "sensor": data
     }

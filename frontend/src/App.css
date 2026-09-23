@@ -5,8 +5,14 @@
 body {
   margin: 0;
   font-family: Inter, Arial, sans-serif;
-  background: #f6f8f7;
   color: #17201c;
+
+  background-color: #f6f8f7;
+  background-image: url("/foodfresh-bg.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
 }
 
 button,
@@ -20,7 +26,7 @@ button {
 }
 
 .app {
-  display: flex;
+  width: 100%;
   min-height: 100vh;
 }
 
@@ -270,7 +276,6 @@ nav {
 /* =========================
    CONTENT
 ========================= */
-
 .content {
   padding: 30px;
   max-width: 1500px;
@@ -1971,4 +1976,111 @@ textarea::placeholder {
 
   font-size: 11px;
   font-weight: 700;
+}
+/* =========================
+   DASHBOARD TEXT VISIBILITY
+   ========================= */
+
+.page-heading h1 {
+  color: #111827 !important;
+  font-weight: 700;
+}
+
+.page-heading p {
+  color: #667085 !important;
+}
+
+.stat-card {
+  color: #1f2937;
+}
+
+.stat-top > span {
+  color: #475467 !important;
+  font-weight: 600;
+}
+
+.stat-card h2 {
+  color: #1f2937 !important;
+  font-weight: 700;
+}
+
+.stat-card h2.fresh-text {
+  color: #16a34a !important;
+}
+
+.stat-card h2.warning-text {
+  color: #d97706 !important;
+}
+
+.stat-card h2.danger-text {
+  color: #dc2626 !important;
+}
+
+.score-card h2 {
+  color: #1f2937 !important;
+}
+
+.score-card h2 span {
+  color: #667085 !important;
+  font-weight: 500;
+}
+
+.stat-change {
+  color: #475467 !important;
+}
+
+.stat-change span {
+  color: #667085 !important;
+}
+
+.stat-change.positive {
+  color: #16a34a !important;
+}
+
+.warning-change {
+  color: #d97706 !important;
+}
+
+.danger-change {
+  color: #dc2626 !important;
+}
+
+.score-card small {
+  color: #667085 !important;
+}
+html,
+body,
+#root {
+  width: 100%;
+  min-height: 100%;
+  margin: 0;
+  overflow-x: hidden;
+}
+/* ===== Right-side FoodFresh Decoration ===== */
+
+.main {
+  position: relative;
+  overflow: hidden;
+}
+
+.main::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 240px;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+
+  background:
+    radial-gradient(circle at 70% 18%, rgba(66, 184, 102, 0.14), transparent 35%),
+    radial-gradient(circle at 35% 75%, rgba(66, 184, 102, 0.10), transparent 38%);
+}
+
+/* Keep dashboard content above decoration */
+.topbar,
+.content {
+  position: relative;
+  z-index: 1;
 }

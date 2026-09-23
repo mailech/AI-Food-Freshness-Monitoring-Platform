@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import "./StorageMonitoring.css";
 
 const initialRooms = [
@@ -78,6 +78,56 @@ export default function StorageMonitoring() {
 });
   const [selectedId, setSelectedId] = useState(1);
   const [showModal, setShowModal] = useState(false);
+  const [sensorData, setSensorData] = useState(null);
+  const [sensorLoading, setSensorLoading] = useState(false);
+  const selected =
+  rooms.find((room) => room.id === selectedId) ||
+  rooms[0];
+  useEffect(() => {
+  if (!selected) return;
+
+  const storageIdMap = {
+    1: "Cold-Storage-A",
+    2: "Vegetable-Rack",
+    3: "Fruit-Storage-B",
+  };
+
+  const storageId = storageIdMap[selected.id];
+
+  if (!storageId) {
+    setSensorData(null);
+    return;
+  }
+
+  const fetchSensorData = async () => {
+    try {
+      setSensorLoading(true);
+
+      const response = await fetch(
+        `http://127.0.0.1:8000/sensor/${storageId}`
+      );
+
+      const data = await response.json();
+
+      if (data.success) {
+        setSensorData(data.sensor);
+      } else {
+        setSensorData(null);
+      }
+    } catch (error) {
+      console.error("Sensor fetch error:", error);
+      setSensorData(null);
+    } finally {
+      setSensorLoading(false);
+    }
+  };
+
+  fetchSensorData();
+
+  const interval = setInterval(fetchSensorData, 10000);
+
+  return () => clearInterval(interval);
+}, [selected]);
 
   const [form, setForm] = useState({
     name: "",
@@ -89,27 +139,28 @@ export default function StorageMonitoring() {
     packaging: "Proper",
     duration: 0,
   });
-
-  const selected =
-    rooms.find((room) => room.id === selectedId) ||
-    rooms[0];
-
   const compliance = useMemo(() => {
     if (!selected) return 0;
 
     let score = 100;
 
-    if (selected.temperature > 12) {
-      score -= 20;
-    } else if (selected.temperature > 8) {
-      score -= 10;
-    }
+const currentTemperature =
+  sensorData?.temperature ?? selected.temperature;
 
-    if (selected.humidity > 85) {
-      score -= 20;
-    } else if (selected.humidity > 70) {
-      score -= 8;
-    }
+const currentHumidity =
+  sensorData?.humidity ?? selected.humidity;
+
+if (currentTemperature > 12) {
+  score -= 20;
+} else if (currentTemperature > 8) {
+  score -= 10;
+}
+
+if (currentHumidity > 85) {
+  score -= 20;
+} else if (currentHumidity > 70) {
+  score -= 8;
+}
 
     if (selected.airCirculation === "Moderate") {
       score -= 8;
@@ -136,14 +187,42 @@ export default function StorageMonitoring() {
     }
 
     return Math.max(0, score);
-  }, [selected]);
+  }, [selected, sensorData]);
 
-  const alerts = rooms.flatMap((room) =>
-    getStatus(room).map((message) => ({
+  const alerts = rooms.flatMap((room) => {
+  const issues = getStatus(room);
+
+  // Use live MQTT values for the selected storage unit
+  if (selected && room.id === selected.id && sensorData) {
+    const liveTemperature = sensorData.temperature;
+    const liveHumidity = sensorData.humidity;
+
+    // Remove alerts based on the old stored values
+    const filteredIssues = issues.filter((issue) => {
+      if (issue === "Temperature high") return liveTemperature <= 12;
+      if (issue === "Humidity high") return liveHumidity <= 85;
+      return true;
+    });
+
+    if (liveTemperature > 12) {
+      filteredIssues.push("Temperature high");
+    }
+
+    if (liveHumidity > 85) {
+      filteredIssues.push("Humidity high");
+    }
+
+    return filteredIssues.map((message) => ({
       room: room.name,
       message,
-    }))
-  );
+    }));
+  }
+
+  return issues.map((message) => ({
+    room: room.name,
+    message,
+  }));
+});
 
   const handleAdd = (e) => {
     e.preventDefault();
@@ -398,121 +477,134 @@ setShowModal(false);
 
             {/* ENVIRONMENT PARAMETERS */}
 
-            <div className="environment-grid">
+<div className="environment-grid">
 
-              <div className="environment-item">
-                <span>Temperature</span>
+  <div className="environment-item">
+    <span>Temperature</span>
 
-                <strong>
-                  {selected.temperature}°C
-                </strong>
+    <strong>
+      {sensorData?.temperature ?? selected.temperature}°C
+    </strong>
 
-                <small>
-                  Target: 2–8°C
-                </small>
-              </div>
-
-
-              <div className="environment-item">
-                <span>Humidity</span>
-
-                <strong>
-                  {selected.humidity}%
-                </strong>
-
-                <small>
-                  Target: 30–70%
-                </small>
-              </div>
+    <small>
+      Target: 2–8°C
+    </small>
+  </div>
 
 
-              <div className="environment-item">
-                <span>Air Circulation</span>
+  <div className="environment-item">
+    <span>Humidity</span>
 
-                <strong>
-                  {selected.airCirculation}
-                </strong>
+    <strong>
+      {sensorData?.humidity ?? selected.humidity}%
+    </strong>
 
-                <small>
-                  Environmental airflow
-                </small>
-              </div>
-
-
-              <div className="environment-item">
-                <span>Light Exposure</span>
-
-                <strong>
-                  {selected.lightExposure}
-                </strong>
-
-                <small>
-                  Light condition
-                </small>
-              </div>
+    <small>
+      Target: 30–70%
+    </small>
+  </div>
 
 
-              <div className="environment-item">
-                <span>Packaging</span>
+  <div className="environment-item">
+    <span>Air Circulation</span>
 
-                <strong>
-                  {selected.packaging}
-                </strong>
+    <strong>
+      {selected.airCirculation}
+    </strong>
 
-                <small>
-                  Protection status
-                </small>
-              </div>
-
-
-              <div className="environment-item">
-                <span>Storage Duration</span>
-
-                <strong>
-                  {selected.duration} days
-                </strong>
-
-                <small>
-                  Current batch duration
-                </small>
-              </div>
-
-            </div>
+    <small>
+      Environmental airflow
+    </small>
+  </div>
 
 
-            {/* VALIDATION */}
+  <div className="environment-item">
+    <span>Light Exposure</span>
 
-            <div className="storage-status-box">
+    <strong>
+      {selected.lightExposure}
+    </strong>
 
-              <h4>
-                Storage Validation
-              </h4>
+    <small>
+      Light condition
+    </small>
+  </div>
 
-              {getStatus(selected).length === 0 ? (
 
-                <p>
-                  ✓ Storage conditions are within
-                  acceptable limits.
-                </p>
+  <div className="environment-item">
+    <span>Packaging</span>
 
-              ) : (
+    <strong>
+      {selected.packaging}
+    </strong>
 
-                <div>
+    <small>
+      Protection status
+    </small>
+  </div>
 
-                  {getStatus(selected).map(
-                    (issue) => (
-                      <p key={issue}>
-                        ⚠ {issue}
-                      </p>
-                    )
-                  )}
 
-                </div>
+  <div className="environment-item">
+    <span>Storage Duration</span>
 
-              )}
+    <strong>
+      {selected.duration} days
+    </strong>
 
-            </div>
+    <small>
+      Current batch duration
+    </small>
+  </div>
 
+
+  <div className="environment-item">
+    <span>Sensor Status</span>
+
+    <strong>
+      {sensorLoading
+        ? "Updating..."
+        : sensorData
+        ? "MQTT Connected"
+        : "No Sensor Data"}
+    </strong>
+
+    <small>
+      Environmental sensor reading
+    </small>
+  </div>
+
+</div>
+{/* VALIDATION */}
+
+<div className="storage-status-box">
+
+  <h4>
+    Storage Validation
+  </h4>
+
+  {compliance >= 80 ? (
+    <p>
+      ✓ Storage conditions are within
+      acceptable limits.
+    </p>
+  ) : (
+    <div>
+      <p>
+        ⚠ Storage conditions require attention.
+      </p>
+
+      {alerts
+        .filter((alert) => alert.room === selected.name)
+        .map((alert, index) => (
+          <p key={`${alert.message}-${index}`}>
+            ⚠ {alert.message}
+          </p>
+        ))}
+    </div>
+  )}
+
+</div>
+           
 
             {/* RECOMMENDATION */}
 

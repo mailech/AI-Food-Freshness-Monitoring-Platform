@@ -294,6 +294,7 @@ const token = localStorage.getItem(
   "foodfresh_access_token"
 );
 
+
 const response = await fetch(
   "http://127.0.0.1:8000/analyze",
   {
@@ -595,6 +596,18 @@ const inventoryItem = {
   freshnessScore: Number(result.freshness_score),
   confidence: Number(result.confidence),
   shelfLife: result.shelf_life,
+    // Calculate expiry date from remaining shelf life
+  expiryDate: (() => {
+    const match = String(result.shelf_life || "").match(/\d+(\.\d+)?/);
+    const days = match ? Math.ceil(Number(match[0])) : 0;
+
+    if (days <= 0) return null;
+
+    const expiry = new Date();
+    expiry.setDate(expiry.getDate() + days);
+
+    return expiry.toLocaleDateString("en-IN");
+  })(),
   batch: resultBatch,
   lastAnalyzed: "Just now",
   storageTemperature: Number(temperature),
@@ -816,29 +829,62 @@ localStorage.setItem(
           )}
         </button>
 
-        <button className="help-button">
-          ?
-        </button>
+        <button
+  type="button"
+  className="help-button"
+  onClick={() => alert(
+    "FoodFresh Help\n\n" +
+    "• Upload a food image from Analyze Food.\n" +
+    "• Review freshness score and shelf life.\n" +
+    "• Check Alerts for spoilage warnings.\n" +
+    "• Use Inventory to track food items and batches.\n" +
+    "• Use Reports to export PDF or Excel reports."
+  )}
+  title="Help"
+>
+  ?
+</button>
 
-        <div className="profile">
+          <div className="profile profile-clickable">
 
-          <div className="avatar small">
-            {(currentUser.name || "U").charAt(0).toUpperCase()}
-          </div>
+  <div className="avatar small">
+    {(currentUser.name || "U").charAt(0).toUpperCase()}
+  </div>
 
-          <div>
-            <strong>{currentUser.name || "User"}</strong>
+  <div>
+    <strong>{currentUser.name || "User"}</strong>
 
-            <small>
-              {isAdmin ? "Admin" : "Staff"}
-            </small>
-          </div>
+    <small>
+      {isAdmin ? "Admin" : "Staff"}
+    </small>
+  </div>
 
-          <span>⌄</span>
+  <button
+    type="button"
+    className="profile-arrow"
+    onClick={() => setShowProfileMenu((prev) => !prev)}
+    aria-label="Open profile menu"
+  >
+    ⌄
+  </button>
+
+  {showProfileMenu && (
+    <div className="profile-dropdown">
+      <button
+        type="button"
+        onClick={handleLogout}
+        className="profile-dropdown-item"
+      >
+        🚪 Sign Out
+      </button>
+    </div>
+  )}
+
+</div>
+
+          
 
         </div>
-
-      </div>
 
     </header>
   );
@@ -1366,24 +1412,7 @@ localStorage.setItem(
 
                   </div>
 
-                  <div className="recommendation">
-
-                    <span className="priority">
-                      HIGH PRIORITY
-                    </span>
-
-                    <h4>
-                      Process Bananas Soon
-                    </h4>
-
-                    <p>
-                      Batch B-2018 has several
-                      over-ripe bananas. Consider
-                      processing them into smoothies
-                      or bakery products.
-                    </p>
-
-                  </div>
+                      
 
                   {dashboardRecommendations.length > 0 ? (
   dashboardRecommendations.map((rec, index) => (

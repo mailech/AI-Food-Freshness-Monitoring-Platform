@@ -159,6 +159,10 @@ function Inventory({ onBack }) {
       unit: newFood.unit,
       freshness: newFood.freshness,
       shelfLife: newFood.shelfLife,
+      expiryDate: new Date(
+  Date.now() +
+    parseInt(newFood.shelfLife, 10) * 24 * 60 * 60 * 1000
+).toLocaleDateString("en-IN"),
       storageTemperature: Number(newFood.storageTemperature),
       humidity: Number(newFood.humidity),
       storageDuration: Number(newFood.storageDuration),
@@ -288,6 +292,11 @@ function Inventory({ onBack }) {
           <option>Fruit</option>
           <option>Vegetable</option>
           <option>Dairy</option>
+          <option>Meat & Poultry</option>
+          <option>Seafood</option>
+          <option>Bakery Products</option>
+          <option>Packaged Foods</option>
+          <option>Beverages</option>
         </select>
 
         <select value={status} onChange={(e) => setStatus(e.target.value)}>
@@ -323,6 +332,7 @@ function Inventory({ onBack }) {
                   <th>Quantity</th>
                   <th>Freshness</th>
                   <th>Shelf Life</th>
+                  <th>Expiry Date</th>
                   <th>Batch</th>
                   <th>Last Analyzed</th>
                   <th>Actions</th>
@@ -377,6 +387,11 @@ function Inventory({ onBack }) {
                         {item.shelfLife}
                       </span>
                     </td>
+                    <td>
+  <span className="batch-code">
+    {item.expiryDate ?? "—"}
+  </span>
+</td>
 
                     <td>
                       <span className="batch-code">{item.batch}</span>
@@ -466,9 +481,14 @@ function Inventory({ onBack }) {
                     value={newFood.category}
                     onChange={handleInputChange}
                   >
-                    <option>Fruit</option>
-                    <option>Vegetable</option>
-                    <option>Dairy</option>
+                    <option value="Fruit">Fruits</option>
+                    <option value="Vegetable">Vegetables</option>
+                    <option value="Dairy">Dairy Products</option>
+                    <option value="Meat & Poultry">Meat & Poultry</option>
+                    <option value="Seafood">Seafood</option>
+                    <option value="Bakery Products">Bakery Products</option>
+                    <option value="Packaged Foods">Packaged Foods</option>
+                    <option value="Beverages">Beverages</option>
                   </select>
                 </div>
 
@@ -671,6 +691,12 @@ function Inventory({ onBack }) {
                 <span>Shelf Life</span>
                 <strong>{selectedItem.shelfLife}</strong>
               </div>
+              <div>
+  <span>Expiry Date</span>
+  <strong>
+    {selectedItem.expiryDate ?? "Not available"}
+  </strong>
+</div>
 
               <div>
                 <span>Batch</span>

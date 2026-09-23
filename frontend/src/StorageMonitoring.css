@@ -16,6 +16,8 @@
 .storage-header h2 {
   margin: 0 0 7px;
   font-size: 26px;
+  color: #2563eb;
+  font-weight: 700;
 }
 
 .storage-header p {
@@ -115,13 +117,19 @@
   border-color: #2563eb;
   background: #eff6ff;
 }
+.storage-unit {
+  color: #1f2937;
+}
 
-.storage-unit strong,
-.storage-unit span {
+.storage-unit strong {
   display: block;
+  color: #1f2937;
+  font-size: 15px;
+  font-weight: 700;
 }
 
 .storage-unit span {
+  display: block;
   font-size: 12px;
   color: #667085;
   margin-top: 4px;
@@ -129,18 +137,19 @@
 
 .unit-ok,
 .unit-warning {
-  font-size: 11px;
+  display: block;
+  font-size: 12px;
   font-weight: 700;
+  white-space: nowrap;
 }
 
 .unit-ok {
-  color: #15803d;
+  color: #15803d !important;
 }
 
 .unit-warning {
-  color: #b45309;
+  color: #b45309 !important;
 }
-
 .storage-detail-head {
   display: flex;
   justify-content: space-between;
@@ -338,9 +347,11 @@
 .cancel-btn {
   border: 1px solid #d0d5dd;
   background: #fff;
+  color: #374151;
   border-radius: 9px;
   padding: 10px 16px;
   cursor: pointer;
+  font-weight: 600;
 }
 
 @media (max-width: 900px) {

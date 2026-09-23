@@ -444,3 +444,61 @@ def analyze_visual_condition(image_path):
 
             "error": str(e)
         }
+def calculate_adjusted_shelf_life(
+    expected_days: int,
+    visual_score: float,
+    temperature: float,
+    humidity: float,
+    packaging: str,
+    storage_duration: int,
+    product_age_days: int
+):
+    """
+    Calculate remaining shelf life using:
+    product type, visual condition, temperature,
+    humidity, packaging, storage duration and product age.
+    """
+
+    days = float(expected_days)
+
+    # Visual condition
+    if visual_score < 40:
+        days *= 0.45
+    elif visual_score < 60:
+        days *= 0.65
+    elif visual_score < 75:
+        days *= 0.80
+    elif visual_score < 90:
+        days *= 0.92
+
+    # Temperature
+    if temperature > 20:
+        days *= 0.55
+    elif temperature > 12:
+        days *= 0.75
+    elif temperature > 8:
+        days *= 0.90
+    elif temperature < 2:
+        days *= 0.90
+
+    # Humidity
+    if humidity > 85 or humidity < 30:
+        days *= 0.75
+    elif humidity > 70:
+        days *= 0.90
+
+    # Packaging
+    packaging_factor = {
+        "Proper": 1.00,
+        "Damaged": 0.80,
+        "Open": 0.70,
+        "None": 0.60
+    }
+
+    days *= packaging_factor.get(packaging, 0.85)
+
+    # Product age and storage duration
+    days -= product_age_days
+    days -= storage_duration
+
+    return max(0, round(days, 1))
