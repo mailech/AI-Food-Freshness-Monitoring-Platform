@@ -109,62 +109,189 @@ const [dashboardStats, setDashboardStats] = useState({
   averageScore: 0,
 });
 const [freshnessTrend, setFreshnessTrend] = useState([]);
+const [trendDates, setTrendDates] = useState([]);
 const [dashboardRecommendations, setDashboardRecommendations] = useState([]);
-const loadDashboardStats = () => {
-  const inventory = JSON.parse(
-    localStorage.getItem("foodfresh_inventory") || "[]"
-  );
 
-  const scores = inventory
-    .map((item) =>
-      Number(item.freshnessScore ?? item.score)
-    )
-    .filter((score) => !isNaN(score));
+const [dashboardPeriod, setDashboardPeriod] = useState(30);
+const [trendPeriod, setTrendPeriod] = useState(7);
+const [dashboardHistory, setDashboardHistory] = useState([]);
+const loadDashboardStats = async () => {
+  try {
+    const token = localStorage.getItem("foodfresh_access_token");
 
-  setDashboardStats({
-    total: inventory.length,
+    if (!token) return;
 
-fresh: inventory.filter(
-  (item) => item.freshness === "Fresh"
-).length,
+    const response = await fetch(
+      "http://127.0.0.1:8000/history",
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
 
-good: inventory.filter(
-  (item) => item.freshness === "Good"
-).length,
+    const data = await response.json();
 
-acceptable: inventory.filter(
-  (item) => item.freshness === "Acceptable"
-).length,
+    if (!response.ok || !data.success) {
+      throw new Error(
+        data?.message ||
+        data?.detail ||
+        "Failed to load dashboard statistics"
+      );
+    }
 
-nearSpoilage: inventory.filter(
-  (item) => item.freshness === "Near Spoilage"
-).length,
+    const now = new Date();
+const history = (data.history || []).filter((item) => {
+      if (!item.created_at) return true;
 
-    spoiled: inventory.filter(
-      (item) => item.freshness === "Spoiled"
-    ).length,
+      const createdDate = new Date(item.created_at);
+      const difference =
+        (now - createdDate) / (1000 * 60 * 60 * 24);
 
-    averageScore:
-      scores.length > 0
-        ? Math.round(
-            scores.reduce(
-              (sum, score) => sum + score,
-              0
-            ) / scores.length
-          )
-        : 0,
-  });
+      return difference <= dashboardPeriod;
+    });
+setDashboardHistory(history);
+    const scores = history
+      .map((item) => Number(item.freshness_score))
+      .filter((score) => !isNaN(score));
+
+    setDashboardStats({
+      total: history.length,
+
+      fresh: history.filter(
+        (item) => item.classification === "Fresh"
+      ).length,
+
+      good: history.filter(
+        (item) => item.classification === "Good"
+      ).length,
+
+      acceptable: history.filter(
+        (item) => item.classification === "Acceptable"
+      ).length,
+
+      nearSpoilage: history.filter(
+        (item) => item.classification === "Near Spoilage"
+      ).length,
+
+      spoiled: history.filter(
+        (item) => item.classification === "Spoiled"
+      ).length,
+
+      averageScore:
+        scores.length > 0
+          ? Math.round(
+              scores.reduce(
+                (sum, score) => sum + score,
+                0
+              ) / scores.length
+            )
+          : 0,
+    });
+
+  } catch (error) {
+    console.error(
+      "Dashboard stats error:",
+      error
+    );
+  }
 };
-const loadFreshnessTrend = () => {
-  const history = JSON.parse(
-    localStorage.getItem("foodfresh_history") || "[]"
-  );
+const loadFreshnessTrend = async () => {
+  try {
+    const token = localStorage.getItem("foodfresh_access_token");
 
-  const scores = history
-    .map((item) => Number(item.score))
-    .filter((score) => !isNaN(score));
+    if (!token) return;
 
-  setFreshnessTrend(scores.slice(0, 7).reverse());
+    const response = await fetch(
+      "http://127.0.0.1:8000/history",
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      throw new Error(
+        data?.message ||
+        data?.detail ||
+        "Failed to load freshness trend"
+      );
+    }
+
+    const history = data.history || [];
+    const today = new Date();
+
+    // Create the selected number of calendar days
+    const days = [];
+
+    for (let i = trendPeriod - 1; i >= 0; i--) {
+      const date = new Date(today);
+      date.setHours(0, 0, 0, 0);
+      date.setDate(today.getDate() - i);
+      days.push(date);
+    }
+
+    const scoresByDate = {};
+
+    history.forEach((item) => {
+      if (!item.created_at) return;
+
+      const date = new Date(item.created_at);
+
+      const dateKey = date.toLocaleDateString("en-CA");
+
+      const score = Number(item.freshness_score);
+
+      if (!isNaN(score)) {
+        if (!scoresByDate[dateKey]) {
+          scoresByDate[dateKey] = [];
+        }
+
+        scoresByDate[dateKey].push(score);
+      }
+    });
+
+    const trendScores = [];
+    const trendLabels = [];
+    const trendHasData = [];
+
+    days.forEach((day) => {
+      const dateKey = day.toLocaleDateString("en-CA");
+
+      const scores = scoresByDate[dateKey];
+
+      if (scores && scores.length > 0) {
+        const average =
+          scores.reduce((sum, score) => sum + score, 0) /
+          scores.length;
+
+        trendScores.push(Math.round(average));
+        trendHasData.push(true);
+      } else {
+        trendScores.push(null);
+        trendHasData.push(false);
+      }
+
+      trendLabels.push(
+        day.toLocaleDateString("en-IN", {
+          day: "2-digit",
+          month: "short",
+        })
+      );
+    });
+
+    setFreshnessTrend(trendScores);
+    setTrendDates(trendLabels);
+
+  } catch (error) {
+    console.error(
+      "Freshness trend error:",
+      error
+    );
+  }
 };
 const loadDashboardRecommendations = () => {
   const recommendations = JSON.parse(
@@ -175,7 +302,13 @@ const loadDashboardRecommendations = () => {
 };
 useEffect(() => {
   loadDashboardStats();
+}, [dashboardPeriod]);
+
+useEffect(() => {
   loadFreshnessTrend();
+}, [trendPeriod]);
+
+useEffect(() => {
   loadDashboardRecommendations();
 }, []);
 const getDistributionPercentage = (count) => {
@@ -926,159 +1059,160 @@ localStorage.setItem(
 
                 </div>
 
-                <div className="date-filter">
-                  Last 30 days ▾
-                </div>
+                <select
+  className="date-filter"
+  value={dashboardPeriod}
+  onChange={(e) =>
+    setDashboardPeriod(Number(e.target.value))
+  }
+>
+  <option value={7}>Last 7 days</option>
+  <option value={30}>Last 30 days</option>
+</select>
 
               </div>
+{/* STAT CARDS */}
 
-              {/* STAT CARDS */}
+<div className="stats-grid">
 
-              <div className="stats-grid">
+  <div className="stat-card">
 
-                <div className="stat-card">
+    <div className="stat-top">
+      <span>Total Food Items</span>
 
-                  <div className="stat-top">
+      <div className="stat-icon">
+        ▦
+      </div>
+    </div>
 
-                    <span>
-                      Total Food Items
-                    </span>
+    <h2>
+      {dashboardStats.total}
+    </h2>
 
-                    <div className="stat-icon">
-                      ▦
-                    </div>
+    <div className="stat-change positive">
+      Based on analyzed food
+    </div>
 
-                  </div>
+  </div>
 
-                  <h2>
-                    {dashboardStats.total}
-                  </h2>
 
-                  <div className="stat-change positive">
-                    ↑ 4.2%
+  <div className="stat-card">
 
-                    <span>
-                      from last month
-                    </span>
-                  </div>
+    <div className="stat-top">
+      <span>Fresh Items</span>
 
-                </div>
+      <div className="stat-icon fresh">
+        ✓
+      </div>
+    </div>
 
-                <div className="stat-card">
+    <h2 className="fresh-text">
+      {dashboardStats.fresh}
+    </h2>
 
-                  <div className="stat-top">
+    <div className="stat-change positive">
+      {dashboardStats.total > 0
+        ? `${Math.round(
+            (dashboardStats.fresh / dashboardStats.total) * 100
+          )}%`
+        : "0%"}
+      <span>
+        of analyzed food
+      </span>
+    </div>
 
-                    <span>
-                      Fresh Items
-                    </span>
+  </div>
 
-                    <div className="stat-icon fresh">
-                      ✓
-                    </div>
 
-                  </div>
+  <div className="stat-card warning-card">
 
-                  <h2 className="fresh-text">
-                    {dashboardStats.fresh}
-                  </h2>
+    <div className="stat-top">
+      <span>Near Spoilage</span>
 
-                  <div className="stat-change positive">
+      <div className="stat-icon warning">
+        !
+      </div>
+    </div>
 
-                    ↑ 8.1%
+    <h2 className="warning-text">
+      {dashboardStats.nearSpoilage}
+    </h2>
 
-                    <span>
-                      of inventory
-                    </span>
+    <div className="stat-change warning-change">
+      Requires priority action
+    </div>
 
-                  </div>
+  </div>
 
-                </div>
 
-                <div className="stat-card warning-card">
+  <div className="stat-card">
 
-                  <div className="stat-top">
+    <div className="stat-top">
+      <span>Spoiled Items</span>
 
-                    <span>
-                      Near Spoilage
-                    </span>
+      <div className="stat-icon danger">
+        ×
+      </div>
+    </div>
 
-                    <div className="stat-icon warning">
-                      !
-                    </div>
+    <h2 className="danger-text">
+      {dashboardStats.spoiled}
+    </h2>
 
-                  </div>
+    <div className="stat-change danger-change">
+      {dashboardStats.total > 0
+        ? `${Math.round(
+            (dashboardStats.spoiled / dashboardStats.total) * 100
+          )}%`
+        : "0%"}
+      <span>
+        of analyzed food
+      </span>
+    </div>
 
-                  <h2 className="warning-text">
-                    {dashboardStats.nearSpoilage}
-                  </h2>
+  </div>
 
-                  <div className="stat-change warning-change">
-                    Requires priority action
-                  </div>
 
-                </div>
+  <div className="stat-card score-card">
 
-                <div className="stat-card">
+    <div className="stat-top">
+      <span>Avg. Freshness</span>
 
-                  <div className="stat-top">
+      <div className="score-icon">
+        ◉
+      </div>
+    </div>
 
-                    <span>
-                      Spoiled Items
-                    </span>
+    <h2>
+      {dashboardStats.averageScore}
+      <span>/100</span>
+    </h2>
 
-                    <div className="stat-icon danger">
-                      ×
-                    </div>
+    <div className="progress">
+      <div
+        className="progress-fill"
+        style={{
+          width: `${dashboardStats.averageScore}%`
+        }}
+      ></div>
+    </div>
 
-                  </div>
+    <small>
+      {dashboardStats.averageScore >= 90
+        ? "Excellent overall quality"
+        : dashboardStats.averageScore >= 75
+        ? "Good overall quality"
+        : dashboardStats.averageScore >= 60
+        ? "Acceptable overall quality"
+        : dashboardStats.averageScore >= 40
+        ? "Near spoilage risk"
+        : "Poor overall quality"}
+    </small>
 
-                  <h2 className="danger-text">
-                    {dashboardStats.spoiled}
-                  </h2>
+  </div>
 
-                  <div className="stat-change danger-change">
+</div>
 
-                    ↓ 12.4%
-
-                    <span>
-                      waste reduction
-                    </span>
-
-                  </div>
-
-                </div>
-
-                <div className="stat-card score-card">
-
-                  <div className="stat-top">
-
-                    <span>
-                      Avg. Freshness
-                    </span>
-
-                    <div className="score-icon">
-                      ◉
-                    </div>
-
-                  </div>
-
-                  <h2>
-                   {dashboardStats.averageScore}<span>/100</span>
-                  </h2>
-
-                  <div className="progress">
-
-                    <div className="progress-fill"></div>
-
-                  </div>
-
-                  <small>
-                    Excellent overall quality
-                  </small>
-
-                </div>
-
-              </div>
 
               {/* CHARTS */}
 
@@ -1100,9 +1234,13 @@ localStorage.setItem(
 
                     </div>
 
-                    <button>
-                      •••
-                    </button>
+                    <button
+  type="button"
+  onClick={loadDashboardStats}
+  title="Refresh distribution"
+>
+  ↻
+</button>
 
                   </div>
 
@@ -1112,7 +1250,7 @@ localStorage.setItem(
 
                       <div className="donut-center">
 
-                        <strong>
+<strong>
   {dashboardStats.total > 0
     ? Math.round(
         ((dashboardStats.fresh +
@@ -1196,35 +1334,38 @@ localStorage.setItem(
 
                     </div>
 
-                    <select>
-
-                      <option>
-                        Last 7 days
-                      </option>
-
-                      <option>
-                        Last 30 days
-                      </option>
-
+                    <select
+                      value={trendPeriod}
+                      onChange={(e) =>
+                        setTrendPeriod(Number(e.target.value))
+                      }
+                    >
+                      <option value={7}>Last 7 days</option>
+                      <option value={30}>Last 30 days</option>
                     </select>
 
                   </div>
 
-  <div className="bar-chart">
+<div className="bar-chart">
   {freshnessTrend.length > 0 ? (
     freshnessTrend.map((score, index) => (
       <div
         key={index}
-        className={
-          index === freshnessTrend.length - 1
-            ? "bar active-bar"
-            : "bar"
-        }
+        className={`bar ${
+          score !== null && index === freshnessTrend.length - 1
+            ? "active-bar"
+            : ""
+        } ${score === null ? "empty-bar" : ""}`}
         style={{
-          height: `${Math.max(5, score)}%`,
+          height:
+            score !== null
+              ? `${Math.max(5, score)}%`
+              : "5%",
         }}
       >
-        <span>{Math.round(score)}</span>
+        {score !== null && (
+          <span>{Math.round(score)}</span>
+        )}
       </div>
     ))
   ) : (
@@ -1233,20 +1374,18 @@ localStorage.setItem(
     </div>
   )}
 </div>
-
-                  <div className="chart-labels">
-  {freshnessTrend.length > 0 ? (
-    freshnessTrend.map((_, index) => (
+<div className="chart-labels">
+  {trendDates.length > 0 ? (
+    trendDates.map((date, index) => (
       <span key={index}>
-        {index === freshnessTrend.length - 1
-          ? "Today"
-          : `${freshnessTrend.length - index - 1}d`}
+        {date}
       </span>
     ))
   ) : (
     <span>No data</span>
   )}
 </div>
+                
 
                 </div>
 
@@ -1271,19 +1410,6 @@ localStorage.setItem(
                         estimate freshness and
                         remaining shelf life.
                       </p>
-                      <div className="chart-labels">
-  {freshnessTrend.length > 0 ? (
-    freshnessTrend.map((_, index) => (
-      <span key={index}>
-        {index === freshnessTrend.length - 1
-          ? "Today"
-          : `${freshnessTrend.length - index - 1}d`}
-      </span>
-    ))
-  ) : (
-    <span>No data</span>
-  )}
-</div>
 
                     </div>
 
@@ -1449,10 +1575,7 @@ localStorage.setItem(
 
 <div className="waste-box">
   {(() => {
-    const history = JSON.parse(
-      localStorage.getItem("foodfresh_history") || "[]"
-    );
-
+    const history = dashboardHistory;
     const nearSpoilage = history.filter(
   (item) =>
     item.classification === "Near Spoilage" ||
@@ -1540,13 +1663,26 @@ const wastePrevented = Math.max(
 
                     </thead>
 
-                    <tbody>
+              <tbody>
   {(() => {
-    const history = JSON.parse(
-      localStorage.getItem("foodfresh_history") || "[]"
-    );
+    const recentHistory = dashboardHistory.slice(0, 5);
 
-    const recentHistory = history.slice(0, 5);
+    const foodCategories = {
+      Apple: "Fruit",
+      Banana: "Fruit",
+      Bellpepper: "Vegetable",
+      Carrot: "Vegetable",
+      Cucumber: "Vegetable",
+      Grape: "Fruit",
+      Guava: "Fruit",
+      Jujube: "Fruit",
+      Mango: "Fruit",
+      Orange: "Fruit",
+      Pomegranate: "Fruit",
+      Potato: "Vegetable",
+      Strawberry: "Fruit",
+      Tomato: "Vegetable"
+    };
 
     if (recentHistory.length === 0) {
       return (
@@ -1559,7 +1695,10 @@ const wastePrevented = Math.max(
     }
 
     return recentHistory.map((item, index) => {
-      const freshness = item.classification || item.freshness || "Unknown";
+      const freshness =
+        item.classification ||
+        item.freshness ||
+        "Unknown";
 
       let badgeClass = "fresh-badge";
 
@@ -1574,38 +1713,68 @@ const wastePrevented = Math.max(
         badgeClass = "danger-badge";
       }
 
+      const food = item.food || "Unknown Food";
+
+      const category =
+        foodCategories[food] || "Food";
+
+      const score =
+        Number(item.freshness_score) || 0;
+
+      const remainingDays =
+        Number(item.remaining_days);
+
+      const shelfLife =
+        !isNaN(remainingDays)
+          ? `${remainingDays} Days`
+          : "N/A";
+
+      const analyzedDate = item.created_at
+        ? new Date(item.created_at).toLocaleDateString(
+            "en-IN",
+            {
+              day: "2-digit",
+              month: "short"
+            }
+          )
+        : "Today";
+
       return (
         <tr key={item.id || index}>
+
           <td>
-            {item.food || "Unknown Food"}
+            {food}
           </td>
 
           <td>
-            {item.category || "Food"}
+            {category}
           </td>
 
           <td>
-            <span className={`table-badge ${badgeClass}`}>
+            <span
+              className={`table-badge ${badgeClass}`}
+            >
               {freshness}
             </span>
           </td>
 
           <td>
-            {Math.round(Number(item.score) || 0)}/100
+            {Math.round(score)}/100
           </td>
 
           <td>
-            {item.shelfLife || "N/A"}
+            {shelfLife}
           </td>
 
           <td>
-            {item.date || "Today"}
+            {analyzedDate}
           </td>
+
         </tr>
       );
     });
   })()}
-</tbody>
+</tbody>     
 
                   </table>
 

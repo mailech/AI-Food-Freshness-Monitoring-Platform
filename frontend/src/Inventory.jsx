@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import "./Inventory.css";
+import EmojiPicker from "emoji-picker-react";
 
 const initialInventory = [
   {
@@ -75,15 +76,33 @@ const initialInventory = [
     lastAnalyzed: "Today",
   },
 ];
+const getFoodEmoji = (foodName) => {
+  const emojiMap = {
+    Apple: "🍎",
+    Banana: "🍌",
+    "Bell Pepper": "🫑",
+    Carrot: "🥕",
+    Cucumber: "🥒",
+    Grape: "🍇",
+    Grapes: "🍇",
+    Guava: "🥝",
+    Jujube: "🫐",
+    Mango: "🥭",
+    Orange: "🍊",
+    Pomegranate: "❤️",
+    Potato: "🥔",
+    Strawberry: "🍓",
+    Tomato: "🍅",
+  };
 
-function Inventory({ onBack }) {
-  const [inventory, setInventory] = useState(() => {
-  const savedInventory = JSON.parse(
-    localStorage.getItem("foodfresh_inventory") || "[]"
-    );
-
-    return [...savedInventory, ...initialInventory];
-  });
+  return emojiMap[foodName] || "🍎";
+};
+  
+  const Inventory = ({ onBack }) => {
+  const [inventory, setInventory] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  
 
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All Categories");
@@ -108,6 +127,74 @@ function Inventory({ onBack }) {
     emoji: "🍎",
   });
 
+  useEffect(() => {
+    fetchInventory();
+  }, []);
+
+  const fetchInventory = async () => {
+    try {
+      const token = localStorage.getItem("foodfresh_access_token");
+
+      const response = await fetch(
+        "http://127.0.0.1:8000/inventory",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to load inventory");
+      }
+
+      const data = await response.json();
+
+      const formattedItems = data.items.map((item) => ({
+        id: item.id,
+        emoji: getFoodEmoji(item.food_name),
+        name: item.food_name,
+        category: item.category,
+        quantity: item.quantity,
+        unit: item.unit,
+        freshness: item.freshness || "Fresh",
+        shelfLife: item.expiry_date
+          ? calculateShelfLife(item.expiry_date)
+          : "—",
+        expiryDate: item.expiry_date || "—",
+        batch: item.batch_id || "—",
+        lastAnalyzed: item.created_at
+          ? new Date(item.created_at).toLocaleDateString("en-IN")
+          : "—",
+        storageTemperature: item.temperature,
+        humidity: item.humidity,
+        storageDuration: item.storage_duration || 0,
+        airCirculation: item.air_circulation,
+        lightExposure: item.light_exposure,
+        packaging: item.packaging,
+      }));
+
+      setInventory(formattedItems);
+    } catch (error) {
+      console.error("Inventory loading error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const calculateShelfLife = (expiryDate) => {
+    const expiry = new Date(expiryDate);
+    const today = new Date();
+
+    const difference = Math.ceil(
+      (expiry - today) / (1000 * 60 * 60 * 24)
+    );
+
+    if (difference <= 0) return "0 Days";
+    if (difference === 1) return "1 Day";
+
+    return `${difference} Days`;
+  };
   const stats = useMemo(() => {
     return {
       total: inventory.length,
@@ -136,47 +223,139 @@ function Inventory({ onBack }) {
   }, [inventory, search, category, status]);
 
   const handleInputChange = (e) => {
+  const { name, value } = e.target;
+
+  if (name === "name") {
+    const emojiMap = {
+      Apple: "🍎",
+      Banana: "🍌",
+      "Bell Pepper": "🫑",
+      Carrot: "🥕",
+      Cucumber: "🥒",
+      Grape: "🍇",
+      Grapes: "🍇",
+      Guava: "🥝",
+      Jujube: "🫐",
+      Mango: "🥭",
+      Orange: "🍊",
+      Pomegranate: "❤️",
+      Potato: "🥔",
+      Strawberry: "🍓",
+      Tomato: "🍅",
+    };
+
     setNewFood({
       ...newFood,
-      [e.target.name]: e.target.value,
+      [name]: value,
+      emoji: emojiMap[value] || "🍎",
     });
-  };
 
-  const handleAddFood = (e) => {
-    e.preventDefault();
+    return;
+  }
 
-    if (!newFood.name || !newFood.quantity || !newFood.shelfLife) {
-      alert("Please fill all required fields.");
+  setNewFood({
+    ...newFood,
+    [name]: value,
+  });
+};
+
+  const handleAddFood = async (e) => {
+  e.preventDefault();
+
+  if (!newFood.name || !newFood.quantity || !newFood.shelfLife) {
+    alert("Please fill all required fields.");
+    return;
+  }
+
+  try {
+    const token = localStorage.getItem("foodfresh_access_token");
+
+    if (!token) {
+      alert("Please login again.");
       return;
     }
 
-    const newItem = {
-      id: Date.now(),
-      emoji: newFood.emoji || "🍎",
-      name: newFood.name,
-      category: newFood.category,
-      quantity: Number(newFood.quantity),
-      unit: newFood.unit,
-      freshness: newFood.freshness,
-      shelfLife: newFood.shelfLife,
-      expiryDate: new Date(
-  Date.now() +
-    parseInt(newFood.shelfLife, 10) * 24 * 60 * 60 * 1000
-).toLocaleDateString("en-IN"),
-      storageTemperature: Number(newFood.storageTemperature),
-      humidity: Number(newFood.humidity),
-      storageDuration: Number(newFood.storageDuration),
-      airCirculation: newFood.airCirculation,
-      lightExposure: newFood.lightExposure,
-      packaging: newFood.packaging,
-      batch: `${newFood.name.substring(0, 3).toUpperCase()}-${Date.now()
-        .toString()
-        .slice(-3)}`,
-      lastAnalyzed: "Just now",
-    };
+    // Calculate expiry date from shelf life
+    const expiry = new Date();
+    expiry.setDate(
+      expiry.getDate() + Number(newFood.shelfLife)
+    );
 
-    setInventory([newItem, ...inventory]);
+    const expiryDate = expiry.toISOString().split("T")[0];
 
+    // Generate batch and tracking IDs
+    const batchId = `${newFood.name
+      .substring(0, 3)
+      .toUpperCase()}-${Date.now()
+      .toString()
+      .slice(-3)}`;
+
+    const trackingId = `TRK-${Date.now()
+      .toString()
+      .slice(-6)}`;
+
+    const formData = new FormData();
+
+    formData.append("food_name", newFood.name);
+    formData.append("category", newFood.category);
+    formData.append("quantity", Number(newFood.quantity));
+    formData.append("unit", newFood.unit);
+    formData.append("batch_id", batchId);
+    formData.append("tracking_id", trackingId);
+    formData.append("freshness", newFood.freshness);
+    formData.append("expiry_date", expiryDate);
+    formData.append(
+      "temperature",
+      Number(newFood.storageTemperature)
+    );
+    formData.append(
+      "humidity",
+      Number(newFood.humidity)
+    );
+    formData.append(
+  "storage_duration",
+  Number(newFood.storageDuration)
+);
+    formData.append(
+      "air_circulation",
+      newFood.airCirculation
+    );
+    formData.append(
+      "light_exposure",
+      newFood.lightExposure
+    );
+    formData.append(
+      "packaging",
+      newFood.packaging
+    );
+
+    const response = await fetch(
+      "http://127.0.0.1:8000/inventory",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      throw new Error(
+        data?.message ||
+        data?.detail ||
+        "Failed to add inventory item"
+      );
+    }
+
+    alert("Food added successfully!");
+
+    // Reload inventory from PostgreSQL
+    await fetchInventory();
+
+    // Reset form
     setNewFood({
       name: "",
       category: "Fruit",
@@ -194,18 +373,60 @@ function Inventory({ onBack }) {
     });
 
     setShowModal(false);
-  };
 
-  const handleDelete = (id) => {
-    const confirmDelete = window.confirm(
-      "Are you sure you want to remove this item?"
+  } catch (error) {
+    console.error("Add inventory error:", error);
+    alert(error.message || "Failed to add food.");
+  }
+};
+
+const handleDelete = async (id) => {
+  const confirmDelete = window.confirm(
+    "Are you sure you want to remove this item?"
+  );
+
+  if (!confirmDelete) {
+    return;
+  }
+
+  try {
+    const token = localStorage.getItem("foodfresh_access_token");
+
+    if (!token) {
+      alert("Please login again.");
+      return;
+    }
+
+    const response = await fetch(
+      `http://127.0.0.1:8000/inventory/${id}`,
+      {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
     );
 
-    if (confirmDelete) {
-      setInventory(inventory.filter((item) => item.id !== id));
-    }
-  };
+    const data = await response.json();
 
+    if (!response.ok || !data.success) {
+      throw new Error(
+        data?.message ||
+        data?.detail ||
+        "Failed to delete inventory item"
+      );
+    }
+
+    alert("Food deleted successfully!");
+
+    // Reload inventory from PostgreSQL
+    await fetchInventory();
+
+  } catch (error) {
+    console.error("Delete inventory error:", error);
+    alert(error.message || "Failed to delete food.");
+  }
+};
   const getStatusClass = (freshness) => {
     if (freshness === "Fresh") return "status-fresh";
     if (freshness === "Near Spoilage") return "status-warning";
@@ -462,15 +683,43 @@ function Inventory({ onBack }) {
                 </div>
 
                 <div className="form-group">
-                  <label>Emoji</label>
-                  <input
-                    type="text"
-                    name="emoji"
-                    value={newFood.emoji}
-                    onChange={handleInputChange}
-                    maxLength="2"
-                  />
-                </div>
+  <label>Emoji</label>
+
+  <div className="emoji-picker-container">
+
+    <button
+      type="button"
+      className="emoji-input-button"
+      onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+    >
+      <span className="selected-emoji">
+        {newFood.emoji || "😀"}
+      </span>
+
+      <span className="emoji-input-text">
+        Choose emoji
+      </span>
+    </button>
+
+    {showEmojiPicker && (
+      <div className="emoji-picker-popup">
+        <EmojiPicker
+          onEmojiClick={(emojiData) => {
+            setNewFood({
+              ...newFood,
+              emoji: emojiData.emoji,
+            });
+
+            setShowEmojiPicker(false);
+          }}
+          width={320}
+          height={400}
+        />
+      </div>
+    )}
+
+  </div>
+</div>
               </div>
 
               <div className="form-row">
@@ -537,12 +786,13 @@ function Inventory({ onBack }) {
               <div className="form-group">
                 <label>Shelf Life *</label>
                 <input
-                  type="text"
-                  name="shelfLife"
-                  placeholder="e.g. 5 Days"
-                  value={newFood.shelfLife}
-                  onChange={handleInputChange}
-                />
+  type="number"
+  name="shelfLife"
+  placeholder="e.g. 5"
+  min="1"
+  value={newFood.shelfLife}
+  onChange={handleInputChange}
+/>
               </div>
 
               <div className="form-row">

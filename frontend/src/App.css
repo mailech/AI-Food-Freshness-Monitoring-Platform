@@ -572,6 +572,9 @@ nav {
 .acceptable-dot {
   background: #e5a746;
 }
+.warning-dot {
+  background: #f59e0b;
+}
 
 .spoiled-dot {
   background: #c85b49;
@@ -587,8 +590,34 @@ nav {
   border-bottom: 1px solid #e9eeeb;
   display: flex;
   align-items: flex-end;
-  gap: 20px;
-  padding: 25px 15px 0;
+  gap: 8px;
+  padding: 25px 10px 0;
+  overflow: hidden;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.bar {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 40px;
+  background: #dcebe1;
+  border-radius: 4px 4px 0 0;
+  position: relative;
+}
+
+.bar span {
+  position: absolute;
+  top: -17px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 8px;
+  color: #88958e;
+  white-space: nowrap;
+}
+
+.active-bar {
+  background: #50bb6d;
 }
 
 .bar {
@@ -618,6 +647,18 @@ nav {
   color: #9ba59f;
   font-size: 8px;
   padding-top: 9px;
+  width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.chart-labels span {
+  flex: 1 1 0;
+  min-width: 0;
+  text-align: center;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 
@@ -2083,4 +2124,9 @@ body,
 .content {
   position: relative;
   z-index: 1;
+}
+.empty-bar {
+  background: transparent !important;
+  border: 1px dashed #cbd5e1;
+  opacity: 0.6;
 }

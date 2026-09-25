@@ -1,6 +1,26 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import "./FoodBatches.css";
+const getFoodEmoji = (foodName) => {
+  const emojiMap = {
+    Apple: "🍎",
+    Banana: "🍌",
+    "Bell Pepper": "🫑",
+    Carrot: "🥕",
+    Cucumber: "🥒",
+    Grape: "🍇",
+    Grapes: "🍇",
+    Guava: "🥝",
+    Jujube: "🫐",
+    Mango: "🥭",
+    Orange: "🍊",
+    Pomegranate: "❤️",
+    Potato: "🥔",
+    Strawberry: "🍓",
+    Tomato: "🍅",
+  };
 
+  return emojiMap[foodName] || "📦";
+};
 const initialBatches = [
   {
     id: 1,
@@ -77,13 +97,8 @@ const initialBatches = [
 ];
 
 function FoodBatches({ onBack }) {
-  const [batches, setBatches] = useState(() => {
-  const savedBatches = JSON.parse(
-    localStorage.getItem("foodfresh_batches") || "[]"
-    );
-
-    return [...savedBatches, ...initialBatches];
-  });
+  const [batches, setBatches] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("All Batches");
   const [selectedBatch, setSelectedBatch] = useState(null);
@@ -97,6 +112,60 @@ function FoodBatches({ onBack }) {
     storageTemperature: "6",
     humidity: "65",
   });
+    const fetchBatches = async () => {
+    try {
+      const token = localStorage.getItem("foodfresh_access_token");
+
+      if (!token) {
+        alert("Please login again.");
+        return;
+      }
+
+      const response = await fetch(
+        "http://127.0.0.1:8000/batches",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(
+          data?.message || data?.detail || "Failed to load batches"
+        );
+      }
+
+      const formattedBatches = data.batches.map((item) => ({
+        id: item.id,
+        batchId: item.batch_id,
+        food: item.food_name,
+        emoji: getFoodEmoji(item.food_name),
+        category: item.category,
+        quantity: `${item.quantity} ${item.unit}`,
+        freshness: item.freshness,
+        shelfLife: item.shelf_life,
+        status: item.status,
+        storageTemperature: item.temperature,
+        humidity: item.humidity,
+        added: item.created_at
+          ? new Date(item.created_at).toLocaleDateString()
+          : "Recently",
+      }));
+
+      setBatches(formattedBatches);
+    } catch (error) {
+      console.error("Fetch batches error:", error);
+      alert(error.message || "Failed to load batches.");
+    } finally {
+      setLoading(false);
+    }
+  };
+    useEffect(() => {
+    fetchBatches();
+  }, []);
 
   const handleBatchChange = (e) => {
     setNewBatch({
@@ -105,7 +174,7 @@ function FoodBatches({ onBack }) {
     });
   };
 
-const handleAddBatch = (e) => {
+const handleAddBatch = async (e) => {
   e.preventDefault();
 
   if (!newBatch.food || !newBatch.quantity || !newBatch.shelfLife) {
@@ -113,56 +182,72 @@ const handleAddBatch = (e) => {
     return;
   }
 
-  const prefix = newBatch.food.substring(0, 3).toUpperCase();
+  try {
+    const token = localStorage.getItem("foodfresh_access_token");
 
-  const batch = {
-    id: Date.now(),
-    batchId: `${prefix}-${Date.now().toString().slice(-3)}`,
-    food: newBatch.food,
-    emoji: "📦",
-    category: newBatch.category,
-    quantity: `${newBatch.quantity} kg`,
-    freshness: newBatch.freshness,
-    shelfLife: newBatch.shelfLife,
-    added: "Just now",
-    status:
-      newBatch.freshness === "Spoiled"
-        ? "Expired"
-        : newBatch.freshness === "Near Spoilage"
-        ? "Priority"
-        : "Active",
-    storageTemperature: Number(newBatch.storageTemperature),
-    humidity: Number(newBatch.humidity),
-  };
+    if (!token) {
+      alert("Please login again.");
+      return;
+    }
 
-  setBatches((prev) => {
-    const updatedBatches = [batch, ...prev];
+    const formData = new FormData();
 
-    localStorage.setItem(
-      "foodfresh_batches",
-      JSON.stringify(
-        updatedBatches.filter(
-          (item) => !initialBatches.some(
-            (initial) => initial.id === item.id
-          )
-        )
-      )
+    formData.append("food_name", newBatch.food);
+    formData.append("category", newBatch.category);
+    formData.append("quantity", Number(newBatch.quantity));
+    formData.append("unit", "kg");
+    formData.append("freshness", newBatch.freshness);
+    formData.append("shelf_life", newBatch.shelfLife);
+    formData.append(
+      "temperature",
+      Number(newBatch.storageTemperature)
+    );
+    formData.append(
+      "humidity",
+      Number(newBatch.humidity)
     );
 
-    return updatedBatches;
-  });
+    const response = await fetch(
+      "http://127.0.0.1:8000/batches",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      }
+    );
 
-  setNewBatch({
-    food: "",
-    category: "Fruit",
-    quantity: "",
-    freshness: "Fresh",
-    shelfLife: "",
-    storageTemperature: "6",
-    humidity: "65",
-  });
+    const data = await response.json();
 
-  setShowAddModal(false);
+    if (!response.ok || !data.success) {
+      throw new Error(
+        data?.message ||
+        data?.detail ||
+        "Failed to create batch"
+      );
+    }
+
+    alert("Food batch added successfully!");
+
+    await fetchBatches();
+
+    setNewBatch({
+      food: "",
+      category: "Fruit",
+      quantity: "",
+      freshness: "Fresh",
+      shelfLife: "",
+      storageTemperature: "6",
+      humidity: "65",
+    });
+
+    setShowAddModal(false);
+
+  } catch (error) {
+    console.error("Add batch error:", error);
+    alert(error.message || "Failed to add food batch.");
+  }
 };
 
   const filteredBatches = batches.filter((batch) => {
@@ -212,32 +297,51 @@ const handleAddBatch = (e) => {
     return "batch-expired";
   };
 
- const removeBatch = (id) => {
+const removeBatch = async (id) => {
   const confirmDelete = window.confirm(
     "Are you sure you want to remove this batch?"
   );
 
   if (!confirmDelete) return;
 
-  setBatches((prev) => {
-    const updatedBatches = prev.filter(
-      (batch) => batch.id !== id
+  try {
+    const token = localStorage.getItem("foodfresh_access_token");
+
+    if (!token) {
+      alert("Please login again.");
+      return;
+    }
+
+    const response = await fetch(
+      `http://127.0.0.1:8000/batches/${id}`,
+      {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
     );
 
-    const savedBatches = updatedBatches.filter(
-      (item) =>
-        !initialBatches.some(
-          (initial) => initial.id === item.id
-        )
-    );
+    const data = await response.json();
 
-    localStorage.setItem(
-      "foodfresh_batches",
-      JSON.stringify(savedBatches)
-    );
+    if (!response.ok || !data.success) {
+      throw new Error(
+        data?.message ||
+        data?.detail ||
+        "Failed to delete batch"
+      );
+    }
 
-    return updatedBatches;
-  });
+    alert("Food batch deleted successfully!");
+
+    await fetchBatches();
+
+    setSelectedBatch(null);
+
+  } catch (error) {
+    console.error("Delete batch error:", error);
+    alert(error.message || "Failed to delete batch.");
+  }
 };
 
   return (
