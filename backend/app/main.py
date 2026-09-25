@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, Form
+from fastapi import FastAPI, File, UploadFile, Form, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pathlib import Path
 from pydantic import BaseModel
@@ -7,17 +7,20 @@ from fastapi import Depends, HTTPException, status
 from app.mqtt_sensor import start_mqtt, get_sensor_data
 from app.auth import (
     ALLOWED_ROLES,
-    load_users,
-    save_users,
     find_user,
-    hash_password,
+    create_user,
     verify_password,
     create_access_token,
     verify_token,
     has_permission
 )
+from fastapi import Body
+from app.database import get_db
+from sqlalchemy.orm import Session
+from app.models import FoodAnalysis, InventoryItem, FoodBatch
 from dotenv import load_dotenv
-
+from datetime import datetime, timezone
+from fastapi import Form
 import shutil
 import uuid
 import os
@@ -71,7 +74,8 @@ security = HTTPBearer()
 # =========================================================
 
 def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security)
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: Session = Depends(get_db)
 ):
     """
     Validate JWT token and return the logged-in user.
@@ -87,7 +91,7 @@ def get_current_user(
             detail="Invalid or expired token."
         )
 
-    user = find_user(user_data["email"])
+    user = find_user(user_data["email"], db)
 
     if not user:
         raise HTTPException(
@@ -96,11 +100,11 @@ def get_current_user(
         )
 
     return {
-        "name": user["name"],
-        "email": user["email"],
-        "role": user["role"]
+        "id": user.id,
+        "name": user.username,
+        "email": user.email,
+        "role": user.role
     }
-
 
 def require_permission(permission: str):
     """
@@ -128,6 +132,7 @@ def require_permission(permission: str):
         return current_user
 
     return permission_checker
+
 # =========================================================
 # CORS
 # =========================================================
@@ -285,7 +290,10 @@ class LoginRequest(BaseModel):
 # =========================================================
 
 @app.post("/register")
-def register_user(data: RegisterRequest):
+def register_user(
+    data: RegisterRequest,
+    db: Session = Depends(get_db)
+):
 
     email = data.email.lower().strip()
     role = data.role.lower().strip()
@@ -297,13 +305,14 @@ def register_user(data: RegisterRequest):
             detail="Invalid account role."
         )
 
-    # Validate fields
+    # Validate name
     if not data.name.strip():
         raise HTTPException(
             status_code=400,
             detail="Name is required."
         )
 
+    # Validate password
     if len(data.password) < 6:
         raise HTTPException(
             status_code=400,
@@ -311,7 +320,7 @@ def register_user(data: RegisterRequest):
         )
 
     # Check existing email
-    existing_user = find_user(email)
+    existing_user = find_user(email, db)
 
     if existing_user:
         raise HTTPException(
@@ -319,43 +328,44 @@ def register_user(data: RegisterRequest):
             detail="An account with this email already exists."
         )
 
-    # Load users
-    users = load_users()
+    # Create PostgreSQL user
+    new_user = create_user(
+        username=data.name.strip(),
+        email=email,
+        password=data.password,
+        role=role,
+        db=db
+    )
 
-    # Create user
-    new_user = {
-        "name": data.name.strip(),
-        "email": email,
-        "password": hash_password(data.password),
-        "role": role
-    }
-
-    users.append(new_user)
-
-    save_users(users)
+    if not new_user:
+        raise HTTPException(
+            status_code=400,
+            detail="An account with this email already exists."
+        )
 
     return {
         "success": True,
         "message": "Account created successfully.",
         "user": {
-            "name": new_user["name"],
-            "email": new_user["email"],
-            "role": new_user["role"]
+            "name": new_user.username,
+            "email": new_user.email,
+            "role": new_user.role
         }
     }
-
-
 # =========================================================
 # LOGIN
 # =========================================================
 
 @app.post("/login")
-def login_user(data: LoginRequest):
+def login_user(
+    data: LoginRequest,
+    db: Session = Depends(get_db)
+):
 
     email = data.email.lower().strip()
     role = data.role.lower().strip()
 
-    user = find_user(email)
+    user = find_user(email, db)
 
     if not user:
         raise HTTPException(
@@ -366,7 +376,7 @@ def login_user(data: LoginRequest):
     # Verify password
     if not verify_password(
         data.password,
-        user["password"]
+        user.password_hash
     ):
         raise HTTPException(
             status_code=401,
@@ -374,7 +384,7 @@ def login_user(data: LoginRequest):
         )
 
     # Verify selected role
-    if user["role"] != role:
+    if user.role != role:
         raise HTTPException(
             status_code=403,
             detail="Selected account type does not match this account."
@@ -383,8 +393,8 @@ def login_user(data: LoginRequest):
     # Create JWT
     access_token = create_access_token(
         {
-            "sub": user["email"],
-            "role": user["role"]
+            "sub": user.email,
+            "role": user.role
         }
     )
 
@@ -394,13 +404,11 @@ def login_user(data: LoginRequest):
         "access_token": access_token,
         "token_type": "bearer",
         "user": {
-            "name": user["name"],
-            "email": user["email"],
-            "role": user["role"]
+            "name": user.username,
+            "email": user.email,
+            "role": user.role
         }
     }
-
-
 # =========================================================
 # CURRENT USER
 # =========================================================
@@ -998,6 +1006,7 @@ def get_expected_shelf_life(
 async def analyze_food(
     file: UploadFile = File(...),
     current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
 
     # -----------------------------------------------------
     # STORAGE INFORMATION
@@ -1649,7 +1658,31 @@ async def analyze_food(
             recommendation
 
     }
+    
+        # =====================================================
+    # SAVE ANALYSIS TO POSTGRESQL
+    # =====================================================
 
+    analysis_record = FoodAnalysis(
+        user_id=current_user["id"],
+        food=food_name,
+        freshness=freshness,
+        confidence=round(confidence, 2),
+        freshness_score=freshness_score,
+        classification=freshness_classification,
+        visual_score=visual_score,
+        expected_shelf_life_days=expected_days,
+        remaining_days=remaining_days,
+        temperature=temperature,
+        humidity=humidity,
+        packaging=packaging,
+        storage_duration=storage_duration,
+        recommendation=recommendation
+    )
+
+    db.add(analysis_record)
+    db.commit()
+    db.refresh(analysis_record)
 
     # =====================================================
     # FINAL API RESPONSE
@@ -1668,6 +1701,177 @@ async def analyze_food(
         "result":
             result
 
+    }
+    
+# =========================================================
+# FRESHNESS HISTORY
+# =========================================================
+
+@app.get("/history")
+def get_freshness_history(
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    records = (
+        db.query(FoodAnalysis)
+        .filter(FoodAnalysis.user_id == current_user["id"])
+        .order_by(FoodAnalysis.id.desc())
+        .all()
+    )
+
+    return {
+        "success": True,
+        "history": [
+            {
+                "id": record.id,
+                "food": record.food,
+                "freshness": record.freshness,
+                "confidence": record.confidence,
+                "freshness_score": record.freshness_score,
+                "classification": record.classification,
+                "visual_score": record.visual_score,
+                "expected_shelf_life_days": record.expected_shelf_life_days,
+                "remaining_days": record.remaining_days,
+                "temperature": record.temperature,
+                "humidity": record.humidity,
+                "packaging": record.packaging,
+                "storage_duration": record.storage_duration,
+                "recommendation": record.recommendation,
+                "created_at": record.created_at
+            }
+            for record in records
+        ]
+    }
+    
+@app.post("/history/migrate-local")
+def migrate_local_history(
+    records: list = Body(...),
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    imported = 0
+    skipped = 0
+    errors = []
+
+    existing_records = (
+        db.query(FoodAnalysis)
+        .filter(
+            FoodAnalysis.user_id == current_user["id"]
+        )
+        .all()
+    )
+
+    for record in records:
+        try:
+            food = record.get("food")
+            score = float(record.get("score", 0))
+            confidence = float(
+                record.get("confidence", 0)
+            )
+
+            if not food:
+                skipped += 1
+                continue
+
+            # Old localStorage ID is the JavaScript timestamp
+            record_id = record.get("id")
+
+            if record_id:
+                record_time = datetime.fromtimestamp(
+                    float(record_id) / 1000,
+                    tz=timezone.utc
+                )
+            else:
+                record_time = datetime.now(timezone.utc)
+
+            # Check whether this exact analysis
+            # is already present in PostgreSQL.
+            duplicate = False
+
+            for existing in existing_records:
+
+                if existing.food != food:
+                    continue
+
+                existing_score = float(
+                    existing.freshness_score or 0
+                )
+
+                if abs(existing_score - score) > 0.01:
+                    continue
+
+                if not existing.created_at:
+                    continue
+
+                existing_time = existing.created_at
+
+                if existing_time.tzinfo is None:
+                    existing_time = existing_time.replace(
+                        tzinfo=timezone.utc
+                    )
+
+                difference = abs(
+                    (
+                        existing_time - record_time
+                    ).total_seconds()
+                )
+
+                # Same food + same score + same time
+                if difference <= 120:
+                    duplicate = True
+                    break
+
+            if duplicate:
+                skipped += 1
+                continue
+
+            new_record = FoodAnalysis(
+                user_id=current_user["id"],
+                food=food,
+                freshness=record.get(
+                    "freshness",
+                    "Unknown"
+                ),
+                confidence=confidence,
+                freshness_score=score,
+                classification=record.get(
+                    "freshness",
+                    "Unknown"
+                ),
+                visual_score=float(
+                    record.get("visualScore") or 0
+                ),
+                expected_shelf_life_days=None,
+                remaining_days=None,
+                temperature=None,
+                humidity=None,
+                packaging=None,
+                storage_duration=None,
+                recommendation=None,
+                created_at=record_time
+            )
+
+            db.add(new_record)
+
+            # Keep track so another identical record
+            # in the same request isn't inserted twice.
+            existing_records.append(new_record)
+
+            imported += 1
+
+        except Exception as e:
+            errors.append(str(e))
+            skipped += 1
+
+    db.commit()
+
+    return {
+        "success": True,
+        "message": "Local history migration completed",
+        "total_received": len(records),
+        "imported": imported,
+        "skipped": skipped,
+        "errors": errors
     }
 # =========================================================
 # MQTT SENSOR DATA
@@ -1688,4 +1892,245 @@ def get_storage_sensor(storage_id: str):
         "success": True,
         "storage_id": storage_id,
         "sensor": data
+    }
+
+@app.post("/inventory")
+def create_inventory_item(
+    food_name: str = Form(...),
+    category: str = Form(...),
+    quantity: float = Form(0),
+    unit: str = Form("kg"),
+    batch_id: str = Form(""),
+    tracking_id: str = Form(""),
+    freshness: str = Form(""),
+    expiry_date: str = Form(""),
+    temperature: float = Form(0),
+    humidity: float = Form(0),
+    storage_duration: int = Form(0),
+    air_circulation: str = Form(""),
+    light_exposure: str = Form(""),
+    packaging: str = Form(""),
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    inventory_item = InventoryItem(
+        user_id=current_user["id"],
+        food_name=food_name,
+        category=category,
+        quantity=quantity,
+        unit=unit,
+        batch_id=batch_id,
+        tracking_id=tracking_id,
+        freshness=freshness,
+        expiry_date=expiry_date,
+        temperature=temperature,
+        humidity=humidity,
+        storage_duration=storage_duration,
+        air_circulation=air_circulation,
+        light_exposure=light_exposure,
+        packaging=packaging
+    )
+
+    db.add(inventory_item)
+    db.commit()
+    db.refresh(inventory_item)
+
+    return {
+        "success": True,
+        "message": "Inventory item added successfully",
+        "item": {
+            "id": inventory_item.id,
+            "food_name": inventory_item.food_name,
+            "category": inventory_item.category,
+            "quantity": inventory_item.quantity,
+            "unit": inventory_item.unit,
+            "batch_id": inventory_item.batch_id,
+            "tracking_id": inventory_item.tracking_id,
+            "freshness": inventory_item.freshness,
+            "expiry_date": inventory_item.expiry_date
+        }
+    }
+    
+@app.get("/inventory")
+def get_inventory(
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    items = (
+        db.query(InventoryItem)
+        .filter(InventoryItem.user_id == current_user["id"])
+        .order_by(InventoryItem.id.desc())
+        .all()
+    )
+
+    return {
+        "success": True,
+        "items": [
+            {
+                "id": item.id,
+                "food_name": item.food_name,
+                "category": item.category,
+                "quantity": item.quantity,
+                "unit": item.unit,
+                "batch_id": item.batch_id,
+                "tracking_id": item.tracking_id,
+                "freshness": item.freshness,
+                "expiry_date": item.expiry_date,
+                "temperature": item.temperature,
+                "humidity": item.humidity,
+                "storage_duration": item.storage_duration,
+                "air_circulation": item.air_circulation,
+                "light_exposure": item.light_exposure,
+                "packaging": item.packaging,
+                "created_at": item.created_at
+            }
+            for item in items
+        ]
+    }
+@app.delete("/inventory/{item_id}")
+def delete_inventory_item(
+    item_id: int,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    item = (
+        db.query(InventoryItem)
+        .filter(
+            InventoryItem.id == item_id,
+            InventoryItem.user_id == current_user["id"]
+        )
+        .first()
+    )
+
+    if not item:
+        raise HTTPException(
+            status_code=404,
+            detail="Inventory item not found"
+        )
+
+    db.delete(item)
+    db.commit()
+
+    return {
+        "success": True,
+        "message": "Inventory item deleted successfully"
+    } 
+@app.post("/batches")
+def create_batch(
+    food_name: str = Form(...),
+    category: str = Form(...),
+    quantity: float = Form(0),
+    unit: str = Form("kg"),
+    freshness: str = Form("Fresh"),
+    shelf_life: str = Form(""),
+    temperature: float = Form(0),
+    humidity: float = Form(0),
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    prefix = food_name[:3].upper()
+    batch_id = f"{prefix}-{int(datetime.now().timestamp())}"
+
+    if freshness == "Spoiled":
+        status = "Expired"
+    elif freshness == "Near Spoilage":
+        status = "Priority"
+    else:
+        status = "Active"
+
+    batch = FoodBatch(
+        user_id=current_user["id"],
+        batch_id=batch_id,
+        food_name=food_name,
+        category=category,
+        quantity=quantity,
+        unit=unit,
+        freshness=freshness,
+        shelf_life=shelf_life,
+        status=status,
+        temperature=temperature,
+        humidity=humidity
+    )
+
+    db.add(batch)
+    db.commit()
+    db.refresh(batch)
+
+    return {
+        "success": True,
+        "message": "Food batch created successfully",
+        "batch": {
+            "id": batch.id,
+            "batch_id": batch.batch_id,
+            "food_name": batch.food_name,
+            "category": batch.category,
+            "quantity": batch.quantity,
+            "unit": batch.unit,
+            "freshness": batch.freshness,
+            "shelf_life": batch.shelf_life,
+            "status": batch.status,
+            "temperature": batch.temperature,
+            "humidity": batch.humidity,
+            "created_at": batch.created_at
+        }
+    }
+@app.get("/batches")
+def get_batches(
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    batches = (
+        db.query(FoodBatch)
+        .filter(FoodBatch.user_id == current_user["id"])
+        .order_by(FoodBatch.id.desc())
+        .all()
+    )
+
+    return {
+        "success": True,
+        "batches": [
+            {
+                "id": batch.id,
+                "batch_id": batch.batch_id,
+                "food_name": batch.food_name,
+                "category": batch.category,
+                "quantity": batch.quantity,
+                "unit": batch.unit,
+                "freshness": batch.freshness,
+                "shelf_life": batch.shelf_life,
+                "status": batch.status,
+                "temperature": batch.temperature,
+                "humidity": batch.humidity,
+                "created_at": batch.created_at
+            }
+            for batch in batches
+        ]
+    }
+@app.delete("/batches/{batch_id}")
+def delete_batch(
+    batch_id: int,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    batch = (
+        db.query(FoodBatch)
+        .filter(
+            FoodBatch.id == batch_id,
+            FoodBatch.user_id == current_user["id"]
+        )
+        .first()
+    )
+
+    if not batch:
+        raise HTTPException(
+            status_code=404,
+            detail="Food batch not found"
+        )
+
+    db.delete(batch)
+    db.commit()
+
+    return {
+        "success": True,
+        "message": "Food batch deleted successfully"
     }

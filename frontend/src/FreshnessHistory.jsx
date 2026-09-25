@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import "./FreshnessHistory.css";
 
 const historyData = [
@@ -99,19 +99,108 @@ const historyData = [
     time: "12:10 PM",
   },
 ];
+const getFoodEmoji = (foodName) => {
+  const emojiMap = {
+    Apple: "🍎",
+    Banana: "🍌",
+    Bellpepper: "🫑",
+    "Bell Pepper": "🫑",
+    Carrot: "🥕",
+    Cucumber: "🥒",
+    Grape: "🍇",
+    Grapes: "🍇",
+    Guava: "🥝",
+    Jujube: "🫐",
+    Mango: "🥭",
+    Orange: "🍊",
+    Pomegranate: "❤️",
+    Potato: "🥔",
+    Strawberry: "🍓",
+    Tomato: "🍅",
+  };
+
+  return emojiMap[foodName] || "📦";
+};
 
 function FreshnessHistory({ onBack }) {
-  const [history, setHistory] = useState(() => {
-  const savedHistory = JSON.parse(
-    localStorage.getItem("foodfresh_history") || "[]"
-  );
-
-  return [...savedHistory, ...historyData];
-});
+  const [history, setHistory] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("All");
   const [selectedRecord, setSelectedRecord] = useState(null);
+const fetchHistory = async () => {
+  try {
+    const token = localStorage.getItem("foodfresh_access_token");
 
+    if (!token) {
+      alert("Please login again.");
+      return;
+    }
+
+    const response = await fetch(
+      "http://127.0.0.1:8000/history",
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      throw new Error(
+        data?.message ||
+        data?.detail ||
+        "Failed to load freshness history"
+      );
+    }
+
+    const formattedHistory = data.history.map((item) => {
+      const createdDate = item.created_at
+        ? new Date(item.created_at)
+        : new Date();
+
+      return {
+        id: item.id,
+        food: item.food,
+        emoji: getFoodEmoji(item.food),
+        batchId: `AI-${String(item.id).padStart(3, "0")}`,
+        freshness: item.classification || item.freshness,
+        score: Number(item.freshness_score || 0),
+        confidence: Number(item.confidence || 0),
+        shelfLife:
+          item.remaining_days !== null &&
+          item.remaining_days !== undefined
+            ? `${item.remaining_days} Days`
+            : "N/A",
+        date: createdDate.toLocaleDateString(),
+        time: createdDate.toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        visualScore: item.visual_score,
+        expectedShelfLife: item.expected_shelf_life_days,
+        temperature: item.temperature,
+        humidity: item.humidity,
+        packaging: item.packaging,
+        storageDuration: item.storage_duration,
+        recommendation: item.recommendation,
+      };
+    });
+
+    setHistory(formattedHistory);
+  } catch (error) {
+    console.error("Fetch history error:", error);
+    alert(error.message || "Failed to load freshness history.");
+  } finally {
+    setLoading(false);
+  }
+};
+
+useEffect(() => {
+  fetchHistory();
+}, []);
   const filteredHistory = history.filter((item) => {
     const searchValue = search.toLowerCase();
 
@@ -148,15 +237,14 @@ function FreshnessHistory({ onBack }) {
     return "history-spoiled";
   };
 
-const clearHistory = () => {
+const clearHistory = async () => {
   const confirmClear = window.confirm(
-    "Are you sure you want to clear the freshness history?"
+    "History is stored in PostgreSQL. Clear History is not available yet."
   );
 
-  if (confirmClear) {
-    setHistory([]);
-    localStorage.removeItem("foodfresh_history");
-  }
+  if (!confirmClear) return;
+
+  await fetchHistory();
 };
 
   return (

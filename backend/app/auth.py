@@ -1,9 +1,10 @@
 from datetime import datetime, timedelta, timezone
-from pathlib import Path
-import json
 
 from jose import JWTError, jwt
 from passlib.context import CryptContext
+from sqlalchemy.orm import Session
+
+from app.models import User
 
 
 # ============================================================
@@ -23,19 +24,6 @@ pwd_context = CryptContext(
     schemes=["bcrypt"],
     deprecated="auto"
 )
-
-
-# ============================================================
-# USERS FILE
-# ============================================================
-
-BASE_DIR = Path(__file__).resolve().parent.parent
-USERS_FILE = BASE_DIR / "users.json"
-
-
-if not USERS_FILE.exists():
-    with open(USERS_FILE, "w") as file:
-        json.dump([], file, indent=4)
 
 
 # ============================================================
@@ -105,37 +93,50 @@ ROLE_PERMISSIONS = {
 
 
 # ============================================================
-# USER FUNCTIONS
+# USER FUNCTIONS - POSTGRESQL
 # ============================================================
 
-def load_users():
-    try:
-        with open(USERS_FILE, "r") as file:
-            return json.load(file)
-
-    except Exception:
-        return []
-
-
-def save_users(users):
-    with open(USERS_FILE, "w") as file:
-        json.dump(
-            users,
-            file,
-            indent=4
-        )
-
-
-def find_user(email):
-    users = load_users()
+def find_user(email: str, db: Session):
 
     email = email.lower().strip()
 
-    for user in users:
-        if user["email"] == email:
-            return user
+    return (
+        db.query(User)
+        .filter(User.email == email)
+        .first()
+    )
 
-    return None
+
+def create_user(
+    username: str,
+    email: str,
+    password: str,
+    role: str,
+    db: Session
+):
+
+    email = email.lower().strip()
+
+    if role not in ALLOWED_ROLES:
+        raise ValueError("Invalid role")
+
+    existing_user = find_user(email, db)
+
+    if existing_user:
+        return None
+
+    user = User(
+        username=username,
+        email=email,
+        password_hash=hash_password(password),
+        role=role,
+    )
+
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    return user
 
 
 # ============================================================
@@ -143,6 +144,7 @@ def find_user(email):
 # ============================================================
 
 def hash_password(password):
+
     return pwd_context.hash(password)
 
 
@@ -150,6 +152,7 @@ def verify_password(
     plain_password,
     hashed_password
 ):
+
     return pwd_context.verify(
         plain_password,
         hashed_password
