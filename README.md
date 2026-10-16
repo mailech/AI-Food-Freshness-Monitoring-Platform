@@ -76,3 +76,15 @@ pytest
 Roles and Access
 
 Access control is enforced on the server using the require_roles dependency, which checks the role claim inside the JWT. Role values accepted by the API match the frontend dropdown (with alias normalization).
+
+Trained Model
+
+The trained food freshness classification model is stored separately on Google Drive because of its file size.
+
+Model file: food_freshness_cnn.keras
+
+Download: https://drive.google.com/file/d/1tvU4az6Cfm6kcjH5Wl2ukH16nsuna689/view?usp=sharing
+
+After downloading, place the model in backend/models/food_freshness_cnn.keras before running the backend.
+
+Note: The model file is not included in GitHub; backend/.gitignore excludes it.
