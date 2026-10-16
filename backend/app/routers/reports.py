@@ -1,7 +1,7 @@
 from typing import Dict, List
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
-from app.auth.dependencies import require_roles
+from app.auth.dependencies import get_current_user
 from app.database import get_db
 from app.models.food_item import FoodItem
 from app.models.user import User, UserRole
@@ -10,24 +10,24 @@ from app.services.shelflife_service import calculate_shelf_life_days
 
 router = APIRouter(prefix="/reports", tags=["Reports & Analytics"])
 
-REPORT_ROLES = [
-    UserRole.WAREHOUSE_OPERATOR,
-    UserRole.RETAIL_MANAGER,
-    UserRole.FOOD_QUALITY_INSPECTOR,
-    UserRole.ADMIN
-]
-
 
 @router.get("/summary", response_model=ReportSummaryResponse)
 def get_reports_summary(
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles(REPORT_ROLES))
+    current_user: User = Depends(get_current_user)
 ):
     """
     Retrieves summary analytics metrics.
-    Restricted to warehouse_operator, retail_manager, food_quality_inspector, and admin.
+    For consumer role: scoped to their own scanned items.
+    For staff roles (warehouse_operator, retail_manager, food_quality_inspector, admin): store-wide metrics.
     """
-    items = db.query(FoodItem).all()
+    query = db.query(FoodItem)
+    if current_user.role == UserRole.CONSUMER:
+        query = query.filter(FoodItem.user_id == current_user.id)
+    else:
+        query = query.filter(FoodItem.is_personal == False)
+
+    items = query.all()
     total_count = len(items)
 
     if total_count == 0:
@@ -57,13 +57,19 @@ def get_reports_data(
     page: int = Query(1, ge=1),
     limit: int = Query(50, ge=1, le=200),
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles(REPORT_ROLES))
+    current_user: User = Depends(get_current_user)
 ):
     """
     Retrieves detailed inventory report records for analytics table and exports (jsPDF / CSV).
-    Restricted to warehouse_operator, retail_manager, food_quality_inspector, and admin.
+    For consumer role: scoped to their own scanned items.
+    For staff roles (warehouse_operator, retail_manager, food_quality_inspector, admin): store-wide records.
     """
     query = db.query(FoodItem)
+    if current_user.role == UserRole.CONSUMER:
+        query = query.filter(FoodItem.user_id == current_user.id)
+    else:
+        query = query.filter(FoodItem.is_personal == False)
+
     total = query.count()
     offset = (page - 1) * limit
     items = query.order_by(FoodItem.id.desc()).offset(offset).limit(limit).all()

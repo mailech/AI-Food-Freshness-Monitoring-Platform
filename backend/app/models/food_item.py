@@ -1,6 +1,6 @@
 import enum
 from datetime import datetime
-from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.database import Base
@@ -44,6 +44,8 @@ class FoodItem(Base):
     storage_tip = Column(Text, nullable=True)
     consumption_suggestion = Column(Text, nullable=True)
     
+    is_sample_data = Column(Boolean, nullable=False, default=False, server_default="false")
+    is_personal = Column(Boolean, nullable=False, default=False, server_default="false", index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), server_default=func.now())

@@ -117,6 +117,7 @@
     </style>
 </head>
 <body class="bg-surface text-on-surface h-screen w-full overflow-hidden flex font-body-md">
+
 <!-- Note: TopNavBar and SideNavBar are suppressed as this is a linear/transactional login flow -->
 <div class="flex w-full h-full">
 <!-- Left Panel: Branding & Pattern (Hidden on mobile) -->
@@ -156,8 +157,9 @@
                         Sign Up
                     </button>
 </div>
+
 <!-- Login Form -->
-<form class="space-y-6" id="form-login">
+<form class="space-y-6" id="form-login" method="post" action="#" autocomplete="off">
 <div class="space-y-2">
 <h2 class="font-headline-md text-headline-md text-on-surface">Welcome back</h2>
 <p class="font-body-md text-body-md text-on-surface-variant">Enter your details to access your dashboard.</p>
@@ -166,61 +168,57 @@
 <div class="space-y-4">
 <div>
 <label class="block font-label-md text-label-md text-on-surface mb-1" for="login-email">Email</label>
-<input class="w-full px-4 py-3 rounded-lg border border-outline-variant bg-surface focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-body-md text-body-md text-on-surface placeholder:text-outline" id="login-email" placeholder="name@company.com" required="" type="email"/>
+<input class="w-full px-4 py-3 rounded-lg border border-outline-variant bg-surface focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-body-md text-body-md text-on-surface placeholder:text-outline" id="login-email" name="email" placeholder="name@company.com" required type="email" autocomplete="off" value=""/>
 </div>
 <div>
 <div class="flex justify-between items-center mb-1">
 <label class="block font-label-md text-label-md text-on-surface" for="login-password">Password</label>
 <a class="font-label-sm text-label-sm text-primary hover:underline" href="#">Forgot password?</a>
 </div>
-<input class="w-full px-4 py-3 rounded-lg border border-outline-variant bg-surface focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-body-md text-body-md text-on-surface placeholder:text-outline" id="login-password" placeholder="••••••••" required="" type="password"/>
-<div class="flex items-center gap-2 mt-3">
-<input class="w-4 h-4 accent-primary rounded border-outline-variant cursor-pointer" id="login-remember" type="checkbox"/>
-<label class="font-label-sm text-label-sm text-on-surface-variant cursor-pointer" for="login-remember">Remember me on this device</label>
+<input class="w-full px-4 py-3 rounded-lg border border-outline-variant bg-surface focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-body-md text-body-md text-on-surface placeholder:text-outline" id="login-password" name="password" placeholder="••••••••" required type="password" autocomplete="new-password" value=""/>
 </div>
 </div>
-</div>
-<button class="w-full py-3 px-6 rounded-full bg-primary-container text-on-primary font-label-md text-label-md hover:bg-primary transition-colors shadow-sm flex items-center justify-center gap-2" type="submit">
+<button class="w-full py-3 px-6 rounded-full bg-primary-container text-on-primary font-label-md text-label-md hover:bg-primary transition-colors shadow-sm flex items-center justify-center gap-2 cursor-pointer" type="submit">
 <span>Sign In</span>
 <span class="material-symbols-outlined text-sm">arrow_forward</span>
 </button>
 </form>
 <!-- Signup Form (Hidden by default) -->
-<form class="space-y-6 hidden" id="form-signup">
+<form class="space-y-6 hidden" id="form-signup" method="post" action="#" autocomplete="off">
 <div class="space-y-2">
 <h2 class="font-headline-md text-headline-md text-on-surface">Create Account</h2>
-<p class="font-body-md text-body-md text-on-surface-variant">Join Fresh.OS to start managing your agricultural supply chain.</p>
+<p class="font-body-md text-body-md text-on-surface-variant">Join Fresh.OS to start managing your food freshness and personal storage.</p>
 </div>
 <div id="signup-error" class="hidden text-xs text-error font-semibold p-3 bg-error-container/20 border border-error/30 rounded-lg"></div>
 <div class="space-y-4">
 <div>
 <label class="block font-label-md text-label-md text-on-surface mb-1" for="signup-name">Full Name</label>
-<input class="w-full px-4 py-3 rounded-lg border border-outline-variant bg-surface focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-body-md text-body-md text-on-surface placeholder:text-outline" id="signup-name" placeholder="Jane Doe" required="" type="text"/>
+<input class="w-full px-4 py-3 rounded-lg border border-outline-variant bg-surface focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-body-md text-body-md text-on-surface placeholder:text-outline" id="signup-name" name="name" placeholder="Jane Doe" required type="text" autocomplete="off" value=""/>
 </div>
 <div>
 <label class="block font-label-md text-label-md text-on-surface mb-1" for="signup-email">Email</label>
-<input class="w-full px-4 py-3 rounded-lg border border-outline-variant bg-surface focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-body-md text-body-md text-on-surface placeholder:text-outline" id="signup-email" placeholder="name@company.com" required="" type="email"/>
+<input class="w-full px-4 py-3 rounded-lg border border-outline-variant bg-surface focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-body-md text-body-md text-on-surface placeholder:text-outline" id="signup-email" name="email" placeholder="name@company.com" required type="email" autocomplete="off" value=""/>
 </div>
 <div>
 <label class="block font-label-md text-label-md text-on-surface mb-1" for="signup-role">Role</label>
 <div class="relative">
-<select class="appearance-none w-full px-4 py-3 rounded-lg border border-outline-variant bg-surface focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-body-md text-body-md text-on-surface pr-10 cursor-pointer" id="signup-role" required="">
-<option disabled="" selected="" value="">Select your role</option>
-<option value="consumer">Consumer</option>
+<select class="appearance-none w-full px-4 py-3 rounded-lg border border-outline-variant bg-surface focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-body-md text-body-md text-on-surface pr-10 cursor-pointer" id="signup-role" required>
+<option disabled value="">Select your role</option>
+<option value="consumer" selected>Consumer</option>
 <option value="retail_manager">Retail Manager</option>
 <option value="warehouse_operator">Warehouse Operator</option>
-<option value="quality_inspector">Food Quality Inspector</option>
-<option value="administrator">Administrator</option>
+<option value="food_quality_inspector">Food Quality Inspector</option>
+<option value="admin">Administrator</option>
 </select>
 <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none">expand_more</span>
 </div>
 </div>
 <div>
 <label class="block font-label-md text-label-md text-on-surface mb-1" for="signup-password">Password</label>
-<input class="w-full px-4 py-3 rounded-lg border border-outline-variant bg-surface focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-body-md text-body-md text-on-surface placeholder:text-outline" id="signup-password" placeholder="Create a strong password" required="" type="password"/>
+<input class="w-full px-4 py-3 rounded-lg border border-outline-variant bg-surface focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-body-md text-body-md text-on-surface placeholder:text-outline" id="signup-password" name="password" placeholder="Create a strong password" required type="password" autocomplete="new-password" value=""/>
 </div>
 </div>
-<button class="w-full py-3 px-6 rounded-full bg-primary-container text-on-primary font-label-md text-label-md hover:bg-primary transition-colors shadow-sm flex items-center justify-center gap-2" type="submit">
+<button class="w-full py-3 px-6 rounded-full bg-primary-container text-on-primary font-label-md text-label-md hover:bg-primary transition-colors shadow-sm flex items-center justify-center gap-2 cursor-pointer" type="submit">
 <span>Create Account</span>
 <span class="material-symbols-outlined text-sm">person_add</span>
 </button>
@@ -233,9 +231,26 @@ By signing up, you agree to our <a class="text-primary hover:underline" href="#"
 </div>
 <script src="auth.js"></script>
 <script>
-// If already logged in with valid token, redirect to dashboard
-if (getAuthToken()) {
-    window.location.href = 'dashboard.html';
+const emailEl = document.getElementById('login-email');
+const passwordEl = document.getElementById('login-password');
+const formEl = document.getElementById('form-login');
+
+const signupNameEl = document.getElementById('signup-name');
+const signupEmailEl = document.getElementById('signup-email');
+const signupRoleEl = document.getElementById('signup-role');
+const signupPasswordEl = document.getElementById('signup-password');
+const formSignupEl = document.getElementById('form-signup');
+
+// Ensure form fields are always blank upon landing on this page
+function clearInputs() {
+    localStorage.removeItem('fresh_os_remembered_email');
+    localStorage.removeItem('fresh_os_remembered_name');
+    localStorage.removeItem('fresh_os_remembered');
+    if (emailEl) emailEl.value = '';
+    if (passwordEl) passwordEl.value = '';
+    if (signupNameEl) signupNameEl.value = '';
+    if (signupEmailEl) signupEmailEl.value = '';
+    if (signupPasswordEl) signupPasswordEl.value = '';
 }
 
 function switchTab(tab) {
@@ -263,32 +278,38 @@ function switchTab(tab) {
 
 document.getElementById('form-login').addEventListener('submit', async function(e) {
     e.preventDefault();
-    const email = document.getElementById('login-email').value;
+    const email = document.getElementById('login-email').value.trim();
     const password = document.getElementById('login-password').value;
-    const remember = document.getElementById('login-remember')?.checked || false;
     const errorEl = document.getElementById('login-error');
     const submitBtn = this.querySelector('button[type="submit"]');
 
     errorEl.classList.add('hidden');
     errorEl.textContent = '';
+
+    if (!email || !password) {
+        errorEl.textContent = 'Please enter your email and password.';
+        errorEl.classList.remove('hidden');
+        return;
+    }
+
     submitBtn.disabled = true;
 
     try {
         const response = await fetch(`${API_BASE_URL}/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password, remember_me: remember })
+            body: JSON.stringify({ email, password, remember_me: true })
         });
 
         const data = await response.json();
         if (!response.ok) {
-            errorEl.textContent = data.detail || 'Login failed. Please check your credentials.';
+            errorEl.textContent = data.detail || 'Incorrect email or password. Please try again.';
             errorEl.classList.remove('hidden');
             submitBtn.disabled = false;
             return;
         }
 
-        setAuthData(data.access_token, data.user, remember);
+        setAuthData(data.access_token, data.user);
         window.location.href = 'dashboard.html';
     } catch (err) {
         errorEl.textContent = 'Unable to connect to server. Please ensure backend is running.';
@@ -299,8 +320,8 @@ document.getElementById('form-login').addEventListener('submit', async function(
 
 document.getElementById('form-signup').addEventListener('submit', async function(e) {
     e.preventDefault();
-    const fullName = document.getElementById('signup-name').value;
-    const email = document.getElementById('signup-email').value;
+    const fullName = document.getElementById('signup-name').value.trim();
+    const email = document.getElementById('signup-email').value.trim();
     const role = document.getElementById('signup-role').value;
     const password = document.getElementById('signup-password').value;
     const errorEl = document.getElementById('signup-error');
@@ -351,5 +372,8 @@ document.getElementById('form-signup').addEventListener('submit', async function
         submitBtn.disabled = false;
     }
 });
+
+clearInputs();
+window.addEventListener('pageshow', clearInputs);
 </script>
 </body></html>

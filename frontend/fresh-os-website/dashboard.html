@@ -13,7 +13,7 @@
 <!-- Tailwind CSS -->
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <!-- Auth Gating Script -->
-<script src="auth.js"></script>
+<script src="auth.js?v=2.5"></script>
 <!-- Tailwind Config -->
 <script id="tailwind-config">
   tailwind.config = {
@@ -187,7 +187,7 @@
 <a class="sidebar-item active" href="dashboard.html">
 <span class="material-symbols-outlined text-[20px]">dashboard</span> Dashboard
         </a>
-<a class="sidebar-item" href="inventory.html">
+<a class="sidebar-item" id="sidebarInventoryLink" href="inventory.html">
 <span class="material-symbols-outlined text-[20px]">inventory_2</span> Inventory
         </a>
 <a class="sidebar-item" href="upload-scan.html">
@@ -223,18 +223,17 @@
 <input class="w-full pl-10 pr-4 py-2 bg-surface border border-outline-variant/50 rounded-lg text-sm focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-all" placeholder="Search inventory, batches, or alerts..." type="text"/>
 </div>
 <div class="flex items-center gap-6">
-<button class="relative text-on-surface-variant hover:text-on-surface transition-colors">
+<button id="notificationBellBtn" onclick="toggleNotificationDropdown(event, this)" data-notification-bell="true" title="Near Spoilage Notifications" class="relative p-2 rounded-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors">
 <span class="material-symbols-outlined text-[24px]">notifications</span>
-<span class="absolute 1 top-0 right-0 w-2.5 h-2.5 bg-error rounded-full border-2 border-white"></span>
 </button>
 <div class="h-6 w-px bg-outline-variant/50"></div>
 <button onclick="window.location.href='settings.html'" class="flex items-center gap-3 hover:bg-surface-container px-2 py-1.5 rounded-lg transition-colors">
 <div class="text-right hidden sm:block">
-<div class="text-sm font-semibold text-on-surface leading-tight header-user-name">Sarah Jenkins</div>
-<div class="text-[11px] text-on-surface-variant header-user-role">Facility Admin</div>
+<div class="text-sm font-semibold text-on-surface leading-tight header-user-name">User</div>
+<div class="text-[11px] text-on-surface-variant header-user-role">Account</div>
 </div>
-<div class="w-8 h-8 rounded-full bg-primary-container/20 overflow-hidden">
-<img alt="User" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAIcnlZ5dH4PsEhOFtN6P0DjXgLB75euiormIiMJorJuejL-28L8iSeI3EbUIAqaG8-8njXp3Lu4mppgBp1_5uWhtIUdm7iB8WfNOD1NCGskWbxucb6jWcVqJZWiFgAl2fIfUxi_TCmxW9fZvcTwta36P2BjyjQMzz9DMGzy0FAUWTLt7JzS3rw0yXBv9UvCLTcDF6M8Ro67qnhYn7bcoJ9HlKMagyVY76pNtU3A5oH7RKsQZKs733-"/>
+<div class="w-8 h-8 rounded-full bg-surface-container-high border border-outline-variant/40 flex items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]">person</span>
 </div>
 <span class="material-symbols-outlined text-[20px] text-on-surface-variant">keyboard_arrow_down</span>
 </button>
@@ -246,15 +245,15 @@
 <!-- Header Section -->
 <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
 <div>
-<h1 class="font-display text-headline-lg text-on-surface user-greeting">Good morning, Sarah</h1>
-<p class="text-on-surface-variant mt-1 text-sm">System shows optimal conditions. 2 minor alerts require review today.</p>
+<h1 class="font-display text-headline-lg text-on-surface user-greeting">Welcome back</h1>
+<p id="dashSubGreeting" class="text-on-surface-variant mt-1 text-sm">System shows optimal conditions. 2 minor alerts require review today.</p>
 </div>
 <div class="flex gap-3">
 <button class="px-4 py-2 bg-white border border-outline-variant rounded-lg text-sm font-semibold hover:bg-surface-container transition-colors shadow-sm flex items-center gap-2">
 <span class="material-symbols-outlined text-[18px]">download</span> Export Data
                     </button>
 <button onclick="window.location.href='upload-scan.html'" class="px-4 py-2 bg-primary-container text-on-primary rounded-lg text-sm font-semibold hover:bg-primary-container/90 transition-colors shadow-sm flex items-center gap-2">
-<span class="material-symbols-outlined text-[18px]">add</span> New Scan
+<span class="material-symbols-outlined text-[18px]">add</span> <span id="dashNewScanBtnText">New Scan</span>
                     </button>
 </div>
 </div>
@@ -262,12 +261,12 @@
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
 <div class="data-card">
 <div class="flex justify-between items-start mb-2">
-<div class="text-sm font-semibold text-on-surface-variant">Total Inventory</div>
+<div id="dashTotalCardTitle" class="text-sm font-semibold text-on-surface-variant">Total Inventory</div>
 <span class="material-symbols-outlined text-[20px] text-on-surface-variant/50">inventory_2</span>
 </div>
 <div id="dashTotalCount" class="text-display text-on-surface mb-2">--</div>
 <div class="text-xs font-semibold text-primary flex items-center gap-1">
-<span class="material-symbols-outlined text-[14px]">trending_up</span> Active catalog items
+<span class="material-symbols-outlined text-[14px]">trending_up</span> <span id="dashTotalSubtext">Active catalog items</span>
                     </div>
 </div>
 <div class="data-card">
@@ -403,9 +402,9 @@
 <!-- Table Section (Spans all columns) -->
 <div class="data-card lg:col-span-3">
 <div class="flex justify-between items-center mb-6">
-<h2 class="font-title-lg text-on-surface">Live Inventory Status</h2>
-<button onclick="window.location.href='inventory.html'" class="text-primary-container text-sm font-semibold hover:underline flex items-center gap-1">
-                            View All Inventory <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+<h2 id="dashTableTitle" class="font-title-lg text-on-surface">Live Inventory Status</h2>
+<button id="dashViewAllBtn" onclick="window.location.href='inventory.html'" class="text-primary-container text-sm font-semibold hover:underline flex items-center gap-1">
+    <span id="dashViewAllText">View All Inventory</span> <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
 </button>
 </div>
 <div class="overflow-x-auto">
@@ -413,10 +412,10 @@
 <thead>
 <tr class="border-b border-outline-variant/30 text-xs text-on-surface-variant uppercase tracking-wider">
 <th class="pb-3 font-semibold pl-2">Product</th>
-<th class="pb-3 font-semibold">Batch ID</th>
-<th class="pb-3 font-semibold">Status</th>
-<th class="pb-3 font-semibold">Freshness Score</th>
-<th class="pb-3 font-semibold text-right pr-2">Est. Time to Expiry</th>
+<th class="pb-3 font-semibold">Batch / ID</th>
+<th class="pb-3 font-semibold">Freshness Status</th>
+<th class="pb-3 font-semibold">Score</th>
+<th class="pb-3 font-semibold text-right pr-2">Est. Shelf Life</th>
 </tr>
 </thead>
 <tbody id="dashTableBody" class="text-sm divide-y divide-outline-variant/20">
@@ -432,6 +431,39 @@
 <script>
     async function loadDashboardData() {
         const token = getAuthToken();
+        const user = getAuthUser();
+
+        // Customize UI for Consumer role
+        if (user && user.role === 'consumer') {
+            const tableTitle = document.getElementById('dashTableTitle');
+            if (tableTitle) tableTitle.textContent = 'My Stored Food Items';
+
+            const viewAllBtn = document.getElementById('dashViewAllBtn');
+            if (viewAllBtn) {
+                viewAllBtn.setAttribute('onclick', "window.location.href='inventory.html?scope=personal'");
+            }
+            const viewAllText = document.getElementById('dashViewAllText');
+            if (viewAllText) viewAllText.textContent = 'View My Storage';
+
+            const totalTitle = document.getElementById('dashTotalCardTitle');
+            if (totalTitle) totalTitle.textContent = 'My Stored Items';
+
+            const totalSub = document.getElementById('dashTotalSubtext');
+            if (totalSub) totalSub.textContent = 'Active stored foods';
+
+            const newScanText = document.getElementById('dashNewScanBtnText');
+            if (newScanText) newScanText.textContent = 'Scan Food';
+
+            const subGreeting = document.getElementById('dashSubGreeting');
+            if (subGreeting) subGreeting.textContent = 'Tracking your personal food freshness and storage longevity.';
+
+            const sidebarInv = document.getElementById('sidebarInventoryLink');
+            if (sidebarInv) {
+                sidebarInv.href = 'inventory.html?scope=personal';
+                sidebarInv.innerHTML = `<span class="material-symbols-outlined text-[20px]">shelves</span> My Storage`;
+            }
+        }
+
         try {
             const res = await fetch(`${API_BASE_URL}/dashboard/summary`, {
                 headers: {
@@ -479,7 +511,7 @@
                 alertsContainer.innerHTML = `
                     <div class="p-3 bg-white rounded-lg border border-[#bbf7d0] shadow-sm">
                         <div class="text-sm font-bold text-[#166534]">No active alerts</div>
-                        <div class="text-xs text-on-surface-variant mt-1">All storage parameters within optimal ranges.</div>
+                        <div class="text-xs text-on-surface-variant mt-1">All monitored storage conditions normal.</div>
                     </div>
                 `;
             }
@@ -488,29 +520,49 @@
             const tableBody = document.getElementById('dashTableBody');
             if (data.recent_items && data.recent_items.length > 0) {
                 tableBody.innerHTML = data.recent_items.map(item => {
-                    const statusClass = (item.freshness_status || '').toLowerCase() === 'fresh' ? 'status-fresh' :
-                                       ((item.freshness_status || '').toLowerCase() === 'good' ? 'status-good' : 'status-alert');
+                    const st = (item.freshness_status || '').toLowerCase();
+                    const statusClass = st === 'fresh' ? 'status-fresh' :
+                                       (st === 'good' || st === 'acceptable' ? 'status-good' : 'status-alert');
+                    
+                    let expiryBadge = 'N/A';
+                    if (item.estimated_expiry_days !== undefined && item.estimated_expiry_days !== null) {
+                        if (item.estimated_expiry_days === 0) {
+                            expiryBadge = '<span class="text-red-600 font-bold">Expired</span>';
+                        } else if (item.estimated_expiry_days <= 2) {
+                            expiryBadge = `<span class="text-amber-600 font-bold">${item.estimated_expiry_days} Days (Expiring Soon)</span>`;
+                        } else {
+                            expiryBadge = `<span class="text-emerald-700 font-semibold">${item.estimated_expiry_days} Days</span>`;
+                        }
+                    }
+
+                    const defaultImg = 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=100&auto=format&fit=crop';
                     return `
                         <tr onclick="window.location.href='item-details.html?id=${item.id}'" class="hover:bg-surface-container/50 transition-colors cursor-pointer">
                             <td class="py-3 pl-2">
                                 <div class="flex items-center gap-3">
-                                    <img alt="${item.name}" class="w-10 h-10 rounded-md object-cover border border-outline-variant/20" src="${item.image_url || 'https://via.placeholder.com/100'}"/>
-                                    <span class="font-semibold text-on-surface">${item.name}</span>
+                                    <img alt="${item.name}" class="w-10 h-10 rounded-md object-cover border border-outline-variant/20" src="${item.image_url || defaultImg}" onerror="this.src='${defaultImg}'"/>
+                                    <div>
+                                        <div class="font-semibold text-on-surface">${item.name}</div>
+                                        <div class="text-xs text-on-surface-variant">${item.category || 'Produce'}</div>
+                                    </div>
                                 </div>
                             </td>
                             <td class="py-3 text-on-surface-variant font-mono text-xs">${item.batch_id}</td>
                             <td class="py-3">
                                 <span class="status-badge ${statusClass}">
-                                    <span class="material-symbols-outlined text-[14px]">verified</span> ${item.freshness_status}
+                                    <span class="material-symbols-outlined text-[14px]">verified</span> ${item.freshness_status || 'Good'}
                                 </span>
                             </td>
                             <td class="py-3 font-semibold text-on-surface">${Math.round(item.freshness_score || 90)}%</td>
-                            <td class="py-3 text-right text-on-surface-variant pr-2">${item.estimated_expiry_days ? item.estimated_expiry_days + ' Days' : 'N/A'}</td>
+                            <td class="py-3 text-right pr-2">${expiryBadge}</td>
                         </tr>
                     `;
                 }).join('');
             } else {
-                tableBody.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-on-surface-variant">No items found in inventory.</td></tr>`;
+                const emptyMsg = (user && user.role === 'consumer') 
+                    ? 'No items found in your storage yet. Click "+ Scan Food" or go to Storage to add items!'
+                    : 'No items found in inventory.';
+                tableBody.innerHTML = `<tr><td colspan="5" class="py-8 text-center text-on-surface-variant">${emptyMsg}</td></tr>`;
             }
 
         } catch (err) {

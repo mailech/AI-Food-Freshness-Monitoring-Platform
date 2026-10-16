@@ -5,3 +5,24 @@ __pycache__/
 .venv/
 venv/
 models/*.pth
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+backend/.env
+backend/.env.*
+!backend/.env.example
+
+# Python generated files
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Test and tool caches
+.pytest_cache/
+.mypy_cache/
+
+# Model shared separately through Google Drive
+models/*.keras

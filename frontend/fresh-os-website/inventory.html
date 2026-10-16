@@ -5,7 +5,7 @@
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>Fresh.OS - Inventory</title>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<script src="auth.js"></script>
+<script src="auth.js?v=2.5"></script>
 <link href="https://fonts.googleapis.com" rel="preconnect"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&amp;family=Sora:wght@600;700&amp;display=swap" rel="stylesheet"/>
@@ -130,7 +130,7 @@
 <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">add</span>
                 New Scan
             </button>
-<div class="flex-1 flex flex-col gap-1">
+<div class="flex-1 flex-col gap-1 flex">
 <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-high dark:hover:bg-surface-variant font-label-md text-label-md hover:scale-[1.02] transition-transform" href="dashboard.html">
 <span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
                     Dashboard
@@ -170,13 +170,32 @@
 <!-- Page Header -->
 <header class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
 <div>
-<h2 class="font-display font-headline-lg-mobile md:font-headline-lg text-on-surface">Inventory Management</h2>
-<p id="inventory-count" class="font-body-md text-body-md text-on-surface-variant mt-1">Loading inventory...</p>
+<h2 id="page-title" class="font-display font-headline-lg-mobile md:font-headline-lg text-on-surface">Inventory Management</h2>
+<p id="inventory-count" class="font-body-md text-body-md text-on-surface-variant mt-1">Loading items...</p>
 </div>
-<button onclick="window.location.href='upload-scan.html'" class="bg-primary-container text-on-primary rounded-full py-3 px-6 font-label-md text-label-md font-bold flex items-center justify-center gap-2 hover:bg-primary-container/90 transition-colors shrink-0">
-<span class="material-symbols-outlined">add</span>
-                        Add Item
-                    </button>
+<div class="flex items-center flex-wrap gap-3">
+<div id="storageScopeTabs" class="flex items-center p-1 bg-surface-container rounded-full border border-surface-variant/80">
+<button id="tab-personal" onclick="switchStorageScope('personal')" class="px-4 py-2 rounded-full font-label-md text-label-md font-bold bg-primary text-on-primary shadow-sm transition-all flex items-center gap-1.5 cursor-pointer">
+<span class="material-symbols-outlined text-[18px]">shelves</span>
+My Storage
+</button>
+<button id="tab-shared" onclick="switchStorageScope('shared')" class="px-4 py-2 rounded-full font-label-md text-label-md font-semibold text-on-surface-variant hover:text-on-surface transition-all flex items-center gap-1.5 cursor-pointer">
+<span class="material-symbols-outlined text-[18px]">inventory_2</span>
+Shared Facilities
+</button>
+</div>
+<button id="btnAddInventoryItem" onclick="openItemModal('create')" class="hidden bg-primary text-on-primary rounded-full py-2.5 px-5 font-label-md text-label-md font-bold flex items-center justify-center gap-1.5 hover:bg-primary/90 transition-all shrink-0 shadow-sm cursor-pointer hover:scale-[1.02]">
+<span class="material-symbols-outlined text-[18px]">add_circle</span>
+Add Item
+</button>
+<button id="btnScanItem" onclick="window.location.href='upload-scan.html'" class="bg-primary-container text-on-primary rounded-full py-2.5 px-5 font-label-md text-label-md font-semibold flex items-center justify-center gap-1.5 hover:bg-primary transition-colors shrink-0 shadow-sm cursor-pointer hover:scale-[1.02]">
+<span class="material-symbols-outlined text-[18px]">photo_camera</span>
+Scan Item
+</button>
+<button id="notificationBellBtn" onclick="toggleNotificationDropdown(event, this)" data-notification-bell="true" title="Spoilage &amp; Expiry Alerts" class="relative p-2.5 rounded-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors border border-surface-variant/80">
+<span class="material-symbols-outlined text-[24px]">notifications</span>
+</button>
+</div>
 </header>
 <!-- Filters -->
 <section class="bg-surface-container-lowest rounded-card border border-surface-variant p-6 mb-8 ambient-shadow flex flex-col md:flex-row gap-4 items-center justify-between">
@@ -185,12 +204,16 @@
 <button onclick="filterCategory('Produce', this)" class="category-btn px-4 py-2 rounded-full border border-surface-variant text-on-surface-variant hover:bg-surface-container font-label-md text-label-md whitespace-nowrap transition-colors">Produce</button>
 <button onclick="filterCategory('Dairy', this)" class="category-btn px-4 py-2 rounded-full border border-surface-variant text-on-surface-variant hover:bg-surface-container font-label-md text-label-md whitespace-nowrap transition-colors">Dairy</button>
 <button onclick="filterCategory('Meat', this)" class="category-btn px-4 py-2 rounded-full border border-surface-variant text-on-surface-variant hover:bg-surface-container font-label-md text-label-md whitespace-nowrap transition-colors">Meat</button>
+<button onclick="filterCategory('Leafy Greens', this)" class="category-btn px-4 py-2 rounded-full border border-surface-variant text-on-surface-variant hover:bg-surface-container font-label-md text-label-md whitespace-nowrap transition-colors">Leafy Greens</button>
+<button onclick="filterCategory('Citrus Fruits', this)" class="category-btn px-4 py-2 rounded-full border border-surface-variant text-on-surface-variant hover:bg-surface-container font-label-md text-label-md whitespace-nowrap transition-colors">Citrus Fruits</button>
+<button onclick="filterCategory('Berries', this)" class="category-btn px-4 py-2 rounded-full border border-surface-variant text-on-surface-variant hover:bg-surface-container font-label-md text-label-md whitespace-nowrap transition-colors">Berries</button>
+<button onclick="filterCategory('Root Vegetables', this)" class="category-btn px-4 py-2 rounded-full border border-surface-variant text-on-surface-variant hover:bg-surface-container font-label-md text-label-md whitespace-nowrap transition-colors">Root Vegetables</button>
 <button onclick="filterCategory('Dry Goods', this)" class="category-btn px-4 py-2 rounded-full border border-surface-variant text-on-surface-variant hover:bg-surface-container font-label-md text-label-md whitespace-nowrap transition-colors">Dry Goods</button>
 </div>
 <div class="flex items-center gap-4 w-full md:w-auto shrink-0">
-<div class="relative w-full md:w-64">
+<div class="relative w-full md:w-72">
 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
-<input id="inventory-search" oninput="handleSearchInput(this.value)" class="w-full pl-10 pr-4 py-2 rounded-lg border border-surface-variant bg-transparent font-body-md text-body-md focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all" placeholder="Search inventory..." type="text"/>
+<input id="inventory-search" oninput="handleSearchInput(this.value)" class="w-full pl-10 pr-4 py-2 rounded-lg border border-surface-variant bg-transparent font-body-md text-body-md focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all" placeholder="Search by item name or batch #..." type="text"/>
 </div>
 </div>
 </section>
@@ -198,12 +221,173 @@
 <div id="inventory-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-gutter pb-12">
 <!-- Rendered dynamically -->
 </div>
+
+<!-- Create / Edit Common Inventory Modal -->
+<div id="itemModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs hidden items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-surface-container-lowest border border-surface-variant rounded-2xl p-6 sm:p-8 shadow-2xl max-w-xl w-full my-8 relative flex flex-col gap-5 text-on-surface">
+        <div class="flex items-center justify-between pb-3 border-b border-surface-variant">
+            <div class="flex items-center gap-2.5">
+                <div id="itemModalIconBg" class="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+                    <span id="itemModalIcon" class="material-symbols-outlined">add_box</span>
+                </div>
+                <div>
+                    <h3 id="itemModalTitle" class="font-headline-md text-title-lg font-bold">Add Inventory Item</h3>
+                    <p id="itemModalSubtitle" class="text-xs text-on-surface-variant">Facility &amp; warehouse common stock</p>
+                </div>
+            </div>
+            <button onclick="closeItemModal()" class="w-8 h-8 rounded-full hover:bg-surface-container flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+
+        <form id="itemForm" onsubmit="handleItemFormSubmit(event)" class="flex flex-col gap-4">
+            <input type="hidden" id="formItemId" value=""/>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="sm:col-span-2">
+                    <label class="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1">Item Name *</label>
+                    <input type="text" id="formItemName" required placeholder="e.g. Crisp Honeycrisp Apples" class="w-full px-3.5 py-2.5 rounded-lg border border-surface-variant bg-surface-container-lowest font-body-md text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"/>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1">Category *</label>
+                    <select id="formItemCategory" required class="w-full px-3.5 py-2.5 rounded-lg border border-surface-variant bg-surface-container-lowest font-body-md text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all">
+                        <option value="Produce">Produce</option>
+                        <option value="Dairy">Dairy</option>
+                        <option value="Meat">Meat</option>
+                        <option value="Leafy Greens">Leafy Greens</option>
+                        <option value="Citrus Fruits">Citrus Fruits</option>
+                        <option value="Berries">Berries</option>
+                        <option value="Root Vegetables">Root Vegetables</option>
+                        <option value="Dry Goods">Dry Goods</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1">Batch / Lot ID *</label>
+                    <div class="flex gap-1.5">
+                        <input type="text" id="formItemBatchId" required placeholder="LOT-PRD-01" class="w-full px-3.5 py-2.5 rounded-lg border border-surface-variant bg-surface-container-lowest font-mono text-sm uppercase focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"/>
+                        <button type="button" onclick="generateBatchId()" title="Generate Random Lot #" class="px-3 py-2 bg-surface-container hover:bg-surface-variant rounded-lg text-xs font-bold shrink-0 transition-colors cursor-pointer">
+                            Gen
+                        </button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1">Quantity *</label>
+                    <input type="number" id="formItemQuantity" step="0.1" min="0.1" required value="10.0" class="w-full px-3.5 py-2.5 rounded-lg border border-surface-variant bg-surface-container-lowest font-body-md text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"/>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1">Unit</label>
+                    <select id="formItemUnit" class="w-full px-3.5 py-2.5 rounded-lg border border-surface-variant bg-surface-container-lowest font-body-md text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all">
+                        <option value="kg">kg</option>
+                        <option value="items">items</option>
+                        <option value="crates">crates</option>
+                        <option value="boxes">boxes</option>
+                        <option value="liters">liters</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1">Freshness Status</label>
+                    <select id="formItemStatus" onchange="syncRiskFromStatus(this.value)" class="w-full px-3.5 py-2.5 rounded-lg border border-surface-variant bg-surface-container-lowest font-body-md text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all">
+                        <option value="Fresh">Fresh</option>
+                        <option value="Good">Good</option>
+                        <option value="Acceptable">Acceptable</option>
+                        <option value="Near Spoilage">Near Spoilage</option>
+                        <option value="Spoiled">Spoiled</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1">Spoilage Risk</label>
+                    <select id="formItemRisk" class="w-full px-3.5 py-2.5 rounded-lg border border-surface-variant bg-surface-container-lowest font-body-md text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all">
+                        <option value="Low">Low</option>
+                        <option value="Medium">Medium</option>
+                        <option value="High">High</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1">Storage Temp (°C)</label>
+                    <input type="number" id="formItemTemp" step="0.5" value="4.0" class="w-full px-3.5 py-2.5 rounded-lg border border-surface-variant bg-surface-container-lowest font-body-md text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"/>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1">Ambient Humidity (%)</label>
+                    <input type="number" id="formItemHumidity" step="1" min="0" max="100" value="85" class="w-full px-3.5 py-2.5 rounded-lg border border-surface-variant bg-surface-container-lowest font-body-md text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"/>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1">Est. Shelf Life (Days)</label>
+                    <input type="number" id="formItemExpiryDays" min="0" value="7" class="w-full px-3.5 py-2.5 rounded-lg border border-surface-variant bg-surface-container-lowest font-body-md text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"/>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1">Freshness Score (0-100)</label>
+                    <input type="number" id="formItemScore" min="0" max="100" value="95" class="w-full px-3.5 py-2.5 rounded-lg border border-surface-variant bg-surface-container-lowest font-body-md text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"/>
+                </div>
+
+                <div class="sm:col-span-2">
+                    <label class="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1">Origin / Storage Facility</label>
+                    <input type="text" id="formItemOrigin" placeholder="e.g. Central Warehouse Bay 4" value="Central Facility" class="w-full px-3.5 py-2.5 rounded-lg border border-surface-variant bg-surface-container-lowest font-body-md text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"/>
+                </div>
+
+                <div class="sm:col-span-2">
+                    <label class="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1">Image URL</label>
+                    <input type="url" id="formItemImageUrl" placeholder="https://..." class="w-full px-3.5 py-2.5 rounded-lg border border-surface-variant bg-surface-container-lowest font-body-md text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"/>
+                    <div class="flex gap-2 mt-2 overflow-x-auto text-[11px] text-on-surface-variant">
+                        <span class="font-bold shrink-0 self-center">Presets:</span>
+                        <button type="button" onclick="setFormImage('https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?auto=format&fit=crop&w=400&q=80')" class="px-2 py-0.5 rounded bg-surface-container hover:bg-surface-variant cursor-pointer">Apples</button>
+                        <button type="button" onclick="setFormImage('https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?auto=format&fit=crop&w=400&q=80')" class="px-2 py-0.5 rounded bg-surface-container hover:bg-surface-variant cursor-pointer">Bananas</button>
+                        <button type="button" onclick="setFormImage('https://images.unsplash.com/photo-1611080626919-7cf5a9dbab5b?auto=format&fit=crop&w=400&q=80')" class="px-2 py-0.5 rounded bg-surface-container hover:bg-surface-variant cursor-pointer">Oranges</button>
+                        <button type="button" onclick="setFormImage('https://images.unsplash.com/photo-1524179091875-bf99a9a6fa57?auto=format&fit=crop&w=400&q=80')" class="px-2 py-0.5 rounded bg-surface-container hover:bg-surface-variant cursor-pointer">Berries</button>
+                        <button type="button" onclick="setFormImage('https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=400&q=80')" class="px-2 py-0.5 rounded bg-surface-container hover:bg-surface-variant cursor-pointer">Greens</button>
+                        <button type="button" onclick="setFormImage('https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=400&q=80')" class="px-2 py-0.5 rounded bg-surface-container hover:bg-surface-variant cursor-pointer">Dairy</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="formErrorMessage" class="hidden p-3 rounded-lg bg-error/10 text-error text-xs font-semibold"></div>
+
+            <div class="flex items-center justify-end gap-3 pt-3 border-t border-surface-variant mt-2">
+                <button type="button" onclick="closeItemModal()" class="px-5 py-2.5 rounded-full border border-surface-variant font-label-md text-sm font-semibold hover:bg-surface-container transition-colors cursor-pointer">
+                    Cancel
+                </button>
+                <button type="submit" id="btnSubmitItemModal" class="px-6 py-2.5 rounded-full bg-primary text-on-primary font-label-md text-sm font-bold hover:bg-primary/90 transition-all flex items-center gap-1.5 shadow-sm cursor-pointer hover:scale-[1.02]">
+                    <span class="material-symbols-outlined text-[18px]">check</span>
+                    <span id="btnSubmitItemText">Save Item</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 </main>
 </div>
 <script>
     let activeCategory = 'All';
     let activeSearch = '';
+    let activeScope = 'personal';
     let searchTimeout = null;
+    let currentUserProfile = null;
+    let currentInventoryItems = [];
+
+    function formatElapsedTime(dateStr) {
+        if (!dateStr) return '';
+        try {
+            const date = new Date(dateStr);
+            const now = new Date();
+            const diffMs = Math.max(0, now.getTime() - date.getTime());
+            const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+            const diffDays = Math.floor(diffHours / 24);
+            if (diffDays > 0) return `Stored ${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+            if (diffHours > 0) return `Stored ${diffHours} hr${diffHours === 1 ? '' : 's'} ago`;
+            return 'Stored just now';
+        } catch (e) {
+            return '';
+        }
+    }
 
     function getStatusClass(status) {
         const s = (status || '').toLowerCase();
@@ -215,16 +399,243 @@
         return 'status-good';
     }
 
+    function switchStorageScope(scope) {
+        if (currentUserProfile && currentUserProfile.role !== 'consumer') {
+            // Staff / Management (warehouse manager, retail manager, admin, inspector) cannot access consumer storage
+            scope = 'shared';
+        }
+        activeScope = scope;
+        const sharedBtn = document.getElementById('tab-shared');
+        const personalBtn = document.getElementById('tab-personal');
+        const pageTitle = document.getElementById('page-title');
+
+        if (scope === 'shared') {
+            sharedBtn.className = 'px-4 py-2 rounded-full font-label-md text-label-md font-bold bg-primary text-on-primary shadow-sm transition-all flex items-center gap-1.5 cursor-pointer';
+            personalBtn.className = 'px-4 py-2 rounded-full font-label-md text-label-md font-semibold text-on-surface-variant hover:text-on-surface transition-all flex items-center gap-1.5 cursor-pointer';
+            if (pageTitle) pageTitle.textContent = 'Shared Facility Inventory';
+        } else {
+            personalBtn.className = 'px-4 py-2 rounded-full font-label-md text-label-md font-bold bg-primary text-on-primary shadow-sm transition-all flex items-center gap-1.5 cursor-pointer';
+            sharedBtn.className = 'px-4 py-2 rounded-full font-label-md text-label-md font-semibold text-on-surface-variant hover:text-on-surface transition-all flex items-center gap-1.5 cursor-pointer';
+            if (pageTitle) pageTitle.textContent = 'My Food Storage';
+        }
+
+        loadInventory();
+    }
+
+    async function deletePersonalItem(itemId) {
+        if (!confirm('Are you sure you want to mark this item as consumed or remove it from your personal storage?')) {
+            return;
+        }
+
+        const token = getAuthToken();
+        try {
+            const res = await fetch(`${API_BASE_URL}/inventory/storage/${itemId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (res.ok) {
+                loadInventory();
+            } else {
+                alert('Failed to remove item.');
+            }
+        } catch (e) {
+            alert('Unable to connect to server.');
+        }
+    }
+
+    async function deleteCommonItem(itemId, itemName) {
+        if (!confirm(`Are you sure you want to permanently delete "${itemName}" from common inventory? This action cannot be undone.`)) {
+            return;
+        }
+
+        const token = getAuthToken();
+        try {
+            const res = await fetch(`${API_BASE_URL}/inventory/${itemId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (res.ok) {
+                loadInventory();
+            } else {
+                const err = await res.json().catch(() => ({}));
+                alert(err.detail || 'Failed to delete common inventory item.');
+            }
+        } catch (e) {
+            alert('Unable to connect to server.');
+        }
+    }
+
+    function editCommonItemById(itemId) {
+        const item = currentInventoryItems.find(it => it.id === itemId);
+        if (item) {
+            openItemModal('edit', item);
+        }
+    }
+
+    function openItemModal(mode, item) {
+        const modal = document.getElementById('itemModal');
+        const title = document.getElementById('itemModalTitle');
+        const icon = document.getElementById('itemModalIcon');
+        const submitText = document.getElementById('btnSubmitItemText');
+        const errorBox = document.getElementById('formErrorMessage');
+
+        if (errorBox) errorBox.classList.add('hidden');
+
+        if (mode === 'edit' && item) {
+            title.textContent = 'Edit Common Inventory Item';
+            icon.textContent = 'edit_note';
+            submitText.textContent = 'Save Changes';
+
+            document.getElementById('formItemId').value = item.id;
+            document.getElementById('formItemName').value = item.name || '';
+            document.getElementById('formItemCategory').value = item.category || 'Produce';
+            document.getElementById('formItemBatchId').value = item.batch_id || '';
+            document.getElementById('formItemQuantity').value = item.quantity ?? 10.0;
+            document.getElementById('formItemUnit').value = item.unit || 'kg';
+            document.getElementById('formItemStatus').value = item.freshness_status || 'Fresh';
+            document.getElementById('formItemRisk').value = item.spoilage_risk || 'Low';
+            document.getElementById('formItemTemp').value = item.storage_temperature ?? 4.0;
+            document.getElementById('formItemHumidity').value = item.humidity ?? 85.0;
+            document.getElementById('formItemExpiryDays').value = item.estimated_expiry_days ?? 7;
+            document.getElementById('formItemScore').value = Math.round(item.freshness_score ?? 95);
+            document.getElementById('formItemOrigin').value = item.origin_location || 'Central Facility';
+            document.getElementById('formItemImageUrl').value = item.image_url || '';
+        } else {
+            title.textContent = 'Add Inventory Item';
+            icon.textContent = 'add_box';
+            submitText.textContent = 'Create Item';
+
+            document.getElementById('formItemId').value = '';
+            document.getElementById('formItemName').value = '';
+            document.getElementById('formItemCategory').value = 'Produce';
+            generateBatchId();
+            document.getElementById('formItemQuantity').value = '10.0';
+            document.getElementById('formItemUnit').value = 'kg';
+            document.getElementById('formItemStatus').value = 'Fresh';
+            document.getElementById('formItemRisk').value = 'Low';
+            document.getElementById('formItemTemp').value = '4.0';
+            document.getElementById('formItemHumidity').value = '85';
+            document.getElementById('formItemExpiryDays').value = '7';
+            document.getElementById('formItemScore').value = '95';
+            document.getElementById('formItemOrigin').value = 'Central Warehouse';
+            document.getElementById('formItemImageUrl').value = 'https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?auto=format&fit=crop&w=400&q=80';
+        }
+
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    function closeItemModal() {
+        const modal = document.getElementById('itemModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+
+    function generateBatchId() {
+        const prefix = 'LOT-FAC';
+        const num = Math.floor(1000 + Math.random() * 9000);
+        document.getElementById('formItemBatchId').value = `${prefix}-${num}`;
+    }
+
+    function setFormImage(url) {
+        document.getElementById('formItemImageUrl').value = url;
+    }
+
+    function syncRiskFromStatus(status) {
+        const riskEl = document.getElementById('formItemRisk');
+        const scoreEl = document.getElementById('formItemScore');
+        if (status === 'Fresh') {
+            riskEl.value = 'Low';
+            scoreEl.value = 95;
+        } else if (status === 'Good') {
+            riskEl.value = 'Low';
+            scoreEl.value = 85;
+        } else if (status === 'Acceptable') {
+            riskEl.value = 'Medium';
+            scoreEl.value = 70;
+        } else if (status === 'Near Spoilage') {
+            riskEl.value = 'High';
+            scoreEl.value = 45;
+        } else if (status === 'Spoiled') {
+            riskEl.value = 'High';
+            scoreEl.value = 15;
+        }
+    }
+
+    async function handleItemFormSubmit(e) {
+        e.preventDefault();
+        const token = getAuthToken();
+        if (!token) return;
+
+        const itemId = document.getElementById('formItemId').value;
+        const errorBox = document.getElementById('formErrorMessage');
+        const submitBtn = document.getElementById('btnSubmitItemModal');
+        errorBox.classList.add('hidden');
+
+        const payload = {
+            name: document.getElementById('formItemName').value.trim(),
+            category: document.getElementById('formItemCategory').value,
+            batch_id: document.getElementById('formItemBatchId').value.trim(),
+            quantity: parseFloat(document.getElementById('formItemQuantity').value) || 1.0,
+            unit: document.getElementById('formItemUnit').value,
+            freshness_status: document.getElementById('formItemStatus').value,
+            spoilage_risk: document.getElementById('formItemRisk').value,
+            freshness_score: parseFloat(document.getElementById('formItemScore').value) || 95.0,
+            storage_temperature: parseFloat(document.getElementById('formItemTemp').value) || 4.0,
+            humidity: parseFloat(document.getElementById('formItemHumidity').value) || 85.0,
+            estimated_expiry_days: parseInt(document.getElementById('formItemExpiryDays').value) || 7,
+            origin_location: document.getElementById('formItemOrigin').value.trim(),
+            image_url: document.getElementById('formItemImageUrl').value.trim()
+        };
+
+        submitBtn.disabled = true;
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<span class="material-symbols-outlined animate-spin text-sm">progress_activity</span> Saving...';
+
+        try {
+            const url = itemId ? `${API_BASE_URL}/inventory/${itemId}` : `${API_BASE_URL}/inventory`;
+            const method = itemId ? 'PUT' : 'POST';
+
+            const res = await fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.detail || 'Failed to save inventory item');
+            }
+
+            closeItemModal();
+            loadInventory();
+        } catch (err) {
+            errorBox.textContent = err.message || 'Error occurred while saving item.';
+            errorBox.classList.remove('hidden');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        }
+    }
+
     async function loadInventory() {
         const token = getAuthToken();
         if (!token) return;
 
         const countEl = document.getElementById('inventory-count');
         const gridEl = document.getElementById('inventory-grid');
-        gridEl.innerHTML = '<div class="col-span-full py-12 text-center text-on-surface-variant font-body-md">Loading items from server...</div>';
+        gridEl.innerHTML = '<div class="col-span-full py-12 text-center text-on-surface-variant font-body-md"><span class="material-symbols-outlined animate-spin text-2xl text-primary mb-2">progress_activity</span><div>Loading food items from server...</div></div>';
 
         try {
-            let url = `${API_BASE_URL}/inventory?limit=100`;
+            let url = activeScope === 'personal'
+                ? `${API_BASE_URL}/inventory/storage?limit=100`
+                : `${API_BASE_URL}/inventory?scope=shared&limit=100`;
+
             if (activeCategory && activeCategory !== 'All') {
                 url += `&category=${encodeURIComponent(activeCategory)}`;
             }
@@ -237,37 +648,123 @@
             });
 
             if (!response.ok) {
-                gridEl.innerHTML = '<div class="col-span-full py-12 text-center text-error font-body-md">Failed to load inventory items.</div>';
+                gridEl.innerHTML = '<div class="col-span-full py-12 text-center text-error font-body-md">Failed to load items. Please verify authentication.</div>';
                 return;
             }
 
             const data = await response.json();
-            countEl.textContent = `${data.total.toLocaleString()} item${data.total === 1 ? '' : 's'} currently tracked across all facilities.`;
+            currentInventoryItems = data.items || [];
+
+            if (activeScope === 'personal') {
+                countEl.textContent = `${data.total.toLocaleString()} item${data.total === 1 ? '' : 's'} stored in your personal food storage.`;
+            } else {
+                countEl.textContent = `${data.total.toLocaleString()} item${data.total === 1 ? '' : 's'} currently tracked across shared facilities.`;
+            }
 
             if (!data.items || data.items.length === 0) {
-                gridEl.innerHTML = '<div class="col-span-full py-12 text-center text-on-surface-variant font-body-md">No inventory items found matching your filter.</div>';
+                const isPersonal = activeScope === 'personal';
+                gridEl.innerHTML = isPersonal ? `
+                    <div class="col-span-full py-16 text-center text-on-surface-variant font-body-md flex flex-col items-center justify-center gap-3">
+                        <div class="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                            <span class="material-symbols-outlined text-4xl">shelves</span>
+                        </div>
+                        <h4 class="font-headline-md text-title-lg text-on-surface">Your personal storage is empty</h4>
+                        <p class="max-w-md text-sm text-on-surface-variant">Store groceries, produce, and fresh items to monitor live shelf-life and receive automatic spoilage alerts.</p>
+                        <div class="flex gap-3 mt-2">
+                            <button onclick="window.location.href='upload-scan.html'" class="px-5 py-2.5 rounded-full bg-primary text-on-primary font-label-md text-sm font-semibold hover:bg-primary-container transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm">
+                                <span class="material-symbols-outlined text-[18px]">photo_camera</span> Scan Food Item
+                            </button>
+                        </div>
+                    </div>
+                ` : `
+                    <div class="col-span-full py-12 text-center text-on-surface-variant font-body-md flex flex-col items-center gap-3">
+                        <div>No inventory items found matching your filter.</div>
+                        ${currentUserProfile && ['retail_manager', 'warehouse_operator', 'warehouse_manager', 'admin'].includes(currentUserProfile.role) ? `
+                            <div class="flex items-center gap-2.5 mt-1">
+                                <button onclick="window.location.href='upload-scan.html'" class="px-5 py-2 rounded-full bg-primary-container text-on-primary text-xs font-bold flex items-center gap-1.5 hover:bg-primary transition-colors cursor-pointer shadow-sm">
+                                    <span class="material-symbols-outlined text-[16px]">photo_camera</span> Scan Item
+                                </button>
+                                <button onclick="openItemModal('create')" class="px-5 py-2 rounded-full bg-primary text-on-primary text-xs font-bold flex items-center gap-1.5 hover:bg-primary/90 transition-colors cursor-pointer shadow-sm">
+                                    <span class="material-symbols-outlined text-[16px]">add_circle</span> Add Item
+                                </button>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
                 return;
             }
 
-            gridEl.innerHTML = data.items.map(item => `
-                <article onclick="window.location.href='item-details.html?id=${item.id}'" class="bg-surface-container-lowest rounded-card border border-surface-variant p-6 ambient-shadow hover:shadow-lg transition-shadow duration-300 group cursor-pointer flex flex-col h-full">
-                    <div class="h-48 rounded-lg mb-4 overflow-hidden bg-surface-container">
-                        <img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src="${item.image_url || 'https://via.placeholder.com/300'}" alt="${item.name}"/>
-                    </div>
-                    <div class="flex justify-between items-start mb-2">
-                        <h3 class="font-title-lg text-title-lg text-on-surface">${item.name}</h3>
-                        <span class="px-3 py-1 rounded-full font-label-sm text-label-sm ${getStatusClass(item.freshness_status)}">${item.freshness_status}</span>
-                    </div>
-                    <p class="font-body-md text-body-md text-on-surface-variant mb-4">Lot: #${item.batch_id}</p>
-                    <div class="mt-auto pt-4 border-t border-surface-variant flex justify-between items-center">
-                        <div class="flex flex-col">
-                            <span class="font-label-sm text-label-sm text-on-surface-variant">Est. Expiry</span>
-                            <span class="font-label-md text-label-md text-on-surface">${item.estimated_expiry_days ? item.estimated_expiry_days + ' Days' : 'N/A'}</span>
+            const canManage = currentUserProfile && ['retail_manager', 'warehouse_operator', 'warehouse_manager', 'admin'].includes(currentUserProfile.role);
+
+            gridEl.innerHTML = data.items.map(item => {
+                const isPersonal = activeScope === 'personal';
+                const elapsedBadge = isPersonal && item.created_at ? formatElapsedTime(item.created_at) : '';
+                
+                let expiryDisplay = '';
+                const days = item.estimated_expiry_days;
+                if (days === 0) {
+                    expiryDisplay = '<span class="text-error font-bold flex items-center gap-1"><span class="material-symbols-outlined text-[15px]">warning</span> Expired</span>';
+                } else if (days === 1) {
+                    expiryDisplay = '<span class="text-error font-bold flex items-center gap-1"><span class="material-symbols-outlined text-[15px]">schedule</span> 1 Day Left (Consume Today)</span>';
+                } else if (days <= 3) {
+                    expiryDisplay = `<span class="text-[#b45309] font-bold">${days} Days Left</span>`;
+                } else {
+                    expiryDisplay = `<span class="text-primary font-bold">${days !== null && days !== undefined ? days + ' Days Left' : 'N/A'}</span>`;
+                }
+
+                return `
+                <article onclick="window.location.href='item-details.html?id=${item.id}'" class="bg-surface-container-lowest rounded-card border border-surface-variant p-6 ambient-shadow hover:shadow-lg transition-shadow duration-300 group cursor-pointer flex flex-col h-full relative">
+                    <div class="h-48 rounded-lg mb-4 overflow-hidden bg-surface-container relative">
+                        <img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src="${item.image_url || 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?auto=format&fit=crop&w=400&q=80'}" alt="${item.name}"/>
+                        
+                        ${isPersonal ? `
+                            <button onclick="event.stopPropagation(); deletePersonalItem(${item.id})" title="Mark Consumed / Remove" class="absolute top-2 right-2 w-8 h-8 rounded-full bg-surface/90 hover:bg-error hover:text-white text-on-surface-variant flex items-center justify-center shadow-md transition-colors cursor-pointer z-10">
+                                <span class="material-symbols-outlined text-[18px]">delete</span>
+                            </button>
+                        ` : ''}
+
+                        ${!isPersonal && canManage ? `
+                            <div class="absolute top-2 right-2 flex items-center gap-1.5 z-10">
+                                <button onclick="event.stopPropagation(); editCommonItemById(${item.id})" title="Edit Inventory Item" class="w-8 h-8 rounded-full bg-surface/90 hover:bg-primary hover:text-white text-on-surface-variant flex items-center justify-center shadow-md transition-colors cursor-pointer">
+                                    <span class="material-symbols-outlined text-[17px]">edit</span>
+                                </button>
+                                <button onclick="event.stopPropagation(); deleteCommonItem(${item.id}, '${(item.name || 'Item').replace(/'/g, "\\'")}')" title="Delete Inventory Item" class="w-8 h-8 rounded-full bg-surface/90 hover:bg-error hover:text-white text-on-surface-variant flex items-center justify-center shadow-md transition-colors cursor-pointer">
+                                    <span class="material-symbols-outlined text-[17px]">delete</span>
+                                </button>
+                            </div>
+                        ` : ''}
+
+                        <div class="absolute bottom-2 left-2 flex items-center gap-1.5">
+                            <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold ${getStatusClass(item.freshness_status)}">${item.freshness_status}</span>
+                            ${isPersonal ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-black/60 text-white backdrop-blur-xs">My Storage</span>` : ''}
                         </div>
-                        <span class="font-title-lg text-title-lg text-primary">${item.quantity} ${item.unit}</span>
+                    </div>
+                    <div class="flex justify-between items-start mb-1">
+                        <h3 class="font-title-lg text-title-lg text-on-surface font-semibold truncate" title="${item.name}">${item.name}</h3>
+                    </div>
+                    <div class="flex items-center justify-between text-xs text-on-surface-variant mb-4">
+                        <span class="font-mono">Lot #${item.batch_id}</span>
+                        <span class="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant font-semibold">${item.category || 'Produce'}</span>
+                    </div>
+                    ${elapsedBadge ? `
+                        <div class="text-[11px] text-on-surface-variant/80 mb-3 flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[13px] text-primary">history</span>
+                            <span>${elapsedBadge}</span>
+                        </div>
+                    ` : ''}
+                    <div class="mt-auto pt-3 border-t border-surface-variant flex justify-between items-center">
+                        <div class="flex flex-col">
+                            <span class="text-[10px] uppercase font-bold tracking-wider text-on-surface-variant/80">Remaining</span>
+                            ${expiryDisplay}
+                        </div>
+                        <div class="text-right">
+                            <span class="text-[10px] uppercase font-bold tracking-wider text-on-surface-variant/80 block">Qty</span>
+                            <span class="font-title-lg text-title-lg text-primary font-bold">${item.quantity} ${item.unit}</span>
+                        </div>
                     </div>
                 </article>
-            `).join('');
+                `;
+            }).join('');
         } catch (err) {
             gridEl.innerHTML = '<div class="col-span-full py-12 text-center text-error font-body-md">Unable to connect to backend server.</div>';
         }
@@ -290,8 +787,38 @@
         }, 300);
     }
 
-    requireAuth().then(() => {
-        loadInventory();
+    requireAuth().then((user) => {
+        currentUserProfile = user || getAuthUser();
+        const urlParams = new URLSearchParams(window.location.search);
+        const requestedScope = urlParams.get('scope');
+
+        const canManage = currentUserProfile && ['retail_manager', 'warehouse_operator', 'warehouse_manager', 'admin'].includes(currentUserProfile.role);
+        const btnAdd = document.getElementById('btnAddInventoryItem');
+        if (btnAdd) {
+            if (canManage) {
+                btnAdd.classList.remove('hidden');
+            } else {
+                btnAdd.classList.add('hidden');
+            }
+        }
+
+        const tabsContainer = document.getElementById('storageScopeTabs');
+        if (currentUserProfile && currentUserProfile.role === 'consumer') {
+            // Consumer role: default scope is 'personal' (My Storage) so customer storage is immediately visible!
+            if (tabsContainer) tabsContainer.classList.remove('hidden');
+            if (requestedScope === 'shared') {
+                switchStorageScope('shared');
+            } else {
+                switchStorageScope('personal');
+            }
+        } else {
+            // Staff / Management role (warehouse manager, retail manager, admin, inspector):
+            // Completely hide personal storage controls so consumer storage is inaccessible
+            if (tabsContainer) tabsContainer.classList.add('hidden');
+            const pageTitle = document.getElementById('page-title');
+            if (pageTitle) pageTitle.textContent = 'Common Facility Inventory';
+            switchStorageScope('shared');
+        }
     });
 </script>
 </body></html>

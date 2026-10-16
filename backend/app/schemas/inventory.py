@@ -26,7 +26,7 @@ class FoodItemBase(BaseModel):
 
 
 class FoodItemCreate(FoodItemBase):
-    pass
+    is_personal: Optional[bool] = False
 
 
 class FoodItemUpdate(BaseModel):
@@ -55,6 +55,8 @@ class FoodItemResponse(FoodItemBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    is_sample_data: bool = False
+    is_personal: bool = False
     user_id: Optional[int] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None

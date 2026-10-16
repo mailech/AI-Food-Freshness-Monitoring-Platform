@@ -5,7 +5,7 @@
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>Fresh.OS - Upload &amp; Scan</title>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<script src="auth.js"></script>
+<script src="auth.js?v=2.5"></script>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&amp;family=Manrope:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
@@ -109,6 +109,15 @@
         .card-border {
             border: 1px solid #F1F1EE;
         }
+        /* Custom Stepper Input: Hide Native Spinners */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
     </style>
 </head>
 <body class="bg-background text-on-background font-body-md min-h-screen flex text-body-md">
@@ -156,9 +165,14 @@
 </nav>
 <!-- Main Canvas -->
 <main class="flex-1 md:ml-64 p-margin-mobile md:p-margin-desktop max-w-container-max mx-auto w-full">
-<header class="mb-8">
+<header class="mb-8 flex items-center justify-between">
+<div>
 <h2 class="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface">Upload &amp; Scan</h2>
 <p class="text-on-surface-variant mt-2 font-body-lg text-body-lg">Analyze produce freshness with AI-powered vision.</p>
+</div>
+<button id="notificationBellBtn" onclick="toggleNotificationDropdown(event, this)" data-notification-bell="true" title="Near Spoilage Notifications" class="relative p-2.5 rounded-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors border border-surface-variant/80">
+<span class="material-symbols-outlined text-[24px]">notifications</span>
+</button>
 </header>
 <div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter">
 <!-- Left Column: Input -->
@@ -180,45 +194,112 @@
 <!-- Manual Parameters Form -->
 <div class="bg-surface-container-lowest rounded-[16px] card-border shadow-ambient p-6 md:p-8">
 <h3 class="font-title-lg text-title-lg text-on-surface mb-6 border-b border-surface-variant pb-4">Analysis Parameters</h3>
-<form class="space-y-6">
+<form class="space-y-6" onsubmit="event.preventDefault(); runAnalysis();">
 <div>
-<label class="block font-label-md text-label-md text-on-surface mb-2">Batch / Barcode ID</label>
-<input type="text" placeholder="Scan or enter batch barcode (e.g. BER-092-A)" class="w-full bg-surface-container-lowest border border-[#E5E7EB] rounded-lg px-4 py-3 font-body-md text-body-md text-on-surface focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all"/>
+<label class="block font-label-md text-label-md text-on-surface mb-2">Item Name</label>
+<input type="text" id="scanItemName" placeholder="Food item name (e.g. Honeycrisp Apple, Cavendish Banana, Navel Orange)" class="w-full bg-surface-container-lowest border border-[#E5E7EB] rounded-lg px-4 py-3 font-body-md text-body-md text-on-surface focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all"/>
 </div>
 <div>
-<label class="block font-label-md text-label-md text-on-surface mb-2">Product Category</label>
+<label class="block font-label-md text-label-md text-on-surface mb-2">Batch / Barcode ID</label>
+<input type="text" id="scanBatchId" placeholder="Scan or enter batch barcode (e.g. BER-092-A)" class="w-full bg-surface-container-lowest border border-[#E5E7EB] rounded-lg px-4 py-3 font-body-md text-body-md text-on-surface focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all"/>
+</div>
+<div>
+<label class="block font-label-md text-label-md text-on-surface mb-2">Food Selection</label>
 <div class="relative">
-<select class="w-full bg-surface-container-lowest border border-[#E5E7EB] rounded-lg px-4 py-3 font-body-md text-body-md text-on-surface focus:border-primary focus:ring-4 focus:ring-primary/10 appearance-none outline-none transition-all">
-<option>Select a category...</option>
-<option>Leafy Greens</option>
-<option>Citrus Fruits</option>
-<option>Berries</option>
-<option>Root Vegetables</option>
+<select id="scanCategorySelect" onchange="handleCategoryChange(this.value)" class="w-full bg-surface-container-lowest border border-[#E5E7EB] rounded-lg px-4 py-3 font-body-md text-body-md text-on-surface focus:border-primary focus:ring-4 focus:ring-primary/10 appearance-none outline-none transition-all">
+<option value="Apple" selected>Apple</option>
+<option value="Banana">Banana</option>
+<option value="Orange">Orange</option>
 </select>
 <span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" data-icon="expand_more">expand_more</span>
 </div>
 </div>
-<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-<div>
-<div class="flex justify-between mb-2">
-<label class="font-label-md text-label-md text-on-surface">Storage Temperature</label>
-<span class="font-label-sm text-label-sm text-on-surface-variant">4°C</span>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 p-5 rounded-2xl bg-surface-container-low/70 border border-outline-variant/40 shadow-sm">
+<!-- Storage Temperature Control -->
+<div class="space-y-3">
+<div class="flex justify-between items-center">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[22px]">thermostat</span>
+<label for="tempInput" class="font-label-md text-label-md text-on-surface font-semibold">Storage Temperature</label>
 </div>
-<input class="w-full accent-primary h-2 bg-surface-variant rounded-lg appearance-none cursor-pointer" max="25" min="0" type="range" value="4"/>
+<!-- Interactive Stepper Number Field -->
+<div class="flex items-center rounded-xl border border-outline-variant/70 bg-surface-container-lowest overflow-hidden shadow-sm focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+<button type="button" onclick="adjustTemp(-0.5)" aria-label="Decrease temperature" class="w-8 h-8 flex items-center justify-center text-on-surface-variant hover:bg-surface-container hover:text-primary transition-colors active:scale-95">
+<span class="material-symbols-outlined text-[18px]">remove</span>
+</button>
+<div class="flex items-center px-1">
+<input type="number" id="tempInput" min="-18" max="35" step="0.5" value="4" oninput="syncTempFromInput(this.value)" onchange="validateTempOnBlur()" onblur="validateTempOnBlur()" class="w-14 py-1 text-center font-label-md text-label-md text-primary font-bold bg-transparent border-0 outline-none focus:ring-0 appearance-none m-0"/>
+<span class="font-label-sm text-label-sm text-on-surface-variant pr-1 font-bold select-none">&deg;C</span>
 </div>
-<div>
-<div class="flex justify-between mb-2">
-<label class="font-label-md text-label-md text-on-surface">Humidity Level</label>
-<span class="font-label-sm text-label-sm text-on-surface-variant">85%</span>
+<button type="button" onclick="adjustTemp(0.5)" aria-label="Increase temperature" class="w-8 h-8 flex items-center justify-center text-on-surface-variant hover:bg-surface-container hover:text-primary transition-colors active:scale-95">
+<span class="material-symbols-outlined text-[18px]">add</span>
+</button>
 </div>
-<input class="w-full accent-primary h-2 bg-surface-variant rounded-lg appearance-none cursor-pointer" max="100" min="0" type="range" value="85"/>
+</div>
+<!-- Range Slider with Scale Labels -->
+<div class="space-y-1.5 pt-1">
+<input id="tempSlider" oninput="syncTempFromSlider(this.value)" onchange="syncTempFromSlider(this.value)" class="w-full accent-primary h-2 bg-surface-variant rounded-lg appearance-none cursor-pointer focus:outline-none" max="35" min="-18" step="0.5" type="range" value="4"/>
+<div class="flex justify-between text-[11px] text-on-surface-variant/70 font-mono">
+<span>-18&deg;C (Freezer)</span>
+<span class="font-semibold text-primary">4&deg;C (Optimal)</span>
+<span>35&deg;C (Warm)</span>
+</div>
+</div>
+<!-- Quick Temperature Preset Chips -->
+<div class="flex flex-wrap items-center gap-1.5 pt-1">
+<span class="text-[11px] text-on-surface-variant/70 font-medium mr-1">Presets:</span>
+<button type="button" data-temp-preset="-18" onclick="setTempPreset(-18)" class="px-2.5 py-1 text-xs rounded-full border border-outline-variant/50 hover:border-primary hover:text-primary hover:bg-primary/5 transition-all text-on-surface-variant font-medium">Freezer (-18&deg;)</button>
+<button type="button" data-temp-preset="2" onclick="setTempPreset(2)" class="px-2.5 py-1 text-xs rounded-full border border-outline-variant/50 hover:border-primary hover:text-primary hover:bg-primary/5 transition-all text-on-surface-variant font-medium">Cold (2&deg;)</button>
+<button type="button" data-temp-preset="4" onclick="setTempPreset(4)" class="px-2.5 py-1 text-xs rounded-full bg-primary/10 border border-primary/40 text-primary font-bold shadow-sm transition-all">Fridge (4&deg;)</button>
+<button type="button" data-temp-preset="12" onclick="setTempPreset(12)" class="px-2.5 py-1 text-xs rounded-full border border-outline-variant/50 hover:border-primary hover:text-primary hover:bg-primary/5 transition-all text-on-surface-variant font-medium">Cool (12&deg;)</button>
+<button type="button" data-temp-preset="20" onclick="setTempPreset(20)" class="px-2.5 py-1 text-xs rounded-full border border-outline-variant/50 hover:border-primary hover:text-primary hover:bg-primary/5 transition-all text-on-surface-variant font-medium">Room (20&deg;)</button>
+</div>
+</div>
+<!-- Humidity Level Control -->
+<div class="space-y-3">
+<div class="flex justify-between items-center">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-[22px]">water_drop</span>
+<label for="humidityInput" class="font-label-md text-label-md text-on-surface font-semibold">Humidity Level</label>
+</div>
+<!-- Interactive Stepper Number Field -->
+<div class="flex items-center rounded-xl border border-outline-variant/70 bg-surface-container-lowest overflow-hidden shadow-sm focus-within:border-secondary focus-within:ring-2 focus-within:ring-secondary/20 transition-all">
+<button type="button" onclick="adjustHumidity(-5)" aria-label="Decrease humidity" class="w-8 h-8 flex items-center justify-center text-on-surface-variant hover:bg-surface-container hover:text-secondary transition-colors active:scale-95">
+<span class="material-symbols-outlined text-[18px]">remove</span>
+</button>
+<div class="flex items-center px-1">
+<input type="number" id="humidityInput" min="10" max="100" step="1" value="85" oninput="syncHumidityFromInput(this.value)" onchange="validateHumidityOnBlur()" onblur="validateHumidityOnBlur()" class="w-14 py-1 text-center font-label-md text-label-md text-secondary font-bold bg-transparent border-0 outline-none focus:ring-0 appearance-none m-0"/>
+<span class="font-label-sm text-label-sm text-on-surface-variant pr-1 font-bold select-none">%</span>
+</div>
+<button type="button" onclick="adjustHumidity(5)" aria-label="Increase humidity" class="w-8 h-8 flex items-center justify-center text-on-surface-variant hover:bg-surface-container hover:text-secondary transition-colors active:scale-95">
+<span class="material-symbols-outlined text-[18px]">add</span>
+</button>
+</div>
+</div>
+<!-- Range Slider with Scale Labels -->
+<div class="space-y-1.5 pt-1">
+<input id="humiditySlider" oninput="syncHumidityFromSlider(this.value)" onchange="syncHumidityFromSlider(this.value)" class="w-full accent-primary h-2 bg-surface-variant rounded-lg appearance-none cursor-pointer focus:outline-none" max="100" min="10" step="1" type="range" value="85"/>
+<div class="flex justify-between text-[11px] text-on-surface-variant/70 font-mono">
+<span>10% (Dry)</span>
+<span class="font-semibold text-secondary">85% (Optimal)</span>
+<span>100% (Saturated)</span>
+</div>
+</div>
+<!-- Quick Humidity Preset Chips -->
+<div class="flex flex-wrap items-center gap-1.5 pt-1">
+<span class="text-[11px] text-on-surface-variant/70 font-medium mr-1">Presets:</span>
+<button type="button" data-hum-preset="45" onclick="setHumidityPreset(45)" class="px-2.5 py-1 text-xs rounded-full border border-outline-variant/50 hover:border-secondary hover:text-secondary hover:bg-secondary/5 transition-all text-on-surface-variant font-medium">Dry (45%)</button>
+<button type="button" data-hum-preset="65" onclick="setHumidityPreset(65)" class="px-2.5 py-1 text-xs rounded-full border border-outline-variant/50 hover:border-secondary hover:text-secondary hover:bg-secondary/5 transition-all text-on-surface-variant font-medium">Moderate (65%)</button>
+<button type="button" data-hum-preset="85" onclick="setHumidityPreset(85)" class="px-2.5 py-1 text-xs rounded-full bg-secondary/15 border border-secondary/40 text-secondary font-bold shadow-sm transition-all">Produce (85%)</button>
+<button type="button" data-hum-preset="95" onclick="setHumidityPreset(95)" class="px-2.5 py-1 text-xs rounded-full border border-outline-variant/50 hover:border-secondary hover:text-secondary hover:bg-secondary/5 transition-all text-on-surface-variant font-medium">High (95%)</button>
+</div>
 </div>
 </div>
 <div class="pt-4 flex justify-end">
-<button onclick="runAnalysis()" class="bg-primary-container text-on-primary-container font-label-md text-label-md rounded-full py-3 px-8 font-bold hover:scale-[1.02] shadow-ambient transition-all w-full md:w-auto flex items-center justify-center gap-2" type="button">
-<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
-                                Run Analysis
-                            </button>
+<button id="btnRunAnalysis" onclick="runAnalysis(true)" class="bg-primary-container text-on-primary-container font-label-md text-label-md rounded-full py-3 px-8 font-bold hover:scale-[1.02] shadow-ambient transition-all w-full md:w-auto flex items-center justify-center gap-2 cursor-pointer" type="button">
+<span id="runAnalysisIcon" class="material-symbols-outlined" data-icon="analytics">analytics</span>
+<span id="runAnalysisText">Run Analysis</span>
+</button>
 </div>
 </form>
 </div>
@@ -229,10 +310,14 @@
 <div class="bg-surface-container-lowest rounded-[16px] card-border shadow-ambient p-8 flex flex-col items-center justify-center relative overflow-hidden">
 <div class="absolute inset-0 bg-gradient-to-br from-[#DCFCE7]/40 to-transparent pointer-events-none"></div>
 <div class="z-10 text-center">
-<span class="inline-block px-4 py-1 rounded-full bg-[#DCFCE7] text-[#166534] font-label-md text-label-md font-semibold mb-4">Fresh</span>
-<h3 class="font-display text-[64px] leading-none font-bold text-primary mb-2">94<span class="text-headline-md">%</span></h3>
+<span id="resultFreshnessBadge" class="inline-block px-4 py-1 rounded-full bg-[#DCFCE7] text-[#166534] font-label-md text-label-md font-semibold mb-4">Fresh</span>
+<h3 class="font-display text-[64px] leading-none font-bold text-primary mb-2"><span id="resultScoreValue">94</span><span class="text-headline-md">%</span></h3>
 <p class="text-on-surface-variant font-label-md text-label-md mb-1">Overall Freshness Score</p>
-<p class="text-on-surface-variant font-label-sm text-label-sm">Spoilage Risk: <span class="font-bold text-primary">Low</span></p>
+<p class="text-on-surface-variant font-label-sm text-label-sm">Spoilage Risk: <span id="resultRiskValue" class="font-bold text-primary">Low</span></p>
+<div id="cnnPredictionPill" class="mt-3 hidden inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container text-on-surface-variant text-xs font-mono font-medium border border-outline-variant/40">
+    <span class="material-symbols-outlined text-[14px] text-primary">psychology</span>
+    <span id="cnnPredictionText">CNN: Fresh Apple (96.4%)</span>
+</div>
 </div>
 </div>
 <!-- Detailed Breakdown -->
@@ -243,30 +328,33 @@
 <div>
 <div class="flex justify-between font-label-sm text-label-sm mb-1">
 <span class="text-on-surface">Freshness Score</span>
-<span class="text-primary font-bold">98%</span>
+<span id="metricFreshnessText" class="text-primary font-bold">98%</span>
 </div>
 <div class="w-full bg-surface-variant rounded-full h-2">
-<div class="bg-primary h-2 rounded-full" style="width: 98%"></div>
+<div id="metricFreshnessBar" class="bg-primary h-2 rounded-full transition-all duration-300" style="width: 98%"></div>
 </div>
 </div>
 <!-- Metric 2 -->
 <div>
 <div class="flex justify-between font-label-sm text-label-sm mb-1">
 <span class="text-on-surface">Storage Score</span>
-<span class="text-secondary font-bold">90%</span>
+<div class="flex items-center gap-2">
+<span id="metricStorageConditions" class="text-[11px] font-mono font-medium text-on-surface-variant/80">4&deg;C &bull; 85% RH</span>
+<span id="metricStorageText" class="text-secondary font-bold">90%</span>
+</div>
 </div>
 <div class="w-full bg-surface-variant rounded-full h-2">
-<div class="bg-secondary h-2 rounded-full" style="width: 90%"></div>
+<div id="metricStorageBar" class="bg-secondary h-2 rounded-full transition-all duration-300" style="width: 90%"></div>
 </div>
 </div>
 <!-- Metric 3 -->
 <div>
 <div class="flex justify-between font-label-sm text-label-sm mb-1">
 <span class="text-on-surface">Shelf-Life Score</span>
-<span class="text-on-surface-variant">5 Days Remaining</span>
+<span id="metricShelfLifeText" class="text-on-surface-variant font-bold">5 Days Remaining</span>
 </div>
 <div class="w-full bg-surface-variant rounded-full h-2">
-<div class="bg-secondary-container h-2 rounded-full" style="width: 60%"></div>
+<div id="metricShelfLifeBar" class="bg-secondary-container h-2 rounded-full transition-all duration-300" style="width: 60%"></div>
 </div>
 </div>
 </div>
@@ -278,7 +366,21 @@
 </div>
 <div>
 <h4 class="font-title-lg text-title-lg text-on-surface mb-1">Storage Recommendation</h4>
-<p class="font-body-md text-body-md text-on-surface-variant">Maintain current temperature. Increase humidity slightly to 90% to extend shelf life by an estimated 2 days. <span class="text-on-surface-variant">Consumption suggestion: prioritize this batch first to reduce waste.</span></p>
+<p id="recommendationText" class="font-body-md text-body-md text-on-surface-variant">Maintain current temperature. Keep humidity balanced to extend shelf life.</p>
+</div>
+</div>
+<!-- Add to Storage / Inventory Action Card -->
+<div id="storageActionCard" class="bg-surface-container-lowest rounded-[16px] card-border shadow-ambient p-6 flex flex-col gap-3">
+<button id="btnAddToStorage" onclick="addToMyStorage()" class="bg-primary-container text-on-primary font-label-md text-label-md rounded-full py-3.5 px-6 font-bold hover:scale-[1.02] shadow-ambient transition-all w-full flex items-center justify-center gap-2" type="button">
+<span class="material-symbols-outlined" data-icon="inventory_2">inventory_2</span>
+Add to Inventory
+</button>
+<p id="storageDescText" class="text-xs text-center text-on-surface-variant">Adds this food item to inventory with real-time freshness tracking.</p>
+<div id="storageSaveSuccess" class="hidden p-3 rounded-lg bg-[#DCFCE7] text-[#166534] text-xs font-semibold flex items-center justify-between">
+<span>Item successfully added to inventory!</span>
+<a href="inventory.html" class="underline font-bold ml-2">View in Inventory &rarr;</a>
+</div>
+<div id="storageSaveError" class="hidden p-3 rounded-lg bg-[#FEE2E2] text-[#991B1B] text-xs font-semibold"></div>
 </div>
 </div>
 </div>
@@ -301,32 +403,486 @@
 </nav>
 
 <script>
+let currentAnalysisData = {
+    name: 'Fresh Apple',
+    category: 'Apple',
+    batch_id: 'SCAN-1001',
+    freshness_score: 94.0,
+    freshness_status: 'Fresh',
+    spoilage_risk: 'Low',
+    storage_temperature: 4.0,
+    humidity: 85.0,
+    estimated_expiry_days: 14,
+    storage_tip: 'Maintain current temperature (4°C) with balanced ambient humidity.',
+    image_url: null
+};
+
+function syncTempFromSlider(val) {
+    const num = parseFloat(val);
+    document.getElementById('tempInput').value = num;
+    updateActivePresets();
+    runAnalysis(false);
+}
+
+function syncTempFromInput(val) {
+    let num = parseFloat(val);
+    if (isNaN(num)) return;
+    num = Math.max(-18, Math.min(35, num));
+    document.getElementById('tempSlider').value = num;
+    updateActivePresets();
+    runAnalysis(false);
+}
+
+function validateTempOnBlur() {
+    const input = document.getElementById('tempInput');
+    let val = parseFloat(input.value);
+    if (isNaN(val)) val = 4.0;
+    val = Math.max(-18, Math.min(35, val));
+    input.value = val;
+    document.getElementById('tempSlider').value = val;
+    updateActivePresets();
+    runAnalysis(false);
+}
+
+function adjustTemp(delta) {
+    const input = document.getElementById('tempInput');
+    let current = parseFloat(input.value) || 4.0;
+    current = Math.round((current + delta) * 10) / 10;
+    current = Math.max(-18, Math.min(35, current));
+    input.value = current;
+    document.getElementById('tempSlider').value = current;
+    updateActivePresets();
+    runAnalysis(false);
+}
+
+function setTempPreset(val) {
+    document.getElementById('tempInput').value = val;
+    document.getElementById('tempSlider').value = val;
+    updateActivePresets();
+    runAnalysis(false);
+}
+
+function syncHumidityFromSlider(val) {
+    const num = parseInt(val, 10);
+    document.getElementById('humidityInput').value = num;
+    updateActivePresets();
+    runAnalysis(false);
+}
+
+function syncHumidityFromInput(val) {
+    let num = parseInt(val, 10);
+    if (isNaN(num)) return;
+    num = Math.max(10, Math.min(100, num));
+    document.getElementById('humiditySlider').value = num;
+    updateActivePresets();
+    runAnalysis(false);
+}
+
+function validateHumidityOnBlur() {
+    const input = document.getElementById('humidityInput');
+    let val = parseInt(input.value, 10);
+    if (isNaN(val)) val = 85;
+    val = Math.max(10, Math.min(100, val));
+    input.value = val;
+    document.getElementById('humiditySlider').value = val;
+    updateActivePresets();
+    runAnalysis(false);
+}
+
+function adjustHumidity(delta) {
+    const input = document.getElementById('humidityInput');
+    let current = parseInt(input.value, 10) || 85;
+    current = Math.max(10, Math.min(100, current + delta));
+    input.value = current;
+    document.getElementById('humiditySlider').value = current;
+    updateActivePresets();
+    runAnalysis(false);
+}
+
+function setHumidityPreset(val) {
+    document.getElementById('humidityInput').value = val;
+    document.getElementById('humiditySlider').value = val;
+    updateActivePresets();
+    runAnalysis(false);
+}
+
+function updateActivePresets() {
+    const currentTemp = parseFloat(document.getElementById('tempInput')?.value);
+    const currentHum = parseInt(document.getElementById('humidityInput')?.value, 10);
+
+    document.querySelectorAll('[data-temp-preset]').forEach(btn => {
+        const val = parseFloat(btn.getAttribute('data-temp-preset'));
+        if (Math.abs(val - currentTemp) < 0.1) {
+            btn.className = "px-2.5 py-1 text-xs rounded-full bg-primary/10 border border-primary/40 text-primary font-bold shadow-sm transition-all";
+        } else {
+            btn.className = "px-2.5 py-1 text-xs rounded-full border border-outline-variant/50 hover:border-primary hover:text-primary hover:bg-primary/5 transition-all text-on-surface-variant font-medium";
+        }
+    });
+
+    document.querySelectorAll('[data-hum-preset]').forEach(btn => {
+        const val = parseInt(btn.getAttribute('data-hum-preset'), 10);
+        if (val === currentHum) {
+            btn.className = "px-2.5 py-1 text-xs rounded-full bg-secondary/15 border border-secondary/40 text-secondary font-bold shadow-sm transition-all";
+        } else {
+            btn.className = "px-2.5 py-1 text-xs rounded-full border border-outline-variant/50 hover:border-secondary hover:text-secondary hover:bg-secondary/5 transition-all text-on-surface-variant font-medium";
+        }
+    });
+}
+
+function handleCategoryChange(val) {
+    runAnalysis(false);
+}
+
+function getEffectiveCategory() {
+    const select = document.getElementById('scanCategorySelect');
+    return select ? select.value : 'Apple';
+}
+
+function getBaselineDays(category) {
+    const cat = (category || '').toLowerCase();
+    if (cat.includes('banana')) return 5;
+    if (cat.includes('apple')) return 14;
+    if (cat.includes('orange')) return 14;
+    return 10;
+}
+
+let selectedScanFile = null;
+
 function handleFileSelect(event) {
     const file = event.target.files[0];
     if (!file) return;
+    selectedScanFile = file;
     const reader = new FileReader();
     reader.onload = function(e) {
+        currentAnalysisData.image_url = e.target.result;
         document.getElementById('uploadZoneContent').innerHTML = `
             <img src="${e.target.result}" class="w-32 h-32 object-cover rounded-lg mb-4 border border-outline-variant"/>
             <p class="font-label-md text-label-md text-on-surface mb-1">${file.name}</p>
-            <p class="text-on-surface-variant font-body-md text-body-md text-center mb-2">Image ready for analysis.</p>
+            <p class="text-on-surface-variant font-body-md text-body-md text-center mb-2">Image ready for CNN analysis.</p>
             <button type="button" onclick="event.stopPropagation(); document.getElementById('fileInput').click()" class="bg-primary-container text-on-primary-container font-label-md text-label-md rounded-full py-2 px-6 font-bold hover:scale-[1.02] transition-transform">
                 Choose a different file
             </button>
         `;
+        if (!document.getElementById('scanItemName').value.trim()) {
+            const rawName = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
+            document.getElementById('scanItemName').value = rawName.charAt(0).toUpperCase() + rawName.slice(1);
+        }
+        runAnalysis(false);
     };
     reader.readAsDataURL(file);
 }
 
-function runAnalysis() {
-    const panel = document.getElementById('resultsPanel');
-    panel.style.opacity = '0.3';
-    panel.style.transform = 'scale(0.98)';
-    setTimeout(() => {
-        panel.style.opacity = '1';
-        panel.style.transform = 'scale(1)';
-        panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 600);
+async function runAnalysis(shouldScroll = true) {
+    const category = getEffectiveCategory();
+    const temp = parseFloat(document.getElementById('tempInput').value) || 4.0;
+    const hum = parseFloat(document.getElementById('humidityInput').value) || 85.0;
+    let nameInput = document.getElementById('scanItemName').value.trim() || `${category} Batch`;
+    const batchInput = document.getElementById('scanBatchId').value.trim() || `LOT-${Math.floor(100 + Math.random() * 900)}-${category.substring(0, 3).toUpperCase()}`;
+
+    const btn = document.getElementById('btnRunAnalysis');
+    const icon = document.getElementById('runAnalysisIcon');
+    const btnText = document.getElementById('runAnalysisText');
+    const cnnPill = document.getElementById('cnnPredictionPill');
+    const cnnText = document.getElementById('cnnPredictionText');
+
+    let score = 94;
+    let status = 'Fresh';
+    let risk = 'Low';
+    let badgeBg = '#DCFCE7';
+    let badgeText = '#166534';
+    let baselineDays = getBaselineDays(category);
+    let remainingDays = 14;
+    let storageScore = Math.max(40, Math.min(98, Math.round(100 - Math.abs(temp - 4) * 5 - Math.abs(hum - 85) * 0.5)));
+    let tip = `Maintain current temperature (${temp}&deg;C). `;
+
+    // If an image file has been uploaded, run real CNN vision inference via backend API
+    if (selectedScanFile) {
+        if (btn && icon && btnText) {
+            btn.disabled = true;
+            icon.textContent = 'progress_activity';
+            icon.classList.add('animate-spin');
+            btnText.textContent = 'Analyzing...';
+        }
+
+        try {
+            const formData = new FormData();
+            formData.append('image', selectedScanFile);
+            formData.append('storage_temperature', temp);
+            formData.append('humidity', hum);
+            formData.append('selected_food', category);
+
+            const res = await fetch(`${API_BASE_URL}/scan/analyze`, {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({ detail: 'Analysis failed' }));
+                throw new Error(errData.detail || 'Failed to analyze food scan image');
+            }
+
+            const data = await res.json();
+            const pred = data.prediction;
+            const analysis = data.analysis;
+
+            score = analysis.freshness_score;
+            status = analysis.freshness_status;
+            risk = analysis.spoilage_risk;
+            remainingDays = analysis.estimated_expiry_days;
+            baselineDays = analysis.baseline_days || baselineDays;
+            storageScore = analysis.storage_score || storageScore;
+            tip = analysis.storage_tip || tip;
+
+            // Align food category dropdown if model detected a valid food class
+            if (pred && pred.food) {
+                const select = document.getElementById('scanCategorySelect');
+                if (select && select.value !== pred.food) {
+                    select.value = pred.food;
+                }
+                nameInput = `${pred.status} ${pred.food}`;
+                document.getElementById('scanItemName').value = nameInput;
+            }
+
+            // Display CNN confidence pill
+            if (cnnPill && cnnText && pred) {
+                cnnPill.classList.remove('hidden');
+                cnnText.textContent = `CNN Vision: ${pred.status} ${pred.food} (${pred.confidence}% confidence)`;
+            }
+        } catch (err) {
+            console.warn('Real CNN inference request failed, falling back to local heuristic preview:', err);
+            if (cnnPill && cnnText) {
+                cnnPill.classList.remove('hidden');
+                cnnText.textContent = `Offline preview (${err.message || 'CNN API unreachable'})`;
+            }
+        } finally {
+            if (btn && icon && btnText) {
+                btn.disabled = false;
+                icon.textContent = 'analytics';
+                icon.classList.remove('animate-spin');
+                btnText.textContent = 'Run Analysis';
+            }
+        }
+    } else {
+        // Fallback calculation for empty preview before file upload
+        const exponent = -(temp - 4.0) / 10.0;
+        remainingDays = baselineDays * Math.pow(2.0, exponent);
+        if (hum < 70 || hum > 92) {
+            remainingDays *= 0.88;
+        }
+        remainingDays = Math.max(1, Math.round(remainingDays));
+
+        score = Math.min(99, Math.round(92 + (remainingDays / baselineDays) * 6 - Math.max(0, temp - 4) * 2));
+        score = Math.max(35, Math.min(99, score));
+
+        if (temp > 8) {
+            tip = `Refrigeration recommended: lower temperature to 4&deg;C to extend shelf-life by estimated ${Math.round(remainingDays * 0.8)} days.`;
+        } else if (hum < 75) {
+            tip += 'Increase humidity slightly to prevent dehydration.';
+        } else {
+            tip += 'Storage parameters are within optimal preservation range.';
+        }
+
+        if (cnnPill) {
+            cnnPill.classList.add('hidden');
+        }
+    }
+
+    // Color badges based on status & score
+    if (status === 'Spoiled' || status === 'Near Spoilage' || status === 'Rotten' || score < 50) {
+        badgeBg = '#FEE2E2';
+        badgeText = '#991B1B';
+    } else if (status === 'Acceptable' || (score >= 50 && score < 75)) {
+        badgeBg = '#FEF3C7';
+        badgeText = '#92400E';
+    } else if (status === 'Good' || (score >= 75 && score < 88)) {
+        badgeBg = '#FEF9C3';
+        badgeText = '#854D0E';
+    } else {
+        badgeBg = '#DCFCE7';
+        badgeText = '#166534';
+    }
+
+    // Save into state
+    currentAnalysisData = {
+        name: nameInput,
+        category: category,
+        batch_id: batchInput,
+        freshness_score: score,
+        freshness_status: status,
+        spoilage_risk: risk,
+        storage_temperature: temp,
+        humidity: hum,
+        estimated_expiry_days: remainingDays,
+        storage_tip: tip,
+        image_url: currentAnalysisData.image_url
+    };
+
+    // Update UI elements
+    const badgeEl = document.getElementById('resultFreshnessBadge');
+    badgeEl.textContent = status;
+    badgeEl.style.backgroundColor = badgeBg;
+    badgeEl.style.color = badgeText;
+
+    document.getElementById('resultScoreValue').textContent = score;
+    const riskEl = document.getElementById('resultRiskValue');
+    riskEl.textContent = risk;
+    if (risk === 'High') {
+        riskEl.className = 'font-bold text-[#DC2626]';
+    } else if (risk === 'Medium') {
+        riskEl.className = 'font-bold text-[#D97706]';
+    } else {
+        riskEl.className = 'font-bold text-primary';
+    }
+
+    document.getElementById('metricFreshnessText').textContent = `${score}%`;
+    document.getElementById('metricFreshnessBar').style.width = `${score}%`;
+
+    document.getElementById('metricStorageText').textContent = `${storageScore}%`;
+    document.getElementById('metricStorageBar').style.width = `${storageScore}%`;
+    const condEl = document.getElementById('metricStorageConditions');
+    if (condEl) {
+        condEl.innerHTML = `${temp}&deg;C &bull; ${hum}% RH`;
+    }
+
+    document.getElementById('metricShelfLifeText').textContent = `${remainingDays} Day${remainingDays === 1 ? '' : 's'} Remaining`;
+    const shelfPct = Math.min(100, Math.round((remainingDays / Math.max(1, baselineDays)) * 100));
+    document.getElementById('metricShelfLifeBar').style.width = `${shelfPct}%`;
+
+    document.getElementById('recommendationText').innerHTML = tip;
+
+    // Reset status messages
+    document.getElementById('storageSaveSuccess').classList.add('hidden');
+    document.getElementById('storageSaveError').classList.add('hidden');
+
+    if (shouldScroll) {
+        const panel = document.getElementById('resultsPanel');
+        panel.style.opacity = '0.3';
+        panel.style.transform = 'scale(0.98)';
+        setTimeout(() => {
+            panel.style.opacity = '1';
+            panel.style.transform = 'scale(1)';
+            panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 300);
+    }
+}
+
+async function addToMyStorage() {
+    const token = getAuthToken();
+    if (!token) {
+        window.location.href = 'sign-in.html';
+        return;
+    }
+
+    const user = getAuthUser();
+    const canManage = user && ['retail_manager', 'warehouse_operator', 'warehouse_manager', 'admin'].includes(user.role);
+    const isConsumer = user && user.role === 'consumer';
+
+    if (!isConsumer && !canManage) {
+        const errorBox = document.getElementById('storageSaveError');
+        errorBox.textContent = 'Food Quality Inspectors have read-only inspection access and cannot add inventory.';
+        errorBox.classList.remove('hidden');
+        return;
+    }
+
+    const btn = document.getElementById('btnAddToStorage');
+    const successBox = document.getElementById('storageSaveSuccess');
+    const errorBox = document.getElementById('storageSaveError');
+
+    successBox.classList.add('hidden');
+    errorBox.classList.add('hidden');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="material-symbols-outlined animate-spin text-sm">progress_activity</span> Saving...';
+
+    try {
+        const payload = {
+            name: currentAnalysisData.name,
+            category: currentAnalysisData.category,
+            batch_id: currentAnalysisData.batch_id,
+            quantity: 1.0,
+            unit: 'items',
+            freshness_score: currentAnalysisData.freshness_score,
+            freshness_status: currentAnalysisData.freshness_status,
+            spoilage_risk: currentAnalysisData.spoilage_risk,
+            storage_temperature: currentAnalysisData.storage_temperature,
+            humidity: currentAnalysisData.humidity,
+            estimated_expiry_days: currentAnalysisData.estimated_expiry_days,
+            origin_location: isConsumer ? 'Personal Scan' : 'Facility Scanner',
+            image_url: currentAnalysisData.image_url,
+            storage_tip: currentAnalysisData.storage_tip,
+            consumption_suggestion: currentAnalysisData.freshness_score >= 80 ? 'Safe for normal consumption.' : 'Prioritize consumption soon.'
+        };
+
+        const targetUrl = isConsumer ? `${API_BASE_URL}/inventory/storage` : `${API_BASE_URL}/inventory`;
+
+        const res = await fetch(targetUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.detail || 'Failed to add item to inventory');
+        }
+
+        successBox.classList.remove('hidden');
+        if (isConsumer) {
+            successBox.innerHTML = `<span>Item successfully saved to your personal storage!</span><a href="inventory.html?scope=personal" class="underline font-bold ml-2">View in Storage &rarr;</a>`;
+            btn.innerHTML = `<span class="material-symbols-outlined text-sm">check</span> Added to My Storage`;
+        } else {
+            successBox.innerHTML = `<span>Item successfully added to inventory!</span><a href="inventory.html" class="underline font-bold ml-2">View in Inventory &rarr;</a>`;
+            btn.innerHTML = `<span class="material-symbols-outlined text-sm">check</span> Added to Inventory`;
+        }
+        btn.classList.add('bg-secondary-container', 'text-on-secondary-container');
+        btn.classList.remove('bg-primary-container', 'text-on-primary');
+    } catch (err) {
+        errorBox.textContent = err.message || 'Error saving item. Please try again.';
+        errorBox.classList.remove('hidden');
+        btn.disabled = false;
+        btn.innerHTML = isConsumer
+            ? '<span class="material-symbols-outlined" data-icon="bookmark_add">bookmark_add</span> Add to My Storage'
+            : '<span class="material-symbols-outlined" data-icon="inventory_2">inventory_2</span> Add to Inventory';
+    }
+}
+
+function checkStorageRolePermission(user) {
+    const btn = document.getElementById('btnAddToStorage');
+    const desc = document.getElementById('storageDescText');
+    if (!btn) return;
+
+    const isConsumer = user && user.role === 'consumer';
+    const canManage = user && ['retail_manager', 'warehouse_operator', 'warehouse_manager', 'admin'].includes(user.role);
+
+    if (isConsumer) {
+        btn.disabled = false;
+        btn.className = "bg-primary-container text-on-primary font-label-md text-label-md rounded-full py-3.5 px-6 font-bold hover:scale-[1.02] shadow-ambient transition-all w-full flex items-center justify-center gap-2 cursor-pointer";
+        btn.innerHTML = '<span class="material-symbols-outlined" data-icon="bookmark_add">bookmark_add</span> Add to My Storage';
+        btn.removeAttribute('title');
+        if (desc) {
+            desc.innerHTML = 'Stores this food item under your personal account with live freshness alerts.';
+        }
+    } else if (canManage) {
+        btn.disabled = false;
+        btn.className = "bg-primary-container text-on-primary font-label-md text-label-md rounded-full py-3.5 px-6 font-bold hover:scale-[1.02] shadow-ambient transition-all w-full flex items-center justify-center gap-2 cursor-pointer";
+        btn.innerHTML = '<span class="material-symbols-outlined" data-icon="inventory_2">inventory_2</span> Add to Inventory';
+        btn.removeAttribute('title');
+        if (desc) {
+            const roleName = typeof formatRoleName === 'function' ? formatRoleName(user.role) : user.role;
+            desc.innerHTML = `<span class="inline-flex items-center gap-1 font-medium text-on-surface-variant/90"><span class="material-symbols-outlined text-[15px] text-primary">verified</span> Adds this scanned item directly to inventory (logged in as ${roleName}). Consumer personal storage remains isolated.</span>`;
+        }
+    } else {
+        // Food quality inspector or unknown role
+        btn.disabled = true;
+        btn.className = "bg-surface-container text-on-surface-variant/40 font-label-md text-label-md rounded-full py-3.5 px-6 font-bold border border-outline-variant/30 shadow-none transition-all w-full flex items-center justify-center gap-2 cursor-not-allowed";
+        btn.innerHTML = '<span class="material-symbols-outlined text-[18px]">lock</span> Inspection Scan Only (Read-Only)';
+        btn.setAttribute('title', 'Food quality inspectors cannot create or modify inventory');
+        if (desc) {
+            desc.innerHTML = `<span class="inline-flex items-center gap-1 font-medium text-on-surface-variant/80"><span class="material-symbols-outlined text-[15px] text-outline">info</span> Food Quality Inspector has read-only audit permissions and cannot create inventory items.</span>`;
+        }
+    }
 }
 
 // Drag and drop support
@@ -349,8 +905,30 @@ if (dropZone) {
         }
     });
 }
+
+// Auto-initialize presets and analysis parameters on page load
+document.addEventListener('DOMContentLoaded', () => {
+    updateActivePresets();
+    runAnalysis(false);
+    const cachedUser = getAuthUser();
+    if (cachedUser) {
+        checkStorageRolePermission(cachedUser);
+    }
+});
+if (document.readyState !== 'loading') {
+    updateActivePresets();
+    runAnalysis(false);
+    const cachedUser = getAuthUser();
+    if (cachedUser) {
+        checkStorageRolePermission(cachedUser);
+    }
+}
 </script>
 <script>
-    requireAuth();
+    requireAuth().then(user => {
+        if (user) {
+            checkStorageRolePermission(user);
+        }
+    });
 </script>
 </body></html>

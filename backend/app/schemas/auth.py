@@ -12,6 +12,7 @@ ROLE_ALIASES = {
     "consumer": UserRole.CONSUMER,
     "retail_manager": UserRole.RETAIL_MANAGER,
     "warehouse_operator": UserRole.WAREHOUSE_OPERATOR,
+    "warehouse_manager": UserRole.WAREHOUSE_OPERATOR,
 }
 
 

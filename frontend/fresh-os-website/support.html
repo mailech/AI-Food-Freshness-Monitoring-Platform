@@ -12,6 +12,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&amp;family=Sora:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
 <!-- Tailwind CSS -->
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Auth Script -->
+<script src="auth.js?v=2.5"></script>
 <!-- Tailwind Config -->
 <script id="tailwind-config">
   tailwind.config = {
@@ -218,18 +220,17 @@
 <input class="w-full pl-10 pr-4 py-2 bg-surface border border-outline-variant/50 rounded-lg text-sm focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-all" placeholder="Search inventory, batches, or alerts..." type="text"/>
 </div>
 <div class="flex items-center gap-6">
-<button class="relative text-on-surface-variant hover:text-on-surface transition-colors">
+<button id="notificationBellBtn" onclick="toggleNotificationDropdown(event, this)" data-notification-bell="true" title="Near Spoilage Notifications" class="relative p-2 rounded-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors">
 <span class="material-symbols-outlined text-[24px]">notifications</span>
-<span class="absolute 1 top-0 right-0 w-2.5 h-2.5 bg-error rounded-full border-2 border-white"></span>
 </button>
 <div class="h-6 w-px bg-outline-variant/50"></div>
 <button onclick="window.location.href='settings.html'" class="flex items-center gap-3 hover:bg-surface-container px-2 py-1.5 rounded-lg transition-colors">
 <div class="text-right hidden sm:block">
-<div class="text-sm font-semibold text-on-surface leading-tight">Sarah Jenkins</div>
-<div class="text-[11px] text-on-surface-variant">Facility Admin</div>
+<div class="text-sm font-semibold text-on-surface leading-tight header-user-name">User</div>
+<div class="text-[11px] text-on-surface-variant header-user-role">Account</div>
 </div>
-<div class="w-8 h-8 rounded-full bg-primary-container/20 overflow-hidden">
-<img alt="User" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAIcnlZ5dH4PsEhOFtN6P0DjXgLB75euiormIiMJorJuejL-28L8iSeI3EbUIAqaG8-8njXp3Lu4mppgBp1_5uWhtIUdm7iB8WfNOD1NCGskWbxucb6jWcVqJZWiFgAl2fIfUxi_TCmxW9fZvcTwta36P2BjyjQMzz9DMGzy0FAUWTLt7JzS3rw0yXBv9UvCLTcDF6M8Ro67qnhYn7bcoJ9HlKMagyVY76pNtU3A5oH7RKsQZKs733-"/>
+<div class="w-8 h-8 rounded-full bg-surface-container-high border border-outline-variant/40 flex items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]">person</span>
 </div>
 <span class="material-symbols-outlined text-[20px] text-on-surface-variant">keyboard_arrow_down</span>
 </button>

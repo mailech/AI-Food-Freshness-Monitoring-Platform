@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from typing import Dict, List
 from fastapi import APIRouter, Depends, status
 from sqlalchemy import func
@@ -5,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.auth.dependencies import get_current_user
 from app.database import get_db
 from app.models.food_item import FoodItem
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.schemas.dashboard import AlertItem, DashboardSummaryResponse, StorageConditions
 from app.services.shelflife_service import calculate_shelf_life_days
 
@@ -19,9 +20,16 @@ def get_dashboard_summary(
 ):
     """
     Retrieves summary metrics for the dashboard.
-    Open to ALL authenticated roles (including Consumer).
+    For consumer role: scoped to their own scanned items (personal stats, personal alerts, personal recent items).
+    For staff roles (warehouse_operator, retail_manager, food_quality_inspector, admin): store-wide metrics.
     """
-    items = db.query(FoodItem).all()
+    query = db.query(FoodItem)
+    if current_user.role == UserRole.CONSUMER:
+        query = query.filter(FoodItem.user_id == current_user.id)
+    else:
+        query = query.filter(FoodItem.is_personal == False)
+
+    items = query.all()
     total_count = len(items)
 
     if total_count == 0:
@@ -72,7 +80,7 @@ def get_dashboard_summary(
 
     active_alerts_count = len(alerts)
 
-    # Compliance calculation (percentage of items stored at 2°C - 8°C and 70% - 95% humidity)
+    # Compliance calculation (percentage of items stored at 2Â°C - 8Â°C and 70% - 95% humidity)
     compliant_items = 0
     for item in items:
         t = item.storage_temperature if item.storage_temperature is not None else 4.0
@@ -86,17 +94,37 @@ def get_dashboard_summary(
     # Estimated waste saved (approx .85 saved per tracked item in optimal status)
     waste_saved = round(sum(item.quantity * 1.75 for item in items if (item.freshness_score or 0) >= 70.0), 2)
 
-    # Recent items summary list
+    # Recent items summary list with dynamic elapsed time computation
     recent_items_list = []
+    now = datetime.now(timezone.utc)
     for item in sorted(items, key=lambda x: x.id, reverse=True)[:5]:
-        rem_days = calculate_shelf_life_days(item.category, item.storage_temperature, item.humidity)
+        base_days = item.estimated_expiry_days if item.estimated_expiry_days is not None else calculate_shelf_life_days(item.category, item.storage_temperature, item.humidity)
+        rem_days = base_days
+        status_disp = item.freshness_status
+        score_disp = item.freshness_score or 90.0
+        if item.created_at:
+            created = item.created_at
+            if created.tzinfo is None:
+                created = created.replace(tzinfo=timezone.utc)
+            elapsed_days = max(0, (now - created).days)
+            rem_days = max(0, base_days - elapsed_days)
+            if elapsed_days > 0 and item.freshness_score is not None:
+                total_days = max(1, base_days)
+                ratio = rem_days / total_days
+                score_disp = round(max(10.0, item.freshness_score * ratio), 1)
+                if rem_days == 0:
+                    status_disp = "Spoiled"
+                elif rem_days <= 2:
+                    status_disp = "Near Spoilage"
+                elif rem_days <= 4:
+                    status_disp = "Acceptable"
         recent_items_list.append({
             "id": item.id,
             "name": item.name,
             "batch_id": item.batch_id,
             "category": item.category,
-            "freshness_status": item.freshness_status,
-            "freshness_score": item.freshness_score,
+            "freshness_status": status_disp,
+            "freshness_score": score_disp,
             "quantity": item.quantity,
             "unit": item.unit,
             "image_url": item.image_url,

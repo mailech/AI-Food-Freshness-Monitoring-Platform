@@ -33,7 +33,8 @@ def signup(user_in: UserSignup, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(user)
 
-    token = create_access_token(subject=user.id, role=user.role.value)
+    from datetime import timedelta
+    token = create_access_token(subject=user.id, role=user.role.value, expires_delta=timedelta(days=30))
     return Token(
         access_token=token,
         token_type="bearer",

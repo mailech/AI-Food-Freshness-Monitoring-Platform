@@ -3,36 +3,16 @@ import pytest
 import app.models
 from fastapi.testclient import TestClient
 from app.main import app
-from app.database import Base, get_db
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-
-# Setup dedicated file-based test DB
-TEST_DATABASE_URL = "sqlite:///./test_phase1.db"
-test_engine = create_engine(
-    TEST_DATABASE_URL,
-    connect_args={"check_same_thread": False}
-)
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
-
-
-def override_get_db_phase1():
-    db = TestingSessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
+from app.database import Base, SessionLocal, engine, get_db
 
 client = TestClient(app)
 
 
 @pytest.fixture(autouse=True)
 def setup_and_cleanup_db():
-    app.dependency_overrides[get_db] = override_get_db_phase1
-    Base.metadata.create_all(bind=test_engine)
-    yield
-    db = TestingSessionLocal()
+    Base.metadata.create_all(bind=engine)
+    # Pre-test cleanup
+    db = SessionLocal()
     try:
         for table in reversed(Base.metadata.sorted_tables):
             db.execute(table.delete())
@@ -41,6 +21,23 @@ def setup_and_cleanup_db():
         db.rollback()
     finally:
         db.close()
+
+    yield
+
+    # Post-test cleanup (ensures database is left clean with 0 leftover rows)
+    db = SessionLocal()
+    try:
+        for table in reversed(Base.metadata.sorted_tables):
+            db.execute(table.delete())
+        db.commit()
+    except Exception:
+        db.rollback()
+    finally:
+        db.close()
+
+    from app.main import seed_initial_user, seed_initial_inventory
+    seed_initial_user()
+    seed_initial_inventory()
 
 
 def test_signup_all_roles():
